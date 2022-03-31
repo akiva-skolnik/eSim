@@ -11,6 +11,7 @@ from discord.ext.commands import Cog, command
 from pytz import timezone
 
 from Converters import IsMyNick
+import utils
 
 
 class Mix(Cog):
@@ -34,29 +35,27 @@ class Mix(Cog):
             payload = {"action": "CANDIDATE", "presentation": "http://", "submit": "Candidate for congress"}
             link = "congressElections.html"
         else:
-            await ctx.send("Can't candidate today. Try another time.")
-            return
+            return await ctx.send(f"**{nick}** ERROR: I can't candidate today. Try another time.")
 
-        ID = ""
         try:
-            tree = await self.bot.get_content(URL + "partyStatistics.html?statisticType=MEMBERS", login_first=True)
+            tree = await self.bot.get_content(URL + "partyStatistics.html?statisticType=MEMBERS")
             ID = str(tree.xpath('//*[@id="esim-layout"]//table//tr[2]//td[3]//@href')[0]).split("=")[1]
             party_payload = {"action": "JOIN", "id": ID, "submit": "Join"}
             url = await self.bot.get_content(URL + "partyStatistics.html", data=party_payload)
             if str(url) != URL + "?actionStatus=PARTY_JOIN_ALREADY_IN_PARTY":
-                await ctx.send(url)
+                await ctx.send(f"**{nick}** <{url}>")
 
         except:
             pass
 
-        url = await self.bot.get_content(URL + link, data=payload, login_first=not ID)
-        await ctx.send(url)
+        url = await self.bot.get_content(URL + link, data=payload)
+        await ctx.send(f"**{nick}** <{url}>")
 
     @command()
     async def avatar(self, ctx, *, nick):
         """
         Change avatar img.
-        If you don't want the default img, write like that:
+        If you don't want the default img, write it like that:
         `.avatar https://picsum.photos/150, Your Nick` (with a comma)"""
 
         if "," in nick:
@@ -73,8 +72,8 @@ class Mix(Cog):
         payload = {"action": "CONTINUE", "v": f"data:image/png;base64,{avatarBase64}",
                    "h": "none", "e": "none", "b": "none", "a": "none", "c": "none", "z": 1, "r": 0,
                    "hh": 1, "eh": 1, "bh": 1, "ah": 1, "hv": 1, "ev": 1, "bv": 1, "av": 1, "act": ""}
-        url = await self.bot.get_content(URL + "editAvatar.html", data=payload, login_first=True)
-        await ctx.send(url)
+        url = await self.bot.get_content(URL + "editAvatar.html", data=payload)
+        await ctx.send(f"**{nick}** <{url}>")
 
     @command()
     async def missions(self, ctx, nick: IsMyNick, missions_to_complete="ALL", action="ALL"):
@@ -85,66 +84,54 @@ class Mix(Cog):
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         if action.lower() not in ("start", "complete", "skip", "all"):
-            await ctx.send("action must be `start`/`complete`/`skip`/`ALL`")
-            return
+            return await ctx.send(f"**{nick}** ERROR: action must be `start`/`complete`/`skip`/`ALL`, not `{action}`")
 
         if missions_to_complete.lower() != "all":
             if action.lower() != "all":
                 if action.lower() == "start":
                     c = await self.bot.get_content(URL + "betaMissions.html?action=START",
-                                                   data={"submit": "Mission start"},
-                                                   login_first=True)
+                                                   data={"submit": "Mission start"})
                     if "MISSION_START_OK" not in c and "?action=START" not in c:
-                        await ctx.send(c)
-                        return
+                        return await ctx.send(f"**{nick}** <{c}>")
                 if action.lower() == "complete":
                     c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE",
-                                                   data={"submit": "Receive"},
-                                                   login_first=True)
+                                                   data={"submit": "Collect"})
                     if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
-                        await ctx.send(c)
-                        return
+                        return await ctx.send(f"**{nick}** <{c}>")
                 if action.lower() == "skip":
                     c = await self.bot.get_content(URL + "betaMissions.html",
-                                                   data={"action": "SKIP", "submit": "Skip this mission"},
-                                                   login_first=True)
+                                                   data={"action": "SKIP", "submit": "Skip this mission"})
                     if "MISSION_SKIPPED" not in c:
-                        await ctx.send(c)
-                        return
-                await ctx.send("Done")
-                return
+                        return await ctx.send(f"**{nick}** <{c}>")
+                return await ctx.send(f"**{nick}** Done")
         if missions_to_complete.lower() == "all":
             RANGE = 20
         else:
             RANGE = int(missions_to_complete)
         for Index in range(RANGE):
             try:
-                tree = await self.bot.get_content(URL, login_first=not Index)
+                tree = await self.bot.get_content(URL)
                 check = tree.xpath('//*[@id="taskButtonWork"]//@href')
                 if check:
                     await ctx.invoke(self.bot.get_command("work"), nick=nick)
                 my_id = str(tree.xpath('//*[@id="userName"]/@href')[0]).split("=")[1]
                 try:
-                    num = int(
-                        str(tree.xpath('//*[@id="inProgressPanel"]/div[1]/strong')[0].text).split("#")[1].split(":")[0])
+                    num = int(str(tree.xpath('//*[@id="inProgressPanel"]/div[1]/div/strong')[0].text).split("#")[1])
                 except:
                     # need to collect reward / no more missions
-                    c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE",
-                                                   data={"submit": "Receive"})
+                    c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE", data={"submit": "Collect"})
                     if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
-                        await ctx.send(f"No more missions today. Come back tomorrow!")
-                        return
-                    await ctx.send(c)
+                        return await ctx.send(f"**{nick}** No more missions today. Come back tomorrow!")
+                    await ctx.send(f"**{nick}** <{c}>")
                     continue
 
                 if not num:
-                    await ctx.send("You have completed all your missions for today, come back tomorrow!")
-                    return
-                await ctx.send(f"Mission number {num}")
+                    return await ctx.send("**{nick}** You have completed all your missions for today, come back tomorrow!")
+                await ctx.send(f"**{nick}** Mission number {num}")
                 c = await self.bot.get_content(URL + "betaMissions.html?action=START", data={"submit": "Mission start"})
                 if "MISSION_START_OK" not in c:
                     c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE",
-                                                   data={"submit": "Receive"})
+                                                   data={"submit": "Collect"})
                 if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
                     if num == 1:
                         await self.bot.get_content(URL + "inboxMessages.html")
@@ -157,10 +144,10 @@ class Mix(Cog):
                     elif num in (5, 26, 32, 35, 38, 40, 47, 51, 53, 64):
                         if num == 31:
                             restores = "3"
-                            await ctx.send(f"Hitting {restores} restores, it might take a while")
+                            await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
                         elif num == 46:
                             restores = "2"
-                            await ctx.send(f"Hitting {restores} restores, it might take a while")
+                            await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
 
                         await ctx.invoke(self.bot.get_command("auto_fight"), nick, 1)
                     elif num == 6:
@@ -178,9 +165,9 @@ class Mix(Cog):
                         await self.bot.get_content(URL + "productMarket.html", data=payload)
                     elif num in (12, 54):
                         Citizen = await self.bot.get_content(f'{URL}apiCitizenById.html?id={my_id}')
-                        capital = [row['id'] if row['homeCountry'] == Citizen['citizenshipId'] and row[
-                            'capital'] else 1 for row in await self.bot.get_content(URL + "apiRegions.html")][0]
-                        await ctx.invoke(self.bot.get_command("fly"), capital, 3, nick=nick)
+                        capital = [row['id'] for row in await self.bot.get_content(URL + "apiRegions.html") if row[
+                            'homeCountry'] == Citizen['citizenshipId'] and row['capital']][0]
+                        await ctx.invoke(self.bot.get_command("fly"), capital, 5, nick=nick)
                     elif num in (13, 66):
                         await self.bot.get_content(URL + 'friends.html?action=PROPOSE&id=8')
                         await self.bot.get_content(URL + "citizenAchievements.html",
@@ -215,7 +202,7 @@ class Mix(Cog):
                         payload = {'product': "GRAIN", 'countryId': Citizen['citizenshipId'], 'storageType': "PRODUCT",
                                    "action": "POST_OFFER", "price": 0.1, "quantity": 100}
                         sell_grain = await self.bot.get_content(URL + "storage.html", data=payload)
-                        await ctx.send(sell_grain)
+                        await ctx.send(f"**{nick}** <{sell_grain}>")
                     elif num == 25:
                         payload = {'setBg': "LIGHT_I", 'action': "CHANGE_BACKGROUND"}
                         await self.bot.get_content(URL + "editCitizen.html", data=payload)
@@ -251,8 +238,7 @@ class Mix(Cog):
                             ID = str(tree.xpath('//*[@id="esim-layout"]//table//tr[2]//td[3]//@href')[0]).split("=")[1]
                             payload1 = {"action": "JOIN", "id": ID, "submit": "Join"}
                             b = await self.bot.get_content(URL + "partyStatistics.html", data=payload1)
-                            if b != URL + "?actionStatus=PARTY_JOIN_ALREADY_IN_PARTY":
-                                await ctx.send(b)
+                            await ctx.send(f"**{nick}** <{b}>")
                         except:
                             pass
                     # day 5
@@ -291,23 +277,23 @@ class Mix(Cog):
                         await self.bot.get_content(f"{URL}medkit.html", data={})
                         # if food & gift limits >= 10 it won't work.
                     else:
-                        await ctx.send(f"I don't know how to finish this mission ({num}).")
+                        await ctx.send(f"**{nick}** ERROR: I don't know how to finish this mission ({num}).")
                     await sleep(randint(1, 7))
                     c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE",
-                                                   data={"submit": "Receive"})
+                                                   data={"submit": "Collect"})
                     if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
                         c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE",
-                                                       data={"submit": "Receive"})
+                                                       data={"submit": "Collect"})
                         if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
                             c = await self.bot.get_content(URL + "betaMissions.html",
                                                            data={"action": "SKIP", "submit": "Skip this mission"})
                             if "MISSION_SKIPPED" not in c and "?action=SKIP" not in c:
                                 return
                             else:
-                                await ctx.send(f"Skipped mission {num}")
-                await ctx.send(c)
+                                await ctx.send(f"**{nick}** WARNING: Skipped mission {num}")
+                await ctx.send(f"**{nick}** <{c}>")
             except Exception as error:
-                await ctx.send(error)
+                await ctx.send(f"**{nick}** ERROR: {error}")
                 await sleep(5)
 
     @command()
@@ -325,8 +311,8 @@ class Mix(Cog):
 
         payload = {'action': "PLACE_BUILDING", 'regionId': regionId, "productType": productType.strip().upper(),
                    "quality": quality.strip(), "round": Round, 'submit': "Propose building"}
-        url = await self.bot.get_content(URL + "countryLaws.html", data=payload, login_first=True)
-        await ctx.send(url)
+        url = await self.bot.get_content(URL + "countryLaws.html", data=payload)
+        await ctx.send(f"**{nick}** <{url}>")
 
     @command()
     async def register(self, ctx, password, lan, countryId, *, nick: IsMyNick):
@@ -337,16 +323,17 @@ class Mix(Cog):
         agent = "Dalvik/2.1.0 (Linux; U; Android 5.1.1; AFTM Build/LVY48F) CTV"
         headers = {"User-Agent": agent}
         async with ClientSession(headers=headers) as session:
-            async with session.get(URL + "index.html?lan=" + lan.replace(f"{URL}lan.", "")) as _:
-                login_params = {"preview": "USA_MODERN", "login": nick, "password": password,
-                                "mail": f'{str(nick).replace(" ", "")}@gmail.com', "countryId": countryId,
-                                "checkHuman": "Human"}
-                async with session.post(URL + "registration.html", data=login_params) as registration:
-                    await ctx.send(registration.url)
-                    if "editAvatar" not in str(registration.url) and URL + "index.html" not in str(registration.url):
-                        return await ctx.send("Could not register")
-                    await ctx.send("It's recommended to use avatar and job functions next")
-                    await ctx.send(registration.url)
+            async with session.get(URL + "index.html?lan=" + lan.replace(f"{URL}lan.", ""), ssl=True) as _:
+                async with session.get(URL + "index.html?advancedRegistration=true", ssl=True) as _:
+                    login_params = {"login": nick, "password": password,
+                                    "mail": f'{str(nick).replace(" ", "")}@gmail.com', "countryId": countryId,
+                                    "checkHuman": "Human"}
+                    async with session.post(URL + "registration.html", data=login_params, ssl=True) as registration:
+                        await ctx.send(f"**{nick}** <{registration.url}>")
+                        if "profile" not in str(registration.url) and URL + "index.html" not in str(registration.url):
+                            return await ctx.send(f"**{nick}** ERROR: Could not register")
+                        await ctx.send(f"**{nick}** HINT: It's recommended to use avatar and job functions next")
+                        await ctx.send(f"**{nick}** <{registration.url}>")
 
     @command()
     async def report(self, ctx, target_id, report_reason, *, nick: IsMyNick):
@@ -355,8 +342,8 @@ class Mix(Cog):
         URL = f"https://{server}.e-sim.org/"
 
         payload = {"id": target_id, 'action': "REPORT_MULTI", "text": report_reason, "submit": "Submit"}
-        url = await self.bot.get_content(f"{URL}ticket.html", data=payload, login_first=True)
-        await ctx.send(url)
+        url = await self.bot.get_content(f"{URL}ticket.html", data=payload)
+        await ctx.send(f"**{nick}** <{url}>")
 
     @command()
     async def elect(self, ctx, your_candidate, *, nick: IsMyNick):
@@ -372,17 +359,15 @@ class Mix(Cog):
             president = False
             link = "congressElections.html"
         else:
-            await ctx.send("There are not elections today")
-            return
+            return await ctx.send(f"**{nick}** ERROR: There are not elections today")
 
-        tree = await self.bot.get_content(URL + link, login_first=True)
+        tree = await self.bot.get_content(URL + link)
         payload = ""
         for tr in range(2, 43):
             try:
                 name = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]//td[2]/a/text()')[0].strip().lower()
             except:
-                await ctx.send(f"No such candidate ({your_candidate})")
-                return
+                return await ctx.send(f"**{nick}** ERROR: No such candidate ({your_candidate})")
             if name == your_candidate.lower():
                 if president:
                     candidateId = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]/td[4]/form/input[2]')[0].value
@@ -395,7 +380,7 @@ class Mix(Cog):
 
         if payload:
             url = await self.bot.get_content(URL + link, data=payload)
-            await ctx.send(url)
+            await ctx.send(f"**{nick}** <{url}>")
 
     @command()
     async def law(self, ctx, link_or_id, your_vote, *, nick: IsMyNick):
@@ -403,21 +388,29 @@ class Mix(Cog):
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         if your_vote.lower() not in ("yes", "no"):
-            await ctx.send(f"Parameter 'vote' can be 'yes' or 'no' only! (not {your_vote})")
-            return
+            return await ctx.send(f"**{nick}** ERROR: Parameter 'vote' can be 'yes' or 'no' only! (not {your_vote})")
         if ".e-sim.org/law.html?id=" not in link_or_id:
             link_or_id = f"{URL}law.html?id=" + link_or_id
 
         payload = {'action': f"vote{your_vote.capitalize()}", "submit": f"Vote {your_vote.upper()}"}
-        url = await self.bot.get_content(link_or_id, data=payload, login_first=True)
-        await ctx.send(url)
+        url = await self.bot.get_content(link_or_id, data=payload)
+        await ctx.send(f"**{nick}** <{url}>")
 
+    @command(hidden=True)
+    async def login(self, ctx, *, nick: IsMyNick):
+        server = ctx.channel.name
+        if server in self.bot.cookies:
+            del self.bot.cookies[server]
+        if not self.bot.cookies:
+            self.bot.cookies["not"] = "empty"
+        await ctx.send("done")
+        
     @command()
     async def update(self, ctx, *, nick: IsMyNick):
         """Update doc for specific nick"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
-        tree = await self.bot.get_content(URL + "storage.html?storageType=PRODUCT", login_first=True)
+        tree = await self.bot.get_content(URL + "storage.html?storageType=PRODUCT")
         medkits = ""
         try:
             for letter in str(tree.xpath('//*[@id="medkitButton"]')[0].text):
@@ -452,8 +445,7 @@ class Mix(Cog):
         if not storage:
             storage = ["Empty"]
         l = await self.bot.get_content(URL + 'apiCitizenByName.html?name=' + nick.lower())
-        info_database = self.bot.client[server]["info"]
-        data = await info_database.find_one({"_id": environ['nick'].lower()}, {"_id": 0}) or {}
+        data = await utils.find_one(server, "info", nick)
         data.update({"XP": l['xp'], "Total dmg": "{:,}".format(l['totalDamage'] - l['damageToday']),
                      "Citizenship": l['citizenship'],
                      "Link": f"{URL}profile.html?id={l['id']}", "Special": ", ".join(storage), "Medkits": medkits,
@@ -461,17 +453,17 @@ class Mix(Cog):
                      "Code version": self.bot.VERSION, "Storage": ", ".join([f'{v} {k}' for k, v in storage1.items()])})
         if "Worked at" not in data:
             data.update({"Worked at": "1999-01-01 00:00:00"})
-        await info_database.replace_one({'_id': environ['nick'].lower()}, data, True)
+        await utils.replace_one(server, "info", nick, data)
         await ctx.send(f"**{nick}** - updated. Code version: {self.bot.VERSION}")
+        await ctx.invoke(self.bot.get_command("info"), nick=nick)
 
     @command()
     async def info(self, ctx, *, nick=""):
         """Gives some info from the database"""
         if "help" in [str(a) for a in self.bot.commands]:
-            embed = Embed()
-            info_database = self.bot.client[ctx.channel.name]["info"]
+            embed = Embed(title=nick)
             if not nick:
-                values = await info_database.find().to_list(50)
+                values = await utils.find(ctx.channel.name, "info")
                 values.sort(key=lambda x: x['Worked at'])
                 embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
                 embed.add_field(name="Worked at", value="\n".join(
@@ -480,7 +472,7 @@ class Mix(Cog):
                                 value="\n".join([row["Gold"] if "Gold" in row else "Unknown" for row in values]))
                 embed.set_footer(text="Type .info <nick> for more info on a nick")
             else:
-                data = await info_database.find_one({"_id": nick.lower()}, {"_id": 0}) or {}
+                data = await utils.find_one(ctx.channel.name, "info", nick)
                 embed.add_field(name=nick, value="\n".join([f"**{k}**: {v}" for k, v in data.items()]))
             await ctx.send(embed=embed)
 
@@ -489,17 +481,17 @@ class Mix(Cog):
         """Shows who is connected to host"""
         for nick in [x.strip() for x in nicks.split(",") if x.strip()]:
             if nick.lower() == "all":
-                nick = self.bot.MY_NICKS.get(ctx.channel.name, "")
+                nick = environ.get(ctx.channel.name, environ["nick"])
                 await sleep(randint(1, 3))
 
-            if nick.lower() == self.bot.MY_NICKS.get(ctx.channel.name, "").lower():
-                await ctx.send(f'**{self.bot.MY_NICKS.get(ctx.channel.name, "")}** - online')
+            if nick.lower() == environ.get(ctx.channel.name, environ["nick"]).lower():
+                await ctx.send(f'**{environ.get(ctx.channel.name, environ["nick"])}** - online')
 
     @command(hidden=True)
     async def shutdown(self, ctx, *, nick: IsMyNick):
         """Shutting down specific nick (in case of ban or something)
         Warning: It shutting down from all servers."""
-        await ctx.send(f"**{nick}** shutted down")
+        await ctx.send(f"**{nick}** shut down")
         await self.bot.close()
 
 

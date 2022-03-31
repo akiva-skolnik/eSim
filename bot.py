@@ -7,13 +7,21 @@ from aiohttp import ClientSession, ClientTimeout
 from discord.ext import commands
 from discord.ext.commands import BadArgument, Bot
 from lxml.html import fromstring
-from motor.motor_asyncio import AsyncIOMotorClient
+
+import utils
 
 bot = Bot(command_prefix=".", case_insensitive=True)
 
 with open("config.json", 'r') as file:
-    environ.update(load(file))
+    for k, v in load(file).items():
+        if k not in environ:
+            environ[k] = v
 
+# you should change the following line in all your accounts (except for 1) to `"help": ""` https://github.com/e-sim-python/eSim/blob/main/config.json#L9
+# this way the bot will send only one help commands.
+if environ.get("help", "") != "ignore":
+    bot.remove_command("help")
+    
 for extension in ("Eco", "Mix", "Social", "War"):
     bot.load_extension(extension)
 
@@ -25,14 +33,12 @@ async def on_ready():
 
 
 async def create_session():
-    return ClientSession(timeout=ClientTimeout(total=100), headers={"headers": environ["headers"]})
+    return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": environ["headers"]})
 
 
-bot.VERSION = "07/07/2021"
+bot.VERSION = "31/03/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.cookies = {}
-bot.client = (AsyncIOMotorClient(environ['database_url']))["database"]
-cookies_database = bot.client["cookies"]
 
 
 async def inner_get_content(link, data=None, return_url=False, return_type=""):
@@ -57,9 +63,9 @@ async def inner_get_content(link, data=None, return_url=False, return_type=""):
                     if method == "post":
                         if "fight" in link:
                             try:
-                                return fromstring(await respond.text(encoding='utf-8')), respond.status
+                                return fromstring(await respond.text(encoding='utf-8'))
                             except:
-                                return fromstring((await respond.text(encoding='utf-8'))[1:]), respond.status
+                                return fromstring((await respond.text(encoding='utf-8'))[1:])
                         try:
                             return str(respond.url) if not return_url else fromstring(
                                 await respond.text(encoding='utf-8'))
@@ -92,20 +98,18 @@ async def inner_get_content(link, data=None, return_url=False, return_type=""):
     raise OSError(link)
 
 
-async def get_content(link, login_first=False, data=None, return_url=False, return_type=""):
+async def get_content(link, data=None, return_url=False, return_type=""):
     nick = environ['nick']
     link = link.split("#")[0].replace("http://", "https://")
     server = link.split("https://", 1)[1].split(".e-sim.org", 1)[0]
     if not bot.cookies:
-        bot.cookies = await cookies_database.find_one({"_id": nick}, {"_id": 0}) or {}
+        bot.cookies = await utils.find_one(server, "cookies", nick)
     URL = f"https://{server}.e-sim.org/"
     notLoggedIn = False
+    tree = None
     if server in bot.cookies:
         try:
-            if not login_first:
-                tree = await inner_get_content(link, data, return_url, return_type)
-            else:
-                tree = await inner_get_content(URL + "storage.html", None, return_url, return_type)
+            tree = await inner_get_content(link, data, return_url, return_type)
         except BadArgument as e:
             if "you are not logged in" not in str(e):
                 raise e
@@ -123,9 +127,9 @@ async def get_content(link, login_first=False, data=None, return_url=False, retu
                     print(r.url)
                     raise BadArgument("Failed to login")
                 bot.cookies.update({server: {cookie.key: cookie.value for cookie in bot.session.cookie_jar}})
-        await cookies_database.replace_one({"_id": nick}, bot.cookies, True)
+        await utils.replace_one(server, "cookies", nick, bot.cookies)
         tree = await inner_get_content(link, data, return_url, return_type)
-    if login_first and not notLoggedIn:
+    if tree is None:
         tree = await inner_get_content(link, data, return_url, return_type)
     return tree
 
@@ -133,7 +137,9 @@ async def get_content(link, login_first=False, data=None, return_url=False, retu
 @bot.event
 async def on_message(message):
     """allow other bots to invoke commands"""
-    await bot.process_commands(message)
+    ctx = await bot.get_context(message)
+    if ctx.valid:
+        await bot.invoke(ctx)
 
 
 @bot.event
@@ -142,7 +148,7 @@ async def on_command_error(ctx, error):
     if isinstance(error, RuntimeError):
         return
     if isinstance(error, commands.NoPrivateMessage):
-        return await ctx.send("Sorry, you can't use this command in a private message!")
+        return await ctx.send("ERROR: you can't use this command in a private message!")
     if isinstance(error, commands.CommandNotFound):
         return
 
@@ -159,4 +165,4 @@ async def on_command_error(ctx, error):
 bot.get_content = get_content
 bot.run(environ["TOKEN"])
 # todo: more converters (k - 000 f.e)
-# todo: default nick command.
+# todo: formatting output (also with profile link in title)
