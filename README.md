@@ -42,6 +42,5 @@ Optional: Create an account at https://www.mongodb.com/ and get a URL with your 
    (The URL should look similar to this one: `mongodb+srv://YOUR_NICK:YOUR_PASSWORD@cluster0-SOME_ID.mongodb.net/database?retryWrites=true&w=majority`)  
    It's also recommended adding the IP `0.0.0.0/0` at the "Network Access" tab.   
    - add `"database_url": "YOUR DATABASE URL",` at [config.json](https://github.com/e-sim-python/eSim/blob/main/config.json)
-   - write in your CMD: `pip install motor dnspython` 
 
 # Good luck & have fun!
