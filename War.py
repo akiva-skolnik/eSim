@@ -304,22 +304,15 @@ class War(Cog):
         self.bot.hold_fight = False
         while not self.bot.hold_fight:
             if time() - start > start_time:
-                output += f"\nDone {damage_done} {hits_or_dmg}"
-                return await msg.edit(content=output)  # round is over
+                return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}")  # round is over
 
             if weapon_quality and not wep:
-                output += f"\nDone {damage_done} {hits_or_dmg}"
-                output += f"\nERROR: 0 Q{weapon_quality} weps in storage"
-                return await msg.edit(content=output)
+                return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}\nERROR: 0 Q{weapon_quality} weps in storage")
             if Health < 50:
                 if food_storage == 0 and gift_storage == 0:
-                    output += f"\nDone {damage_done} {hits_or_dmg}"
-                    output += "\nERROR: 0 food and gift in storage"
-                    return await msg.edit(content=output)
+                    return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}\nERROR: 0 food and gift in storage")
                 elif food_limit == 0 and gift_limit == 0:
-                    output += f"\nDone {damage_done} {hits_or_dmg}"
-                    output += "\ndone limits"
-                    return await msg.edit(content=output)
+                    return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}\ndone limits")
                 elif food_storage == 0 or gift_storage == 0:
                     output += f"\nWARNING: 0 {'food' if food_storage == 0 else 'gift'} in storage"
 
@@ -388,13 +381,13 @@ class War(Cog):
                 output += f"\n{hits_or_dmg.title()} done so far: {damage_done}"
                 await msg.edit(content=output)
             if damage_done >= dmg:
-                output += f"\nDone {damage_done} {hits_or_dmg} as requested."
-                return await msg.edit(content=output)
+                return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg} as requested.")
             await sleep(1)
 
     @command(hidden=True)
-    async def hold(self, ctx, nick: IsMyNick):
+    async def hold(self, ctx, *, nick: IsMyNick):
         self.bot.hold_fight = True
+        await ctx.send(f"**{nick}** done.")
 
     @command()
     async def hunt(self, ctx, nick: IsMyNick, max_dmg_for_bh="500k", weapon_quality: int = 5, start_time: int = 60,
