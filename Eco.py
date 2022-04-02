@@ -129,7 +129,7 @@ class Eco(Cog):
             quantity = min(stock, amount, MM_bought // cost - products_bought)
             payload = {'action': "buy", 'id': product_id, 'quantity': quantity, "submit": "Buy"}
             url = await self.bot.get_content(URL + "productMarket.html", data=payload)
-            await ctx.send(f"**{nick}** Quantity: {quantity}. Price: {cost}{mm_type} each. <{url}>")
+            await ctx.send(f"**{nick}** Quantity: {quantity}. Price: {cost} {mm_type} each. <{url}>")
             if "POST_PRODUCT_NOT_ENOUGH_MONEY" in str(url):
                 break
             products_bought += quantity
@@ -297,7 +297,8 @@ class Eco(Cog):
                         await ctx.send(f"**{nick}**\n" + "\n".join(results))
                         results.clear()
             if results:
-                await ctx.send(f"**{nick}**\n" + "\n".join(results) + "\nDone merging.")
+                await ctx.send(f"**{nick}**\n" + "\n".join(results))
+            await ctx.send("Done merging.")
 
     @command()
     async def mm(self, ctx, *, nick: IsMyNick):
@@ -318,7 +319,7 @@ class Eco(Cog):
                 payload = {"offeredMoneyId": cc, "buyedMoneyId": 0, "value": value,
                            "exchangeRatio": round(float(MM) - 0.0001, 4), "submit": "Post new offer"}
                 send_monetary_market = await self.bot.get_content(URL + "monetaryMarket.html?action=post", data=payload)
-                await ctx.send(f"**{nick}** <{send_monetary_market}>")
+                await ctx.send(f"**{nick}** posted {value} {CC} for {payload['exchangeRatio']}")
             except:
                 break
 
@@ -495,6 +496,7 @@ class Eco(Cog):
                         break  # sent
                     except Exception as error:
                         await ctx.send(f"**{nick}** {error}")
+        await ctx.send(f"**{nick}** done.")
 
 
 def setup(bot):
