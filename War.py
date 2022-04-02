@@ -299,16 +299,11 @@ class War(Cog):
                  f"If you want me to stop, type `.hold {nick}`"
         msg = await ctx.send(output)
         damage_done = 0
-        start_time = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
-        start = time()
         update = 0
         fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side, value="Berserk" if dmg_or_hits >= 5 else "")
         hits_or_dmg = "hits" if dmg < 1000 else "dmg"
         self.bot.hold_fight = False
         while not self.bot.hold_fight:
-            if time() - start > start_time:
-                return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}")  # round is over
-
             if weapon_quality and not wep:
                 return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}\nERROR: 0 Q{weapon_quality} weps in storage")
             if Health < 50:
@@ -356,7 +351,7 @@ class War(Cog):
                             Health = 0
                             fought = True
                             break
-                        elif "round is over" in tree.text_content().lower():
+                        elif "Round is closed" in tree.text_content():
                             return
                         else:
                             continue
@@ -624,7 +619,7 @@ class War(Cog):
                             continue
                         elif "No health left" in tree.text_content():
                             break
-                        elif "round is over" in tree.text_content().lower():
+                        elif "Round is closed" in tree.text_content():
                             return
                         else:
                             continue
