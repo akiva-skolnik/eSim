@@ -119,9 +119,9 @@ class War(Cog):
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         specific_battle = (battle_id != 0)
-        await ctx.send(f"**{nick}** Ok sir!")
+        await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.hold {nick}`")
 
-        if specific_battle:
+        if specific_battle and 1 <= ticket_quality <= 5:
             api = await self.bot.get_content(f"{URL}apiBattles.html?battleId={battle_id}")
             if api['type'] == "ATTACK":
                 if side.lower() == "attacker":
@@ -139,18 +139,18 @@ class War(Cog):
             elif api['type'] == "RESISTANCE":
                 await ctx.invoke(self.bot.get_command("fly"), api['regionId'], ticket_quality, nick=nick)
 
-        restores_left = int(restores)
-        for _ in range(int(restores)):
+        self.bot.hold_fight = False
+        while restores > 0 and not self.bot.hold_fight:
+            restores -= 1
             if randint(1, 100) <= CHANCE_TO_SKIP_RESTORE:
                 await sleep(600)
-            restores_left -= 1
             if not battle_id:
                 battle_id = await self.get_battle_id(str(nick), server, battle_id)
             await ctx.send(f'**{nick}** <{URL}battle.html?id={battle_id}> side: {side}')
             if not battle_id:
                 await ctx.send(
                     f"**{nick}** WARNING: I can't fight in any battle right now, but I will check again after the next restore")
-                await self.random_sleep(restores_left)
+                await self.random_sleep(restores)
                 continue
             tree = await self.bot.get_content(URL)
             check = tree.xpath('//*[@id="taskButtonWork"]//@href')  # checking if you can work
@@ -177,7 +177,7 @@ class War(Cog):
                 await self.bot.get_content(f"{URL}gift.html", data={'quality': gift})
             if food or gift:
                 await self.fighting(ctx, server, battle_id, side, wep)
-            await self.random_sleep(restores_left)
+            await self.random_sleep(restores)
 
     @command()
     async def BO(self, ctx, battle_link, side: Side, *, nick: IsMyNick):
@@ -197,7 +197,8 @@ class War(Cog):
     async def buff(self, ctx, buffs_names, *, nick: IsMyNick):
         """Buy and use buffs.
         The buff names should be formal (can be found via F12), but here are some shortcuts:
-        VAC = EXTRA_VACATIONS, SPA = EXTRA_SPA, SEWER = SEWER_GUIDE, STR = STEROIDS"""
+        VAC = EXTRA_VACATIONS, SPA = EXTRA_SPA, SEWER = SEWER_GUIDE, STR = STEROIDS
+        More examples: BANDAGE_SIZE_C and CAMOUFLAGE_II"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
 
         results = []
@@ -213,27 +214,28 @@ class War(Cog):
                 buff_name = "STEROIDS"
             actions = ("BUY", "USE")
             for Index, action in enumerate(actions):
-                payload = {'itemType': buff_name, 'storageType': "SPECIAL_ITEM", 'action': action, "quantity": 1}
                 if action == "USE":
                     payload = {'item': buff_name, 'storageType': "SPECIAL_ITEM", 'action': action, 'submit': 'Use'}
+                else:
+                    payload = {'itemType': buff_name, 'storageType': "SPECIAL_ITEM", 'action': action, "quantity": 1}
                 url = await self.bot.get_content(URL + "storage.html", data=payload)
                 results.append(f"{buff_name}: <{url}>")
                 if "error" in str(url):
                     results.append(f"ERROR: No such buff ({buff_name})")
-                    continue
         await ctx.send(f"**{nick}**\n" + "\n".join(results))
 
     @command(aliases=["travel"])
     async def fly(self, ctx, region_link_or_id, ticket_quality: Optional[int] = 5, *, nick: IsMyNick):
         """traveling to a region"""
-        URL = f"https://{ctx.channel.name}.e-sim.org/"
-        region_id = region_link_or_id
-        if "http" in str(region_id):
-            region_id = region_id.split("=")[1]
-        payload = {'countryId': int(int(region_id) / 6) + (int(region_id) % 6 > 0), 'regionId': region_id,
-                   'ticketQuality': ticket_quality}
-        url = await self.bot.get_content(f"{URL}travel.html", data=payload)
-        await ctx.send(f"**{nick}** <{url}>")
+        if 1 <= ticket_quality <= 5:
+            URL = f"https://{ctx.channel.name}.e-sim.org/"
+            region_id = region_link_or_id
+            if "http" in str(region_id):
+                region_id = region_id.split("=")[1]
+            payload = {'countryId': int(int(region_id) / 6) + (int(region_id) % 6 > 0), 'regionId': region_id,
+                       'ticketQuality': ticket_quality}
+            url = await self.bot.get_content(f"{URL}travel.html", data=payload)
+            await ctx.send(f"**{nick}** <{url}>")
 
     @staticmethod
     def convert_to_dict(s):
@@ -278,20 +280,21 @@ class War(Cog):
         wep = weapon_quality if not weapon_quality else int(
             tree.xpath(f'//*[@id="Q{weapon_quality}WeaponStock"]/text()')[0])
 
-        if api['type'] == "ATTACK":
-            if side.lower() == "attacker":
-                try:
-                    neighboursId = [region['neighbours'] for region in await self.bot.get_content(
-                        f'{URL}apiRegions.html') if region["id"] == api['regionId']][0]
-                    aBonus = [i for region in await self.bot.get_content(f'{URL}apiMap.html') for i in neighboursId if
-                              i == region['regionId'] and region['occupantId'] == api['attackerId']]
-                except:
-                    aBonus = [api['attackerId'] * 6]
-                await ctx.invoke(self.bot.get_command("fly"), aBonus[0], ticket_quality, nick=nick)
-            elif side.lower() == "defender":
+        if 1 <= ticket_quality <= 5:
+            if api['type'] == "ATTACK":
+                if side.lower() == "attacker":
+                    try:
+                        neighboursId = [region['neighbours'] for region in await self.bot.get_content(
+                            f'{URL}apiRegions.html') if region["id"] == api['regionId']][0]
+                        aBonus = [i for region in await self.bot.get_content(f'{URL}apiMap.html') for i in neighboursId if
+                                  i == region['regionId'] and region['occupantId'] == api['attackerId']]
+                    except:
+                        aBonus = [api['attackerId'] * 6]
+                    await ctx.invoke(self.bot.get_command("fly"), aBonus[0], ticket_quality, nick=nick)
+                elif side.lower() == "defender":
+                    await ctx.invoke(self.bot.get_command("fly"), api['regionId'], ticket_quality, nick=nick)
+            elif api['type'] == "RESISTANCE":
                 await ctx.invoke(self.bot.get_command("fly"), api['regionId'], ticket_quality, nick=nick)
-        elif api['type'] == "RESISTANCE":
-            await ctx.invoke(self.bot.get_command("fly"), api['regionId'], ticket_quality, nick=nick)
         output = f"**{nick}** Limits: {food_limit}/{gift_limit}. Storage: {food_storage}/{gift_storage}/{wep} Q{weapon_quality} weps.\n" \
                  f"If you want me to stop, type `.hold {nick}`"
         msg = await ctx.send(output)
@@ -299,7 +302,7 @@ class War(Cog):
         start_time = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
         start = time()
         update = 0
-        fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side)
+        fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side, value="Berserk" if dmg_or_hits >= 5 else "")
         hits_or_dmg = "hits" if dmg < 1000 else "dmg"
         self.bot.hold_fight = False
         while not self.bot.hold_fight:
@@ -573,8 +576,8 @@ class War(Cog):
         If `nick` contains more than 1 word - it must be within quotes."""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
-
-        while True:
+        self.bot.hold_fight = False
+        while not self.bot.hold_fight:
             r = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
             if 8 in (r['defenderScore'], r['attackerScore']):
                 break
@@ -630,7 +633,8 @@ class War(Cog):
                 await sleep(randint(0, 2))
             await ctx.send(f"**{nick}** done {damage_done} dmg")
             await sleep(60)
-        await ctx.send(f"**{nick}** battle id over")
+        if not self.bot.hold_fight:
+            await ctx.send(f"**{nick}** battle id over")
 
     @command(aliases=["motivates"])
     async def motivate(self, ctx, *, nick):
