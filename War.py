@@ -300,7 +300,7 @@ class War(Cog):
         msg = await ctx.send(output)
         damage_done = 0
         update = 0
-        fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side, value="Berserk" if dmg_or_hits >= 5 else "")
+        fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
         hits_or_dmg = "hits" if dmg < 1000 else "dmg"
         self.bot.hold_fight = False
         while not self.bot.hold_fight:
