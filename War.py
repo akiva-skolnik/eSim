@@ -352,7 +352,7 @@ class War(Cog):
                             fought = True
                             break
                         elif "Round is closed" in tree.text_content():
-                            return
+                            return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}")
                         else:
                             continue
                     if weapon_quality:
