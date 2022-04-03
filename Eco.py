@@ -154,7 +154,7 @@ class Eco(Cog):
                 results.append(f"ID {ID} - <{url}>")
             await ctx.send(f"**{nick}**\n" + "\n".join(results))
         elif type.lower() == "gold" or type.lower() == "money":
-            if not data.isdigit():
+            if not data.replace('.','',1).isdigit():
                 await ctx.send(f"**{nick}** ERROR: you must provide the sum to donate")
             else:
                 payload = {"currencyId": 0, "sum": data, "reason": "", "submit": "Donate"}
