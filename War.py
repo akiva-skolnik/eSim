@@ -854,7 +854,7 @@ class War(Cog):
 
         region_link = region_id_or_link if "http" in region_id_or_link else f"{URL}region.html?id={region_id_or_link}"
         await ctx.invoke(self.bot.get_command("fly"), region_link, ticket_quality, nick=nick)
-        url = await self.bot.get_content(region_link, data={"submit": "startRWbutton"})
+        url = await self.bot.get_content(region_link, data={"submit": "Start resistance"})
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
@@ -880,7 +880,6 @@ class War(Cog):
     async def watch(self, ctx, nick: IsMyNick, link, side: Side, start_time: int = 60,
                     keep_wall="3kk", let_overkill="10kk", weapon_quality: int = 5, ticket_quality: int = 5):
         """
-        [might be bugged at the moment]
         Fight at the last minutes of every round in a given battle.
 
         Examples:
