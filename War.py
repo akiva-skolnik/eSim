@@ -843,7 +843,7 @@ class War(Cog):
         region_link = region_id_or_link if "http" in region_id_or_link else f"{URL}region.html?id={region_id_or_link}"
         await ctx.invoke(self.bot.get_command("fly"), region_link, ticket_quality, nick=nick)
         tree = await self.bot.get_content(region_link, data={"submit": "Start resistance"}, return_tree=True)
-        result = tree.xpath("//*[@id='esim-layout']/div[2]/text()")[0]
+        result = tree.xpath("//*[@id='esim-layout']//div[2]/text()")[0]
         await ctx.send(f"**{nick}** {result}")
 
     @command()
