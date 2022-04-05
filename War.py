@@ -32,7 +32,7 @@ class War(Cog):
                 raise  # PRACTICE_BATTLE
             if battle_id == "event":
                 tree = await self.bot.get_content(
-                    f"{URL}battles.html?countryId={apiCitizen['citizenshipId']}&filter=EVENT")
+                    f"{URL}battles.html?countryId={apiCitizen['citizenshipId']}&filter=EVENT", return_tree=True)
                 for link in tree.xpath("//tr[position()<12]//td[1]//div[2]//a/@href"):
                     link_id = link.split('=')[1]
                     apiBattles = await self.bot.get_content(f"{URL}apiBattles.html?battleId={link_id}")
@@ -41,13 +41,13 @@ class War(Cog):
                         break
 
             else:
-                tree = await self.bot.get_content(f"{URL}battles.html?countryId={occupantId}&filter=NORMAL")
+                tree = await self.bot.get_content(f"{URL}battles.html?countryId={occupantId}&filter=NORMAL", return_tree=True)
                 battle_id = tree.xpath('//tr//td[1]//div//div[2]//div[2]/a/@href')
             if not battle_id:
-                tree = await self.bot.get_content(f"{URL}battles.html?countryId={occupantId}&filter=RESISTANCE")
+                tree = await self.bot.get_content(f"{URL}battles.html?countryId={occupantId}&filter=RESISTANCE", return_tree=True)
                 battle_id = tree.xpath('//tr//td[1]//div//div[2]//div[2]/a/@href')
         except:
-            tree = await self.bot.get_content(f"{URL}battles.html?filter=PRACTICE_BATTLE")
+            tree = await self.bot.get_content(f"{URL}battles.html?filter=PRACTICE_BATTLE", return_tree=True)
             battle_id = tree.xpath('//tr[2]//td[1]//a/@href')
         if not battle_id:
             battle_id = [""]
@@ -60,9 +60,8 @@ class War(Cog):
                     return _id.replace("battle.html?id=", "")
         return battle_id[0].replace("battle.html?id=", "") or None
 
-    @staticmethod
-    async def random_sleep(restores_left=1):
-        # Functions: datetime (datetime), randint (random), time
+    @classmethod
+    async def random_sleep(cls, restores_left=1):
         if restores_left:
             now = datetime.now()
             minutes = int(now.strftime("%M"))
@@ -82,7 +81,7 @@ class War(Cog):
 
     async def fighting(self, ctx, server, battle_id, side, wep):
         URL = f"https://{server}.e-sim.org/"
-        tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}')
+        tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}', return_tree=True)
         fight_url, data = await self.get_fight_data(URL, tree, wep, side)
         for x in range(1, 20):  # hits until you have 0 health.
             try:
@@ -90,14 +89,14 @@ class War(Cog):
                 if Health:
                     Health = float(Health[0].split()[0])
                 else:
-                    tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}')
+                    tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}', return_tree=True)
                     Health = float(tree.xpath('//*[@id="actualHealth"]')[0].text)
 
                 if Health == 0:
                     break
                 data["value"] = "Berserk" if Health >= 50 else ""
 
-                tree = await self.bot.get_content(fight_url, data=data)
+                tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
 
                 await sleep(randint(1, 2))
             except Exception as error:
@@ -152,7 +151,7 @@ class War(Cog):
                     f"**{nick}** WARNING: I can't fight in any battle right now, but I will check again after the next restore")
                 await self.random_sleep(restores)
                 continue
-            tree = await self.bot.get_content(URL)
+            tree = await self.bot.get_content(URL, return_tree=True)
             check = tree.xpath('//*[@id="taskButtonWork"]//@href')  # checking if you can work
             if check and randint(1, 4) == 2:  # Don't work as soon as you can (suspicious)
                 current_loc = await self.location(str(nick), server)
@@ -166,7 +165,7 @@ class War(Cog):
                     await ctx.send(f"**{nick}** Searching for the next battle...")
                     battle_id = await self.get_battle_id(str(nick), server, battle_id)
 
-            tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}')
+            tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}', return_tree=True)
             fight_ability = tree.xpath("//*[@id='newFightView']//div[3]//div[3]//div//text()[1]")
             if any("You can't fight in this battle from your current location." in s for s in fight_ability):
                 return await ctx.send(f"**{nick}** ERROR: You can't fight in this battle from your current location.")
@@ -230,24 +229,24 @@ class War(Cog):
         if 1 <= ticket_quality <= 5:
             URL = f"https://{ctx.channel.name}.e-sim.org/"
             region_id = region_link_or_id
-            if "http" in str(region_id):
+            if "http" in region_id:
                 region_id = region_id.split("=")[1]
-            payload = {'countryId': int(int(region_id) / 6) + (int(region_id) % 6 > 0), 'regionId': region_id,
-                       'ticketQuality': ticket_quality}
+            payload = {'countryId': int(region_id) // 6 + 1, 'regionId': region_id, 'ticketQuality': ticket_quality}
             url = await self.bot.get_content(f"{URL}travel.html", data=payload)
             await ctx.send(f"**{nick}** <{url}>")
 
-    @staticmethod
-    def convert_to_dict(s):
+    @classmethod
+    def convert_to_dict(cls, s):
         s_list = s.split("&")
         s_list[0] = f"ip={s_list[0]}"
         return dict([a.split("=") for a in s_list])
 
-    async def get_fight_data(self, URL, tree, wep, side, value="Berserk"):
+    @classmethod
+    async def get_fight_data(cls, URL, tree, wep, side, value="Berserk"):
         fight_page_id = re.sub("[\"\']*", "", re.findall('url: (\".*fight.*.html\")', tree.text_content())[0])
         hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
         data = {"weaponQuality": wep, "battleRoundId": hidden_id, "side": side, "value": value}
-        data.update(self.convert_to_dict("".join(tree.xpath("//script[3]/text()")).split("&ip=")[1].split("'")[0]))
+        data.update(cls.convert_to_dict("".join(tree.xpath("//script[3]/text()")).split("&ip=")[1].split("'")[0]))
         return f"{URL}{fight_page_id}", data
 
     @command()
@@ -271,7 +270,7 @@ class War(Cog):
         dmg = int(dmg_or_hits.replace("k", "000"))
         api = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
 
-        tree = await self.bot.get_content(link)
+        tree = await self.bot.get_content(link, return_tree=True)
         Health = float(tree.xpath('//*[@id="actualHealth"]')[0].text)
         food_storage = int((tree.xpath('//*[@id="sfoodQ5"]/text()') or [0])[0])
         gift_storage = int((tree.xpath('//*[@id="sgiftQ5"]/text()') or [0])[0])
@@ -340,7 +339,7 @@ class War(Cog):
             fought = False
             for _ in range(10):
                 try:
-                    tree = await self.bot.get_content(fight_url, data=data)
+                    tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
                     if not tree.xpath("//*[@id='healthUpdate']/text()"):
                         if "Slow down a bit!" in tree.text_content():
                             output += "\nSlow down"
@@ -440,7 +439,7 @@ class War(Cog):
                           neighbour == region['regionId'] and region['occupantId'] == apiBattles['attackerId']]
 
                 async def fight(side, damage_done):
-                    tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}')
+                    tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}', return_tree=True)
                     Health = float(str(tree.xpath("//*[@id='actualHealth']")[0].text))
                     hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
                     food = int(tree.xpath('//*[@id="foodLimit2"]')[0].text)
@@ -460,7 +459,7 @@ class War(Cog):
                     fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side, value)
                     for _ in range(5):
                         try:
-                            tree = await self.bot.get_content(fight_url, data=data)
+                            tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
                             Damage = int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
                             Health = tree.xpath("//*[@id='healthUpdate']/text()") or tree.xpath(
                                 '//*[@id="actualHealth"]/text()')
@@ -482,7 +481,7 @@ class War(Cog):
                     return damage_done
 
                 async def check(side, damage_done, should_continue):
-                    tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}')
+                    tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}', return_tree=True)
                     hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
 
                     try:
@@ -565,46 +564,51 @@ class War(Cog):
                         continue
 
     @command()
-    async def hunt_battle(self, ctx, nick: IsMyNick, link, side: Side, dmg_for_bh: int = 1, weapon_quality: int = 0):
-        """ Hunting BH at a specific battle.
+    async def hunt_battle(self, ctx, nick: IsMyNick, link, side: Side, dmg_or_hits_per_bh="1", weapon_quality: int = 0, food: int = 5, gift: int = 5, ticket_quality: int = 1):
+        """Hunting BH at a specific battle.
         (Good for practice battle / leagues / civil war)
+
+        * if dmg_or_hits < 1000 - it's hits, otherwise - dmg.
         If `nick` contains more than 1 word - it must be within quotes."""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
+        dmg = int(dmg_or_hits_per_bh.replace("k", "000"))
+        hits_or_dmg = "hits" if dmg < 1000 else "dmg"
         self.bot.hold_fight = False
-        while not self.bot.hold_fight:
-            r = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
-            if 8 in (r['defenderScore'], r['attackerScore']):
+        while not self.bot.hold_fight:  # For each round
+            api = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
+            if 8 in (api['defenderScore'], api['attackerScore']):
                 break
-            time_till_round_end = max(0, r["hoursRemaining"] * 3600 + r["minutesRemaining"] * 60 + r[
+            time_till_round_end = max(0, api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api[
                 "secondsRemaining"] - randint(15, 45))
-            await ctx.send(f"**{nick}** {time_till_round_end} seconds from now, I will hit {dmg_for_bh} dmg at <{link}> for the {side} side.")
+            await ctx.send(f"**{nick}** {time_till_round_end} seconds from now, I will hit {dmg} {hits_or_dmg} at <{link}> for the {side} side.\n"
+                           f"If you want to cancel: type `.hold {nick}`")
             await sleep(time_till_round_end)
-            tree = await self.bot.get_content(link)
+            tree = await self.bot.get_content(link, return_tree=True)
             food_limit = int(tree.xpath('//*[@id="foodLimit2"]')[0].text)
             food_storage = int((tree.xpath('//*[@id="sfoodQ5"]/text()') or [0])[0])
             gift_limit = int(tree.xpath('//*[@id="giftLimit2"]')[0].text)
             gift_storage = int((tree.xpath('//*[@id="sgiftQ5"]/text()') or [0])[0])
             damage_done = 0
-            fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side)
+            fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
 
-            while damage_done < dmg_for_bh:
+            while damage_done < dmg and not self.bot.hold_fight:
                 Health = tree.xpath('//*[@id="actualHealth"]/text()') or tree.xpath("//*[@id='healthUpdate']/text()")
                 if Health:
                     Health = float(Health[0].split()[0])
                 else:
-                    tree = await self.bot.get_content(link)
+                    tree = await self.bot.get_content(link, return_tree=True)
                     Health = float(tree.xpath('//*[@id="actualHealth"]')[0].text)
-                if Health < 50:
-                    if food_storage == 0 and gift_storage == 0:
-                        return await ctx.send(f"**{nick}** ERROR: 0 food and gift in storage")
-                    elif food_storage == 0 and gift_storage == 0:
-                        return await ctx.send(f"**{nick}** ERROR: 0 food and gift in storage")
-                    elif food_storage > 0 and food_limit > 0:
+                if (dmg < 5 and Health < 10) or (dmg >= 5 and Health < 50):
+                    if (not food or food_storage == 0) and (not gift or gift_storage == 0):
+                        return await ctx.send(f"**{nick}** ERROR: food/gift storage error")
+                    elif (not food or food_limit == 0) and (not gift or gift_limit == 0):
+                        return await ctx.send(f"**{nick}** ERROR: food/gift limits error")
+                    elif food and food_storage > 0 and food_limit > 0:
                         food_storage -= 1
                         food_limit -= 1
                         await self.bot.get_content(f"{URL}eat.html", data={'quality': 5})
-                    elif gift_storage > 0 and gift_limit > 0:
+                    elif gift and gift_storage > 0 and gift_limit > 0:
                         gift_storage -= 1
                         gift_limit -= 1
                         await self.bot.get_content(f"{URL}gift.html", data={'quality': 5})
@@ -612,7 +616,7 @@ class War(Cog):
                         return await ctx.send(f"**{nick}** ERROR: I couldn't restore health.")
                     Health += 50
                 for _ in range(5):
-                    tree = await self.bot.get_content(fight_url, data=data)
+                    tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
                     if not tree.xpath('//*[@id="DamageDone"]'):
                         if "Slow down a bit!" in tree.text_content():
                             await sleep(1)
@@ -649,7 +653,7 @@ class War(Cog):
             Type = "all"
         await IsMyNick().convert(ctx, nick.strip())
 
-        tree = await self.bot.get_content(URL + 'storage.html?storageType=PRODUCT')
+        tree = await self.bot.get_content(URL + 'storage.html?storageType=PRODUCT', return_tree=True)
 
         def get_storage(tree, Type):
             food = int(tree.xpath('//*[@id="foodQ3"]/text()')[0])
@@ -684,7 +688,7 @@ class War(Cog):
             await ctx.invoke(self.bot.get_command("supply"), 5, 3, "gift", nick=nick)
             storage = get_storage(tree, Type)
 
-        newCitizens_tree = await self.bot.get_content(URL + 'newCitizens.html?countryId=0')
+        newCitizens_tree = await self.bot.get_content(URL + 'newCitizens.html?countryId=0', return_tree=True)
         citizenId = int(newCitizens_tree.xpath("//tr[2]//td[1]/a/@href")[0].split("=")[1])
         checking = list()
         sent_count = 0
@@ -693,7 +697,7 @@ class War(Cog):
                 if sent_count == 5:
                     return await ctx.send(
                         f"**{nick}**\n" + "\n".join(checking) + "\n\n- Successfully motivated 5 players.")
-                tree = await self.bot.get_content(f'{URL}profile.html?id={citizenId}')
+                tree = await self.bot.get_content(f'{URL}profile.html?id={citizenId}', return_tree=True)
                 today = int(tree.xpath('//*[@class="sidebar-clock"]/b/text()')[-1].split()[-1])
                 birthday = int(
                     tree.xpath(f'//*[@class="profile-row" and span = "Birthday"]/span/text()')[0].split()[-1])
@@ -703,9 +707,9 @@ class War(Cog):
                 if tree.xpath('//*[@id="motivateCitizenButton"]'):
                     for num in storage:
                         payload = {'type': num, "submit": "Motivate", "id": citizenId}
-                        send = await self.bot.get_content(f"{URL}motivateCitizen.html?id={citizenId}", data=payload)
-                        if "&actionStatus=SUCCESFULLY_MOTIVATED" in send:
-                            checking.append(f"<{send}>")
+                        url = await self.bot.get_content(f"{URL}motivateCitizen.html?id={citizenId}", data=payload)
+                        if "&actionStatus=SUCCESFULLY_MOTIVATED" in url:
+                            checking.append(f"<{url}>")
                             sent_count += 1
                             break
                 citizenId -= 1
@@ -717,7 +721,7 @@ class War(Cog):
         await ctx.send(f"**{nick}** I checked the first 200 players - and now I gave up!")
 
     @command(aliases=["dow", "mpp"])
-    async def attack(self, ctx, ID: int, delay_or_battle_link, *, nick):
+    async def attack(self, ctx, ID: int, delay_or_battle_link="0", *, nick):
         """
         Propose MPP / Declaration of war / Attack region.
         Possible after certain delay / after certain battle.
@@ -730,25 +734,13 @@ class War(Cog):
         action = ctx.invoked_with.lower()
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         if ".e-sim.org/battle.html?id=" in delay_or_battle_link:
-            for _ in range(20):
-                apiBattles = await self.bot.get_content(
-                    delay_or_battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
-                dScore = apiBattles['defenderScore']
-                aScore = apiBattles['attackerScore']
-                round_ends = apiBattles["hoursRemaining"] * 3600 + apiBattles["minutesRemaining"] * 60 + apiBattles[
-                    "secondsRemaining"]
-                if 8 in (dScore, aScore):
-                    await ctx.send(f"**{nick}** ERROR: This battle is over")
-                    return
-                elif 7 not in (dScore, aScore):
-                    await sleep(round_ends + 20)
-                    continue
-
-                else:
-                    if round_ends > 5:  # long round case, due to e-sim lags.
-                        await sleep(round_ends)
-                        continue
-                    break
+            api = await self.bot.get_content(
+                delay_or_battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
+            defender_score, attacker_score = api['defenderScore'], api['attackerScore']
+            while 8 not in (defender_score, attacker_score):
+                api = await self.bot.get_content(delay_or_battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
+                defender_score, attacker_score = api['defenderScore'], api['attackerScore']
+                await sleep(api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"])
 
         elif delay_or_battle_link:
             await sleep(int(delay_or_battle_link))
@@ -760,45 +752,41 @@ class War(Cog):
         elif action == "dow":
             payload = {'action': "DECLARE_WAR", 'countryId': ID, 'submit': "Declare war"}
         else:
-            await ctx.send(f"**{nick}** ERROR: parameter 'action' must be one of those: mpp/dow/attack (not {action})")
-            return
-        for x in range(5):  # trying 5 times due to e-sim lags.
-            url = await self.bot.get_content(URL + "countryLaws.html", data=payload)
-            await ctx.send(f"**{nick}** <{url}>")
+            return await ctx.send(f"**{nick}** ERROR: parameter 'action' must be one of those: mpp/dow/attack (not {action})")
 
-    # TODO: add mu coins
+        url = await self.bot.get_content(URL + "countryLaws.html", data=payload)
+        await ctx.send(f"**{nick}** <{url}>")
+
     @command()
     async def muinv(self, ctx, *, nick: IsMyNick):
-        """
-        shows all of your in-game Military Unit inventory.
-        """
+        """Shows all of your in-game Military Unit inventory."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(f"{URL}militaryUnitStorage.html")
-        container_1 = tree.xpath("//div[@class='storage']")
-        quantity = [item.xpath("div[1]/text()")[0].strip() for item in container_1]
-        products = list()
-        for item in container_1:
+        tree = await self.bot.get_content(f"{URL}militaryUnitStorage.html", return_tree=True)
+        products = dict()
+        for item in tree.xpath("//div[@class='storage']"):
             name = item.xpath("div[2]/img/@src")[0].replace("//cdn.e-sim.org//img/productIcons/", "").replace(
                 "Rewards/", "").replace(".png", "")
-            if name.lower() in ["iron", "grain", "diamonds", "oil", "stone", "wood"]:
+            if name.lower() in ("iron", "grain", "diamonds", "oil", "stone", "wood"):
                 quality = ""
             else:
-                quality = item.xpath("div[2]/img/@src")[1].replace("//cdn.e-sim.org//img/productIcons/", "").replace(
-                    ".png", "")
-            products.append(f"{quality.title()} {name}" if quality else f"{name}")
+                quality = item.xpath("div[2]/img/@src")[1].replace("//cdn.e-sim.org//img/productIcons/", "").replace(".png", "")
+            products[f"{quality.title()} {name}" if quality else f"{name}"] = int(item.xpath("div[1]/text()")[0].strip())
+
+        tree = await self.bot.get_content(f"{URL}militaryUnitMoneyAccount.html", return_tree=True)
+        amounts = tree.xpath('//*[@id="esim-layout"]//div[4]//div//b/text()')[:len(products)]
+        coins = tree.xpath('//*[@id="esim-layout"]//div[4]/div/text()')[2::3][:len(products)]
 
         embed = Embed(title=nick)
-        for i in range(len(products) // 5 + 1):
-            value = [f"**{a}**: {b}" for a, b in zip(products[i * 5:(i + 1) * 5], quantity[i * 5:(i + 1) * 5])]
-            embed.add_field(name="**Products: **" if not i else u"\u200B",
-                            value="\n".join(value) if value else u"\u200B")
-        embed.set_footer(text="Military Unit inventory")
+        embed.add_field(name="**Products:**", value="\n".join(f"**{product}**: {amount:,}" for product, amount in products.items()))
+        embed.add_field(name=f"**Coins (first {len(products)}):**",
+                        value="\n".join(f"**{coin.strip()}**: {float(amount):,}" for coin, amount in zip(coins, amounts)))
+        embed.set_footer(text="Military Unit Inventory")
         await ctx.send(embed=embed)
 
     @command()
     async def limits(self, ctx, *, nick: IsMyNick):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(URL)
+        tree = await self.bot.get_content(URL, return_tree=True)
         gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
         food_storage = tree.xpath('//*[@id="foodQ5"]/text()')[0]
         gift_storage = tree.xpath('//*[@id="giftQ5"]/text()')[0]
@@ -830,7 +818,7 @@ class War(Cog):
 
         ID = str(eq_id_or_link).replace(f"{URL}showEquipment.html?id=", "")  # link case
         LINK = f"{URL}showEquipment.html?id={ID}"
-        tree = await self.bot.get_content(LINK)
+        tree = await self.bot.get_content(LINK, return_tree=True)
         eq = tree.xpath('//*[@id="esim-layout"]//div/div[4]/div/h4/text()')
         parameter_id = tree.xpath('//*[@id="esim-layout"]//div/div[4]/div/h3/text()')
         if parameter in eq[0].replace("by  ", "by ") or parameter == "first":
@@ -854,14 +842,15 @@ class War(Cog):
 
         region_link = region_id_or_link if "http" in region_id_or_link else f"{URL}region.html?id={region_id_or_link}"
         await ctx.invoke(self.bot.get_command("fly"), region_link, ticket_quality, nick=nick)
-        url = await self.bot.get_content(region_link, data={"submit": "Start resistance"})
-        await ctx.send(f"**{nick}** <{url}>")
+        tree = await self.bot.get_content(region_link, data={"submit": "Start resistance"}, return_tree=True)
+        result = tree.xpath("//*[@id='esim-layout']/div[2]/text()")[0]
+        await ctx.send(f"**{nick}** {result}")
 
     @command()
     async def supply(self, ctx, amount: int, quality: Optional[Quality], product: Product, *, nick: IsMyNick):
         """Taking a specific product from MU storage."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(URL)
+        tree = await self.bot.get_content(URL, return_tree=True)
         my_id = str(tree.xpath('//*[@id="userName"]/@href')[0]).split("=")[1]
         payload = {'product': f"{quality}-{product}" if quality else product, 'quantity': amount,
                    "reason": " ", "citizen1": my_id, "submit": "Donate"}
@@ -926,7 +915,7 @@ class War(Cog):
             await ctx.send(f"**{nick}** Sleeping for {time_till_round_end} seconds :zzz:")
             await sleep(time_till_round_end)
             start = time()
-            tree = await self.bot.get_content(link)
+            tree = await self.bot.get_content(link, return_tree=True)
             food_limit = tree.xpath('//*[@id="foodLimit2"]')[0].text
             gift_limit = tree.xpath('//*[@id="giftLimit2"]')[0].text
             food_storage = (tree.xpath('//*[@id="sfoodQ5"]/text()') or [0])[0]

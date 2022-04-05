@@ -38,7 +38,7 @@ class Mix(Cog):
             return await ctx.send(f"**{nick}** ERROR: I can't candidate today. Try another time.")
 
         try:
-            tree = await self.bot.get_content(URL + "partyStatistics.html?statisticType=MEMBERS")
+            tree = await self.bot.get_content(URL + "partyStatistics.html?statisticType=MEMBERS", return_tree=True)
             ID = str(tree.xpath('//*[@id="esim-layout"]//table//tr[2]//td[3]//@href')[0]).split("=")[1]
             party_payload = {"action": "JOIN", "id": ID, "submit": "Join"}
             url = await self.bot.get_content(URL + "partyStatistics.html", data=party_payload)
@@ -108,9 +108,10 @@ class Mix(Cog):
             RANGE = 20
         else:
             RANGE = int(missions_to_complete)
-        for Index in range(RANGE):
+        prv_num = 0
+        for _ in range(RANGE):
             try:
-                tree = await self.bot.get_content(URL)
+                tree = await self.bot.get_content(URL, return_tree=True)
                 check = tree.xpath('//*[@id="taskButtonWork"]//@href')
                 if check:
                     await ctx.invoke(self.bot.get_command("work"), nick=nick)
@@ -124,7 +125,13 @@ class Mix(Cog):
                         return await ctx.send(f"**{nick}** No more missions today. Come back tomorrow!")
                     await ctx.send(f"**{nick}** <{c}>")
                     continue
-
+                if prv_num == num:
+                    c = await self.bot.get_content(URL + "betaMissions.html",
+                                                   data={"action": "SKIP", "submit": "Skip this mission"})
+                    if "MISSION_SKIPPED" not in c and "?action=SKIP" not in c:
+                        return
+                    else:
+                        await ctx.send(f"**{nick}** WARNING: Skipped mission {num}")
                 if not num:
                     return await ctx.send("**{nick}** You have completed all your missions for today, come back tomorrow!")
                 await ctx.send(f"**{nick}** Mission number {num}")
@@ -151,7 +158,12 @@ class Mix(Cog):
 
                         await ctx.invoke(self.bot.get_command("auto_fight"), nick, 1)
                     elif num == 6:
-                        await self.bot.get_content(f"{URL}food.html", data={'quality': 1})
+                        for q in range(1, 6):
+                            try:
+                                food = tree.xpath(f'//*[@id="foodQ{q}"]/text()')[0]
+                                await self.bot.get_content(f"{URL}food.html", data={'quality': food})
+                            except IndexError:
+                                pass
                     elif num == 8:
                         await self.bot.get_content(URL + "editCitizen.html")
                     elif num == 9:
@@ -173,7 +185,7 @@ class Mix(Cog):
                         await self.bot.get_content(URL + "citizenAchievements.html",
                                                    data={"id": my_id, "submit": "Recalculate achievements"})
                     elif num == 14:
-                        tree = await self.bot.get_content(URL + 'storage.html?storageType=EQUIPMENT')
+                        tree = await self.bot.get_content(URL + 'storage.html?storageType=EQUIPMENT', return_tree=True)
                         ID = tree.xpath(f'//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
                         payload = {'action': "EQUIP", 'itemId': ID.replace("#", "")}
                         await self.bot.get_content(URL + "equipmentAction.html", data=payload)
@@ -234,7 +246,7 @@ class Mix(Cog):
                                 break
                     elif num == 42:
                         try:
-                            tree = await self.bot.get_content(URL + "partyStatistics.html?statisticType=MEMBERS")
+                            tree = await self.bot.get_content(URL + "partyStatistics.html?statisticType=MEMBERS", return_tree=True)
                             ID = str(tree.xpath('//*[@id="esim-layout"]//table//tr[2]//td[3]//@href')[0]).split("=")[1]
                             payload1 = {"action": "JOIN", "id": ID, "submit": "Join"}
                             b = await self.bot.get_content(URL + "partyStatistics.html", data=payload1)
@@ -251,7 +263,7 @@ class Mix(Cog):
                                    "quantity": 1}
                         await self.bot.get_content(URL + "storage.html", data=payload)
                     elif num == 49:
-                        tree = await self.bot.get_content(URL + 'storage.html?storageType=EQUIPMENT')
+                        tree = await self.bot.get_content(URL + 'storage.html?storageType=EQUIPMENT', return_tree=True)
                         ID = tree.xpath(f'//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
                         payload = {'action': "EQUIP", 'itemId': ID.replace("#", "")}
                         await self.bot.get_content(URL + "equipmentAction.html", data=payload)
@@ -292,6 +304,7 @@ class Mix(Cog):
                             else:
                                 await ctx.send(f"**{nick}** WARNING: Skipped mission {num}")
                 await ctx.send(f"**{nick}** <{c}>")
+                prv_num = num
             except Exception as error:
                 await ctx.send(f"**{nick}** ERROR: {error}")
                 await sleep(5)
@@ -361,7 +374,7 @@ class Mix(Cog):
         else:
             return await ctx.send(f"**{nick}** ERROR: There are not elections today")
 
-        tree = await self.bot.get_content(URL + link)
+        tree = await self.bot.get_content(URL + link, return_tree=True)
         payload = ""
         for tr in range(2, 43):
             try:
@@ -410,7 +423,7 @@ class Mix(Cog):
         """Update doc for specific nick"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
-        tree = await self.bot.get_content(URL + "storage.html?storageType=PRODUCT")
+        tree = await self.bot.get_content(URL + "storage.html?storageType=PRODUCT", return_tree=True)
         medkits = ""
         try:
             for letter in str(tree.xpath('//*[@id="medkitButton"]')[0].text):
@@ -429,7 +442,7 @@ class Mix(Cog):
                 storage1[item[0]] = int(item[1])
             except:
                 break
-        tree = await self.bot.get_content(URL + 'storage.html?storageType=SPECIAL_ITEM')
+        tree = await self.bot.get_content(URL + 'storage.html?storageType=SPECIAL_ITEM', return_tree=True)
         storage = []
         for num in range(1, 16):
             try:
@@ -461,7 +474,7 @@ class Mix(Cog):
     async def info(self, ctx, *, nick=""):
         """Gives some info from the database"""
         if "help" in [str(a) for a in self.bot.commands]:
-            embed = Embed(title=nick)
+            embed = Embed()
             if not nick:
                 values = await utils.find(ctx.channel.name, "info")
                 values.sort(key=lambda x: x['Worked at'])

@@ -38,19 +38,22 @@ class Social(Cog):
         """Reading all new msgs and notifications + accept friend requests"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
 
-        tree = await self.bot.get_content(URL)
+        tree = await self.bot.get_content(URL, return_tree=True)
         msgs = int(str(tree.xpath("//*[@id='inboxMessagesMission']/b")[0].text))
         alerts = int(str(tree.xpath('//*[@id="numero1"]/a/b')[0].text))
         if alerts:
-            for page in range(1, int(alerts / 20) + 2):
-                tree = await self.bot.get_content(f"{URL}notifications.html?page={page}")
+            for page in range(1, alerts // 20 + 2):
+                tree = await self.bot.get_content(f"{URL}notifications.html?page={page}", return_tree=True)
                 embed = Embed(title=f"**{nick}** {URL}notifications.html?page={page}\n")
-                for tr in range(2, alerts + 2):
+                for tr in range(2, min(20, alerts) + 2):
                     try:
                         alert = tree.xpath(f'//tr[{tr}]//td[2]')[0].text_content().strip()
                         alertDate = tree.xpath(f'//tr[{tr}]//td[3]')[0].text_content().strip()
                         if "has requested to add you as a friend" in alert:
                             await self.bot.get_content(URL + str(tree.xpath(f"//tr[{tr}]//td[2]/a[2]/@href")[0]))
+                        elif "has offered you to sign" in alert:
+                            alert = alert.replace("contract", f'[contract]({URL}{tree.xpath(f"//tr[{tr}]//td[2]/a[2]/@href")[0]})').replace(
+                                "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!", "\nSee `.help contract`")
                         alerts -= 1
                         embed.add_field(name=alertDate, value=alert, inline=False)
                     except:
@@ -58,7 +61,7 @@ class Social(Cog):
                 await ctx.send(embed=embed)
 
         if msgs:
-            tree = await self.bot.get_content(URL + "inboxMessages.html")
+            tree = await self.bot.get_content(URL + "inboxMessages.html", return_tree=True)
             embed = Embed(title=f"**{nick}** {URL}inboxMessages.html")
             for tr in range(2, msgs + 2):
                 AUTHOR = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[1]//div/a[2]/text()')[0].strip()
@@ -67,6 +70,8 @@ class Social(Cog):
                 date = str(tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[3]')[0].text).strip()
                 embed.add_field(name=AUTHOR, value=f"**{Title}**\n{CONTENT}\n{date}", inline=False)
             await ctx.send(embed=embed)
+        if not alerts and not msgs:
+            await ctx.send(f"**{nick}:** There are no new alerts or messages!")
 
     @command(aliases=["MU"])
     async def citizenship(self, ctx, country_or_mu_id: int, *, nick: IsMyNick):
@@ -87,9 +92,7 @@ class Social(Cog):
             payload = {'action': "SEND_APPLICATION", 'id': country_or_mu_id, "message": choice(messages),
                        "submit": "Send application"}
             link = "militaryUnitsActions.html"
-            # TODO: check first if there's already pending application.
-            await self.bot.get_content(URL + link, data={"action": "CANCEL_APPLICATION",
-                                                         "submit": "Cancel application"})
+            await self.bot.get_content(URL + link, data={"action": "CANCEL_APPLICATION", "submit": "Cancel application"})
 
         url = await self.bot.get_content(URL + link, data=payload)
         await ctx.send(f"**{nick}** <{url}>")
@@ -97,7 +100,7 @@ class Social(Cog):
     @command()
     async def msg(self, ctx, receiver_name, title, body, *, nick: IsMyNick):
         """Sending a msg.
-        If any arg (receiverName, title or body) containing more than 1 word - it must be within quotes"""
+        If receiver_name, title or body contains more than 1 word - it must be within quotes"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         payload = {'receiverName': receiver_name, "title": title, "body": body, "action": "REPLY", "submit": "Send"}
         url = await self.bot.get_content(URL + "composeMessage.html", data=payload)
@@ -141,24 +144,24 @@ class Social(Cog):
                     results.clear()
                 row = loads(row)
                 try:
-                    url = await self.bot.get_content(f"{URL}friends.html?action=PROPOSE&id={row['id']}", return_url=True)
+                    url = await self.bot.get_content(f"{URL}friends.html?action=PROPOSE&id={row['id']}")
                     if "PROPOSED_FRIEND_OK" in str(url):
                         results.append("Sent to: " + row['login'])
                 except Exception as error:
                     await ctx.send(f"**{nick}** ERROR: {error}")
                 await sleep(1)
         else:
-            tree = await self.bot.get_content(URL + 'citizenStatistics.html?statisticType=DAMAGE&countryId=0')
+            tree = await self.bot.get_content(URL + 'citizenStatistics.html?statisticType=DAMAGE&countryId=0', return_tree=True)
             last = tree.xpath("//ul[@id='pagination-digg']//li[last()-1]//@href")
             last = last[0].split("page=")[1]
             for page in range(1, int(last) + 1):
                 if page != 1:
                     tree = await self.bot.get_content(
-                        URL + 'citizenStatistics.html?statisticType=DAMAGE&countryId=0&page=' + str(page))
+                        URL + 'citizenStatistics.html?statisticType=DAMAGE&countryId=0&page=' + str(page), return_tree=True)
                 for link in tree.xpath("//td/a/@href"):
                     try:
                         url = f"{URL}friends.html?action=PROPOSE&id={link.split('=')[1]}"
-                        send = await self.bot.get_content(url, return_url=True)
+                        send = await self.bot.get_content(url)
                         if send == url:
                             await ctx.send(f"**{nick}** ERROR: you are not logged in, see `.help login`")
                         results.append(f"<{send}>")
@@ -170,6 +173,7 @@ class Social(Cog):
                     results.clear()
         if results:
             await ctx.send(f"**{nick}**\n" + "\n".join(results))
+        await ctx.send(f"**{nick}** done.")
 
 
 def setup(bot):

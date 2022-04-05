@@ -41,7 +41,7 @@ bot.session = bot.loop.run_until_complete(create_session())
 bot.cookies = {}
 
 
-async def inner_get_content(link, data=None, return_url=False, return_type=""):
+async def inner_get_content(link, data=None, return_tree=False, return_type=""):
     method = "get" if data is None else "post"
     if not return_type:
         return_type = "json" if "api" in link else "html"
@@ -60,18 +60,6 @@ async def inner_get_content(link, data=None, return_url=False, return_type=""):
                     raise BadArgument(f"you are not logged in")
 
                 if respond.status == 200:
-                    if method == "post":
-                        if "fight" in link:
-                            try:
-                                return fromstring(await respond.text(encoding='utf-8'))
-                            except:
-                                return fromstring((await respond.text(encoding='utf-8'))[1:])
-                        try:
-                            return str(respond.url) if not return_url else fromstring(
-                                await respond.text(encoding='utf-8'))
-                        except:
-                            return str(respond.url) if not return_url else fromstring(
-                                (await respond.text(encoding='utf-8'))[1:])
                     if return_type == "json":
                         try:
                             api = await respond.json(content_type=None)
@@ -83,10 +71,10 @@ async def inner_get_content(link, data=None, return_url=False, return_type=""):
                         return api if "apiBattles" not in link else api[0]
                     else:
                         try:
-                            return fromstring(await respond.text(encoding='utf-8')) if not return_url else str(
+                            return fromstring(await respond.text(encoding='utf-8')) if return_tree else str(
                                 respond.url)
                         except:
-                            return fromstring((await respond.text(encoding='utf-8'))[1:]) if not return_url else str(
+                            return fromstring((await respond.text(encoding='utf-8'))[1:]) if return_tree else str(
                                 respond.url)
                 else:
                     await sleep(5)
@@ -98,7 +86,7 @@ async def inner_get_content(link, data=None, return_url=False, return_type=""):
     raise OSError(link)
 
 
-async def get_content(link, data=None, return_url=False, return_type=""):
+async def get_content(link, data=None, return_tree=False, return_type=""):
     nick = environ['nick']
     link = link.split("#")[0].replace("http://", "https://")
     server = link.split("https://", 1)[1].split(".e-sim.org", 1)[0]
@@ -109,7 +97,7 @@ async def get_content(link, data=None, return_url=False, return_type=""):
     tree = None
     if server in bot.cookies:
         try:
-            tree = await inner_get_content(link, data, return_url, return_type)
+            tree = await inner_get_content(link, data, return_tree, return_type)
         except BadArgument as e:
             if "you are not logged in" not in str(e):
                 raise e
@@ -128,9 +116,9 @@ async def get_content(link, data=None, return_url=False, return_type=""):
                     raise BadArgument("Failed to login")
                 bot.cookies.update({server: {cookie.key: cookie.value for cookie in bot.session.cookie_jar}})
         await utils.replace_one(server, "cookies", nick, bot.cookies)
-        tree = await inner_get_content(link, data, return_url, return_type)
+        tree = await inner_get_content(link, data, return_tree, return_type)
     if tree is None:
-        tree = await inner_get_content(link, data, return_url, return_type)
+        tree = await inner_get_content(link, data, return_tree, return_type)
     return tree
 
 

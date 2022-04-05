@@ -18,11 +18,21 @@ class Eco(Cog):
         self.bot = bot
 
     @command()
-    async def contract(self, ctx, contract_id, *, nick: IsMyNick):
-        """Accept specific contract id."""
-        payload = {'action': "ACCEPT", "id": contract_id, "submit": "Accept"}
-        url = await self.bot.get_content(f"https://{ctx.channel.name}.e-sim.org/contract.html", data=payload)
-        await ctx.send(f"**{nick}** <{url}>")
+    async def contract(self, ctx, contract_id: int, *, nick: IsMyNick):
+        """Accept specific contract id.
+        Write 0 as contract_id to get the list of contracts"""
+        URL = f"https://{ctx.channel.name}.e-sim.org/"
+        if contract_id == 0:
+            tree = await self.bot.get_content(f"{URL}contracts.html", return_tree=True)
+            text = [x.text_content().strip().replace("\n", " ").replace("\t", "") for x in tree.xpath('//*[@id="esim-layout"]//div[2]//ul//li')[:5]]
+            links = tree.xpath('//*[@id="esim-layout"]//div[2]//ul//li//a/@href')[::2][:5]
+            embed = Embed(title=nick)
+            embed.add_field(name="Contracts (first 5)", value="\n".join(f"[{t}]({URL+link})" for t, link in zip(text, links)))
+            await ctx.send(embed=embed)
+        else:
+            payload = {'action': "ACCEPT", "id": contract_id, "submit": "Accept"}
+            url = await self.bot.get_content(f"https://{ctx.channel.name}.e-sim.org/contract.html", data=payload)
+            await ctx.send(f"**{nick}** <{url}>")
 
     @command()
     async def bid(self, ctx, auction_id_or_link, price, delay, *, nick: IsMyNick):
@@ -34,7 +44,7 @@ class Eco(Cog):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         if ".e-sim.org/auction.html?id=" in auction_id_or_link:
             auction_id_or_link = auction_id_or_link.split("=")[1]
-        tree = await self.bot.get_content(f"{URL}auction.html?id={auction_id_or_link}")
+        tree = await self.bot.get_content(f"{URL}auction.html?id={auction_id_or_link}", return_tree=True)
         try:
             auction_time = str(tree.xpath(f'//*[@id="auctionClock{auction_id_or_link}"]')[0].text)
         except:
@@ -57,7 +67,7 @@ class Eco(Cog):
         bought_amount = 0
 
         for Index in range(10):  # 10 pages
-            tree = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country_id}")
+            tree = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country_id}", return_tree=True)
             IDs = [ID.value for ID in tree.xpath("//td[4]//form[1]//input[@value][2]")]
             amounts = tree.xpath('//td[2]//b/text()')
             prices = tree.xpath("//td[3]//b/text()")
@@ -91,14 +101,14 @@ class Eco(Cog):
             quality = 5
         if not product:
             return await ctx.send(f"**{nick}** ERROR: Invalid input")
-        tree = await self.bot.get_content(f"{URL}storage/money")
+        tree = await self.bot.get_content(f"{URL}storage/money", return_tree=True)
         keys = [x.strip() for x in tree.xpath("//div//div/text()") if x]
         values = [float(x.strip()) for x in tree.xpath("//div//div/b/text()") if x]
         my_money = dict(zip([x for x in keys if x], values))
         products_bought = 0
         MM_bought = None
         while products_bought < amount:
-            tree = await self.bot.get_content(f"{URL}productMarket.html?resource={product}&quality={quality}")
+            tree = await self.bot.get_content(f"{URL}productMarket.html?resource={product}&quality={quality}", return_tree=True)
             product_id = tree.xpath('//*[@id="command"]/input[1]')[0].value
             stock = int(tree.xpath(f"//tr[2]//td[3]/text()")[0])
             raw_cost = tree.xpath(f"//tr[2]//td[4]//text()")
@@ -108,7 +118,7 @@ class Eco(Cog):
                 MM_bought = my_money.get(mm_type, 0)
             MM_needed = min(stock, amount - products_bought) * cost
             while MM_bought < MM_needed:
-                tree1 = await self.bot.get_content(URL + "monetaryMarket.html")
+                tree1 = await self.bot.get_content(URL + "monetaryMarket.html", return_tree=True)
                 try:
                     ID = tree1.xpath("//tr[2]//td[4]//form[1]//input[@value][2]")[0].value
                     CC_offer = float(tree1.xpath('//tr[2]//td[2]//b')[0].text)
@@ -167,7 +177,7 @@ class Eco(Cog):
     async def eqs(self, ctx, *, nick: IsMyNick):
         """Shows list of EQs in storage."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(URL + 'storage.html?storageType=EQUIPMENT')
+        tree = await self.bot.get_content(URL + 'storage.html?storageType=EQUIPMENT', return_tree=True)
         original_IDs = tree.xpath(f'//*[starts-with(@id, "cell")]/a/text()')
         IDs = [f"[{ID}]({URL}showEquipment.html?id={ID.replace('#', '')})" for ID in original_IDs]
         if sum([len(x) for x in IDs]) > 1000:
@@ -185,8 +195,8 @@ class Eco(Cog):
         shows all of your in-game inventory.
         """
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(f"{URL}storage.html?storageType=PRODUCT")
-        tree2 = await self.bot.get_content(f"{URL}storage.html?storageType=SPECIAL_ITEM")
+        tree = await self.bot.get_content(f"{URL}storage.html?storageType=PRODUCT", return_tree=True)
+        tree2 = await self.bot.get_content(f"{URL}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
         container_1 = tree.xpath("//div[@class='storage']")
         special_items = tree2.xpath('//div[@class="specialItemInventory"]')
         gold = tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0]
@@ -234,7 +244,7 @@ class Eco(Cog):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
 
         await self.bot.get_content(URL + "work.html", data={'action': "leave", "submit": "Submit"})
-        tree = await self.bot.get_content(URL + "jobMarket.html")
+        tree = await self.bot.get_content(URL + "jobMarket.html", return_tree=True)
         jobId = tree.xpath("//tr[2]//td[6]//input[1]")[0].value
         url = await self.bot.get_content(URL + "jobMarket.html", data={"id": jobId, "submit": "Apply"})
         await ctx.send(f"**{nick}** <{url}>")
@@ -255,19 +265,19 @@ class Eco(Cog):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         if ctx.invoked_with.lower() == "split":
             payload = {'action': "SPLIT", "itemId": int(ids_or_quality.strip())}
-            merge_request = await self.bot.get_content(URL + "equipmentAction.html", data=payload)
-            await ctx.send(f"**{nick}** <{merge_request}>")
+            url = await self.bot.get_content(URL + "equipmentAction.html", data=payload)
+            await ctx.send(f"**{nick}** <{url}>")
         elif "," in ids_or_quality:
             EQ1, EQ2, EQ3 = [eq.strip() for eq in ids_or_quality.split(",")]
             payload = {'action': "MERGE", f'itemId[{EQ1}]': EQ1, f'itemId[{EQ2}]': EQ2, f'itemId[{EQ3}]': EQ3}
-            merge_request = await self.bot.get_content(URL + "equipmentAction.html", data=payload)
-            await ctx.send(f"**{nick}** <{merge_request}>")
+            url = await self.bot.get_content(URL + "equipmentAction.html", data=payload)
+            await ctx.send(f"**{nick}** <{url}>")
 
         else:
             max_q_to_merge = int(ids_or_quality.lower().replace("q", ""))  # max_q_to_merge - including
             results = list()
             for Index in range(5):
-                tree = await self.bot.get_content(f'{URL}storage.html?storageType=EQUIPMENT')
+                tree = await self.bot.get_content(f'{URL}storage.html?storageType=EQUIPMENT', return_tree=True)
                 IDs = tree.xpath(f'//*[starts-with(@id, "cell")]/a/text()')
                 items = tree.xpath(f'//*[starts-with(@id, "cell")]/b/text()')
                 DICT = {}
@@ -283,14 +293,14 @@ class Eco(Cog):
                             EQ1, EQ2, EQ3 = DICT[i][z * 3:z * 3 + 3]
                             payload = {'action': "MERGE", f'itemId[{EQ1}]': EQ1, f'itemId[{EQ2}]': EQ2,
                                        f'itemId[{EQ3}]': EQ3}
-                            merge_request = await self.bot.get_content(URL + "equipmentAction.html", data=payload)
-                            results.append(f"<{merge_request}>")
+                            url = await self.bot.get_content(URL + "equipmentAction.html", data=payload)
+                            results.append(f"<{url}>")
                             await sleep(1)
-                            if merge_request == "http://www.google.com/":
+                            if url == "http://www.google.com/":
                                 # e-sim error
                                 await sleep(5)
 
-                            elif "?actionStatus=CONVERT_ITEM_OK" not in merge_request:
+                            elif "?actionStatus=CONVERT_ITEM_OK" not in url:
                                 # no money etc
                                 break
                     if results:
@@ -298,38 +308,38 @@ class Eco(Cog):
                         results.clear()
             if results:
                 await ctx.send(f"**{nick}**\n" + "\n".join(results))
-            await ctx.send("Done merging.")
+        await ctx.invoke(self.bot.get_command("eqs"), nick=nick)
 
     @command()
     async def mm(self, ctx, *, nick: IsMyNick):
         """Sells all currencies in your account in the appropriate markets & edit current offers if needed."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         api = await self.bot.get_content(URL + "apiCountries.html")
-        storage_tree = await self.bot.get_content(URL + "storage.html?storageType=MONEY")
+        storage_tree = await self.bot.get_content(URL + "storage.html?storageType=MONEY", return_tree=True)
         for i in range(2, 20):
             try:
                 CC = storage_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/text()')[-1].strip()
                 cc = [i["id"] for i in api if i["currencyName"] == CC][0]
                 value = storage_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/b/text()')[0]
-                tree = await self.bot.get_content(f'{URL}monetaryMarket.html?buyerCurrencyId={cc}&sellerCurrencyId=0')
+                tree = await self.bot.get_content(f'{URL}monetaryMarket.html?buyerCurrencyId={cc}&sellerCurrencyId=0', return_tree=True)
                 try:
                     MM = str(tree.xpath("//tr[2]//td[3]/b")[0].text).strip()
                 except:
                     MM = 0.1
                 payload = {"offeredMoneyId": cc, "buyedMoneyId": 0, "value": value,
                            "exchangeRatio": round(float(MM) - 0.0001, 4), "submit": "Post new offer"}
-                send_monetary_market = await self.bot.get_content(URL + "monetaryMarket.html?action=post", data=payload)
+                await self.bot.get_content(URL + "monetaryMarket.html?action=post", data=payload)
                 await ctx.send(f"**{nick}** posted {value} {CC} for {payload['exchangeRatio']}")
             except:
                 break
 
-        tree = await self.bot.get_content(URL + "monetaryMarket.html")
+        tree = await self.bot.get_content(URL + "monetaryMarket.html", return_tree=True)
         IDs = tree.xpath('//*[@id="command"]//input[1]')
         for i in range(2, 20):
             try:
                 CC = tree.xpath(f'//*[@id="esim-layout"]//table[2]//tr[{i}]//td[1]/text()')[-1].strip()
                 cc = [i["id"] for i in api if i["currencyName"] == CC][0]
-                tree = await self.bot.get_content(f'{URL}monetaryMarket.html?buyerCurrencyId={cc}&sellerCurrencyId=0')
+                tree = await self.bot.get_content(f'{URL}monetaryMarket.html?buyerCurrencyId={cc}&sellerCurrencyId=0', return_tree=True)
                 seller = tree.xpath("//tr[2]//td[1]/a/text()")[0].strip()
                 if seller != nick:
                     try:
@@ -337,8 +347,8 @@ class Eco(Cog):
                     except:
                         MM = 0.1
                     payload = {"id": IDs[i - 2].value, "rate": round(float(MM) - 0.0001, 4), "submit": "Edit"}
-                    edit_offer = await self.bot.get_content(URL + "monetaryMarket.html?action=change", data=payload)
-                    await ctx.send(f"**{nick}** <{edit_offer}>")
+                    url = await self.bot.get_content(URL + "monetaryMarket.html?action=change", data=payload)
+                    await ctx.send(f"**{nick}** <{url}>")
             except:
                 break
 
@@ -380,20 +390,19 @@ class Eco(Cog):
             await self.bot.get_content(URL + "taskQueue.html", data=payload1)
             await self.bot.get_content(URL + "taskQueue.html", data=payload2)
 
-        tree = await self.bot.get_content(URL + "work.html")
+        tree = await self.bot.get_content(URL + "work.html", return_tree=True)
         if tree.xpath('//*[@id="taskButtonWork"]//@href'):
             try:
                 region = tree.xpath(
                     '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a/@href')[0].split("=")[1]
-                payload = {'countryId': int(int(region) / 6) + (int(region) % 6 > 0), 'regionId': region,
-                           'ticketQuality': 5}
+                payload = {'countryId': int(region) // 6 + 1, 'regionId': region, 'ticketQuality': 5}
                 await self.bot.get_content(URL + "travel.html", data=payload)
             except:
                 return await ctx.send(f"**{nick}** ERROR: I couldn't find in which region your work is. If you don't have a job, see `.help job`")
 
             await self.bot.get_content(URL + "train/ajax", data={"action": "train"})
             await ctx.send(f"**{nick}** Trained successfully")
-            Tree = await self.bot.get_content(URL + "work/ajax", data={"action": "work"}, return_url=True)
+            Tree = await self.bot.get_content(URL + "work/ajax", data={"action": "work"}, return_tree=True)
             if not Tree.xpath('//*[@id="taskButtonWork"]//@href'):
                 data = await utils.find_one(server, "info", nick)
                 now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%Y-%m-%d %H:%M:%S")
@@ -432,7 +441,7 @@ class Eco(Cog):
             await sleep((midnight-now).seconds+20)
 
     async def _received(self, URL, blacklist, contract_name):
-        tree = await self.bot.get_content(f'{URL}contracts.html')
+        tree = await self.bot.get_content(f'{URL}contracts.html', return_tree=True)
         li = 0
         while True:
             try:
@@ -445,12 +454,12 @@ class Eco(Cog):
         return blacklist
 
     async def _remove_rejected(self, URL, blacklist):
-        tree = await self.bot.get_content(URL+'notifications.html?filter=CONTRACTS')
+        tree = await self.bot.get_content(URL+'notifications.html?filter=CONTRACTS', return_tree=True)
         last_page = tree.xpath("//ul[@id='pagination-digg']//li[last()-1]//@href") or ['page=1']
         last_page = int(last_page[0].split('page=')[1])
         for page in range(1, int(last_page)+1):
             if page != 1:
-                tree = await self.bot.get_content(f'{URL}notifications.html?filter=CONTRACTS&page={page}')
+                tree = await self.bot.get_content(f'{URL}notifications.html?filter=CONTRACTS&page={page}', return_tree=True)
             for tr in range(2, 22):
                 if "   has rejected your  " in tree.xpath(f"//tr[{tr}]//td[2]/text()"):
                     blacklist.add(str(tree.xpath(f"//tr[{tr}]//td[2]//a[1]")[0].text).strip())
@@ -461,7 +470,7 @@ class Eco(Cog):
         apiCitizen = await self.bot.get_content(f'{URL}apiCitizenByName.html?name={nick.lower()}')
 
         for page in range(1, 100):
-            tree = await self.bot.get_content(f'{URL}profileFriendsList.html?id={apiCitizen["id"]}&page={page}')
+            tree = await self.bot.get_content(f'{URL}profileFriendsList.html?id={apiCitizen["id"]}&page={page}', return_tree=True)
             for div in range(1, 13):
                 friend = tree.xpath(f'//div//div[1]//div[{div}]/a/text()')
                 if not friend:
@@ -469,7 +478,7 @@ class Eco(Cog):
                 yield friend[0].strip()
 
     async def staff_list(self, URL, blacklist):
-        tree = await self.bot.get_content(f"{URL}staff.html")
+        tree = await self.bot.get_content(f"{URL}staff.html", return_tree=True)
         nicks = tree.xpath('//*[@id="esim-layout"]//a/text()')
         for nick in nicks:
             blacklist.add(nick.strip())
@@ -491,8 +500,8 @@ class Eco(Cog):
                 payload = {'id': contract_id, 'action': "PROPOSE", 'citizenProposedTo': nick, 'submit': 'Propose'}
                 for _ in range(10):
                     try:
-                        b = await self.bot.get_content(URL + "contract.html", data=payload)
-                        await ctx.send(f"**{nick}:** <{b}>")
+                        url = await self.bot.get_content(URL + "contract.html", data=payload)
+                        await ctx.send(f"**{nick}:** <{url}>")
                         break  # sent
                     except Exception as error:
                         await ctx.send(f"**{nick}** {error}")

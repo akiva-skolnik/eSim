@@ -3,8 +3,10 @@
 
 [![Flag Counter](https://s01.flagcounter.com/mini/5j6R/bg_FFFFFF/txt_000000/border_CCCCCC/flags_0/)](https://info.flagcounter.com/5j6R)
 
-**(This is a better version of https://github.com/e-sim-python/scripts, is designed mainly for a group / VPS, 
+**(This is a better and up-to-date version of https://github.com/e-sim-python/scripts, is designed mainly for a group / VPS, 
 but it's also good for those who wants to play e-sim using discord)**
+
+If you appreciate my hard word, please consider [buying me a coffee](https://www.buymeacoffee.com/eSimPython). Thanks :)
 
 #### Table of Content:
 1. [Introduction](https://github.com/e-sim-python/eSim#introduction)
