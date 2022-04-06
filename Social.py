@@ -88,6 +88,7 @@ class Social(Cog):
             payload = {'action': "APPLY", 'countryId': country_or_mu_id, "message": choice(messages),
                        "submit": "Apply for citizenship"}
             link = "citizenshipApplicationAction.html"
+            await self.bot.get_content(URL + "partyStatistics.html", data={"action": "LEAVE", "submit": "Leave party"})
         else:
             payload = {'action': "SEND_APPLICATION", 'id': country_or_mu_id, "message": choice(messages),
                        "submit": "Send application"}
