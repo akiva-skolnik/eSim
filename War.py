@@ -228,7 +228,7 @@ class War(Cog):
         """traveling to a region"""
         if 1 <= ticket_quality <= 5:
             URL = f"https://{ctx.channel.name}.e-sim.org/"
-            region_id = region_link_or_id
+            region_id = str(region_link_or_id)
             if "http" in region_id:
                 region_id = region_id.split("=")[1]
             payload = {'countryId': int(region_id) // 6 + 1, 'regionId': region_id, 'ticketQuality': ticket_quality}
