@@ -2,10 +2,13 @@ import json
 import os
 
 if "database_url" in os.environ:
-    import pip
-    pip.main(['install', "dnspython"])
-    pip.main(['install', "motor"])
-    from motor.motor_asyncio import AsyncIOMotorClient
+    try:
+        from motor.motor_asyncio import AsyncIOMotorClient
+    except:
+        import pip
+        pip.main(['install', "dnspython"])
+        pip.main(['install', "motor"])
+        from motor.motor_asyncio import AsyncIOMotorClient
     client = AsyncIOMotorClient(os.environ['database_url'])
 else:
     client = None

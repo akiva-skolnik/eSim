@@ -384,11 +384,9 @@ class Mix(Cog):
             if name == your_candidate.lower():
                 if president:
                     candidateId = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]/td[4]/form/input[2]')[0].value
-                    payload = {'action': "VOTE", 'candidate': candidateId, "submit": "Vote"}
                 else:
-                    candidateId = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]//td[5]//*[@id="command"]/input[2]')[
-                        0].value
-                    payload = {'action': "VOTE", 'candidateId': candidateId, "submit": "Vote"}
+                    candidateId = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]//td[5]//*[@id="command"]/input[2]')[0].value
+                payload = {'action': "VOTE", 'candidateId': candidateId, "submit": "Vote"}
                 break
 
         if payload:
