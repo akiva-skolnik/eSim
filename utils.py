@@ -54,3 +54,11 @@ async def replace_one(server: str, collection: str, ID: str, data: dict) -> None
         big_dict[ID.lower()] = data
         with open(filename, "w") as file:
             json.dump(big_dict, file)
+
+
+def get_region_and_country_names(api_regions, api_countries, region_id):
+    for region in api_regions:
+        if region["id"] == region_id:
+            for country in api_countries:
+                if country["id"] == region["homeCountry"]:
+                    return region['name'], country['name']

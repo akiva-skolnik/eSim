@@ -22,7 +22,7 @@ with open("config.json", 'r') as file:
 if environ.get("help", "") != "ignore":
     bot.remove_command("help")
     
-for extension in ("Eco", "Mix", "Social", "War"):
+for extension in ("Eco", "Mix", "Social", "War", "Info"):
     bot.load_extension(extension)
 
 
@@ -36,7 +36,7 @@ async def create_session():
     return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": environ["headers"]})
 
 
-bot.VERSION = "31/03/2022"
+bot.VERSION = "07/04/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.cookies = {}
 

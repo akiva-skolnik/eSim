@@ -2,16 +2,13 @@ from asyncio import sleep
 from base64 import b64encode
 from datetime import datetime
 from io import BytesIO
-from os import environ
 from random import choice, randint
 
 from aiohttp import ClientSession
-from discord import Embed
 from discord.ext.commands import Cog, command
 from pytz import timezone
 
 from Converters import IsMyNick
-import utils
 
 
 class Mix(Cog):
@@ -414,89 +411,7 @@ class Mix(Cog):
             del self.bot.cookies[server]
         if not self.bot.cookies:
             self.bot.cookies["not"] = "empty"
-        await ctx.send("done")
-        
-    @command()
-    async def update(self, ctx, *, nick: IsMyNick):
-        """Update doc for specific nick"""
-        server = ctx.channel.name
-        URL = f"https://{server}.e-sim.org/"
-        tree = await self.bot.get_content(URL + "storage.html?storageType=PRODUCT", return_tree=True)
-        medkits = ""
-        try:
-            for letter in str(tree.xpath('//*[@id="medkitButton"]')[0].text):
-                if letter in "1234567890":
-                    medkits = medkits + letter
-        except:
-            medkits = "0"
-        gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
-        storage1 = {}
-        for num in range(2, 22):
-            try:
-                item = str(tree.xpath(f'//*[@id="resourceInput"]/option[{num}]')[0].text).strip().replace(
-                    "(available", "").replace(")", "").split(":")
-                while "  " in item[0]:
-                    item[0] = item[0].replace("  ", "")
-                storage1[item[0]] = int(item[1])
-            except:
-                break
-        tree = await self.bot.get_content(URL + 'storage.html?storageType=SPECIAL_ITEM', return_tree=True)
-        storage = []
-        for num in range(1, 16):
-            try:
-                amount = tree.xpath(f'//*[@id="storageConteiner"]//div//div//div[1]//div[{num}]/span')[0].text
-                if "x" in amount:
-                    item = str(
-                        tree.xpath(f'//*[@id="storageConteiner"]//div//div//div[1]//div[{num}]/b')[0].text).replace(
-                        "Extra", "").replace("Equipment parameter ", "")
-                if item != "Medkit" and "Bandage" not in item:
-                    storage.append(f'{amount.replace("x", "")} {item}')
-            except:
-                break
-        if not storage:
-            storage = ["Empty"]
-        l = await self.bot.get_content(URL + 'apiCitizenByName.html?name=' + nick.lower())
-        data = await utils.find_one(server, "info", nick)
-        data.update({"XP": l['xp'], "Total dmg": "{:,}".format(l['totalDamage'] - l['damageToday']),
-                     "Citizenship": l['citizenship'],
-                     "Link": f"{URL}profile.html?id={l['id']}", "Special": ", ".join(storage), "Medkits": medkits,
-                     "Gold": gold,
-                     "Code version": self.bot.VERSION, "Storage": ", ".join([f'{v} {k}' for k, v in storage1.items()])})
-        if "Worked at" not in data:
-            data.update({"Worked at": "1999-01-01 00:00:00"})
-        await utils.replace_one(server, "info", nick, data)
-        await ctx.send(f"**{nick}** - updated. Code version: {self.bot.VERSION}")
-        await ctx.invoke(self.bot.get_command("info"), nick=nick)
-
-    @command()
-    async def info(self, ctx, *, nick=""):
-        """Gives some info from the database"""
-        if "help" in [str(a) for a in self.bot.commands]:
-            embed = Embed()
-            if not nick:
-                values = await utils.find(ctx.channel.name, "info")
-                values.sort(key=lambda x: x['Worked at'])
-                embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
-                embed.add_field(name="Worked at", value="\n".join(
-                    [row["Worked at"] if "Worked at" in row else "1999-01-01 00:00:00" for row in values]))
-                embed.add_field(name="Gold",
-                                value="\n".join([row["Gold"] if "Gold" in row else "Unknown" for row in values]))
-                embed.set_footer(text="Type .info <nick> for more info on a nick")
-            else:
-                data = await utils.find_one(ctx.channel.name, "info", nick)
-                embed.add_field(name=nick, value="\n".join([f"**{k}**: {v}" for k, v in data.items()]))
-            await ctx.send(embed=embed)
-
-    @command(hidden=True)
-    async def ping(self, ctx, *, nicks):
-        """Shows who is connected to host"""
-        for nick in [x.strip() for x in nicks.split(",") if x.strip()]:
-            if nick.lower() == "all":
-                nick = environ.get(ctx.channel.name, environ["nick"])
-                await sleep(randint(1, 3))
-
-            if nick.lower() == environ.get(ctx.channel.name, environ["nick"]).lower():
-                await ctx.send(f'**{environ.get(ctx.channel.name, environ["nick"])}** - online')
+        await ctx.send(f"**{nick}:** done")
 
     @command(hidden=True)
     async def shutdown(self, ctx, *, nick: IsMyNick):

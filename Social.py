@@ -16,7 +16,7 @@ class Social(Cog):
 
     @command()
     async def comment(self, ctx, shout_or_article_link, body, *, nick: IsMyNick):
-        """ Commenting an article or a shout.
+        """Commenting an article or a shout.
         
         - `body` parameter MUST be within quotes.
         - You can find the shout link by clicking F12 on the page where you see the shout."""
@@ -42,10 +42,11 @@ class Social(Cog):
         msgs = int(str(tree.xpath("//*[@id='inboxMessagesMission']/b")[0].text))
         alerts = int(str(tree.xpath('//*[@id="numero1"]/a/b')[0].text))
         if alerts:
-            for page in range(1, alerts // 20 + 2):
+            reminding_alerts = alerts
+            for page in range(1, reminding_alerts // 20 + 2):
                 tree = await self.bot.get_content(f"{URL}notifications.html?page={page}", return_tree=True)
                 embed = Embed(title=f"**{nick}** {URL}notifications.html?page={page}\n")
-                for tr in range(2, min(20, alerts) + 2):
+                for tr in range(2, min(20, reminding_alerts) + 2):
                     try:
                         alert = tree.xpath(f'//tr[{tr}]//td[2]')[0].text_content().strip()
                         alertDate = tree.xpath(f'//tr[{tr}]//td[3]')[0].text_content().strip()
@@ -54,7 +55,7 @@ class Social(Cog):
                         elif "has offered you to sign" in alert:
                             alert = alert.replace("contract", f'[contract]({URL}{tree.xpath(f"//tr[{tr}]//td[2]/a[2]/@href")[0]})').replace(
                                 "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!", "\nSee `.help contract`")
-                        alerts -= 1
+                        reminding_alerts -= 1
                         embed.add_field(name=alertDate, value=alert, inline=False)
                     except:
                         break
@@ -77,24 +78,23 @@ class Social(Cog):
     async def citizenship(self, ctx, country_or_mu_id: int, *, nick: IsMyNick):
         """Send application to a MU / country."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        messages = ["The application will be reviewed by congress members", "Hi ............... Accept me ..",
-                    "Coming to help you guys pls accept me",
+        messages = ["The application will be reviewed by congress members",
                     "[currency]GOLD[/currency][currency]GOLD[/currency]",
                     "[citizen][citizen] [citizen][citizen] [/citizen][/citizen]",
                     # feel free to add more in the same format: "item1", "item2"
                     ]
 
         if ctx.invoked_with.lower() == "citizenship":
-            payload = {'action': "APPLY", 'countryId': country_or_mu_id, "message": choice(messages),
-                       "submit": "Apply for citizenship"}
+            payload = {'action': "APPLY", 'countryId': country_or_mu_id, "message": choice(messages), "submit": "Apply for citizenship"}
             link = "citizenshipApplicationAction.html"
+            await self.bot.get_content(URL + "countryLaws.html")
             await self.bot.get_content(URL + "countryLaws.html", data={"action": "LEAVE_CONGRESS", "submit": "Leave congress"})
             await self.bot.get_content(URL + "partyStatistics.html", data={"action": "LEAVE", "submit": "Leave party"})
         else:
-            payload = {'action': "SEND_APPLICATION", 'id': country_or_mu_id, "message": choice(messages),
-                       "submit": "Send application"}
+            payload = {'action': "SEND_APPLICATION", 'id': country_or_mu_id, "message": choice(messages), "submit": "Send application"}
             link = "militaryUnitsActions.html"
             await self.bot.get_content(URL + link, data={"action": "CANCEL_APPLICATION", "submit": "Cancel application"})
+            await self.bot.get_content(URL + link, data={"action": "LEAVE_MILITARY_UNIT", "submit": "Leave military unit"})
 
         url = await self.bot.get_content(URL + link, data=payload)
         await ctx.send(f"**{nick}** <{url}>")

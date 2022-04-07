@@ -7,10 +7,11 @@ from time import time
 from traceback import format_exception
 from typing import Optional
 
-from discord import Embed
 from discord.ext.commands import Cog, command
+from pytz import timezone
 
 from Converters import IsMyNick, Product, Quality, Side
+import utils
 
 
 class War(Cog):
@@ -198,7 +199,8 @@ class War(Cog):
         The buff names should be formal (can be found via F12), but here are some shortcuts:
         VAC = EXTRA_VACATIONS, SPA = EXTRA_SPA, SEWER = SEWER_GUIDE, STR = STEROIDS
         More examples: BANDAGE_SIZE_C and CAMOUFLAGE_II"""
-        URL = f"https://{ctx.channel.name}.e-sim.org/"
+        server = ctx.channel.name
+        URL = f"https://{server}.e-sim.org/"
 
         results = []
         for buff_name in buffs_names.split(","):
@@ -211,6 +213,7 @@ class War(Cog):
                 buff_name = "SEWER_GUIDE"
             elif "STR" in buff_name:
                 buff_name = "STEROIDS"
+
             actions = ("BUY", "USE")
             for Index, action in enumerate(actions):
                 if action == "USE":
@@ -219,8 +222,13 @@ class War(Cog):
                     payload = {'itemType': buff_name, 'storageType': "SPECIAL_ITEM", 'action': action, "quantity": 1}
                 url = await self.bot.get_content(URL + "storage.html", data=payload)
                 results.append(f"{buff_name}: <{url}>")
-                if "error" in str(url):
+                if "error" in url.lower():
                     results.append(f"ERROR: No such buff ({buff_name})")
+                if "MESSAGE_OK" in url and buff_name in ("STEROIDS", "TANK", "SEWER", "BUNKER"):
+                    data = await utils.find_one(server, "info", nick)
+                    now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%Y-%m-%d %H:%M:%S")
+                    data["Buffed at"] = now
+                    await utils.replace_one(server, "info", nick, data)
         await ctx.send(f"**{nick}**\n" + "\n".join(results))
 
     @command(aliases=["travel"])
@@ -756,44 +764,6 @@ class War(Cog):
 
         url = await self.bot.get_content(URL + "countryLaws.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
-
-    @command()
-    async def muinv(self, ctx, *, nick: IsMyNick):
-        """Shows all of your in-game Military Unit inventory."""
-        URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(f"{URL}militaryUnitStorage.html", return_tree=True)
-        products = dict()
-        for item in tree.xpath("//div[@class='storage']"):
-            name = item.xpath("div[2]/img/@src")[0].replace("//cdn.e-sim.org//img/productIcons/", "").replace(
-                "Rewards/", "").replace(".png", "")
-            if name.lower() in ("iron", "grain", "diamonds", "oil", "stone", "wood"):
-                quality = ""
-            else:
-                quality = item.xpath("div[2]/img/@src")[1].replace("//cdn.e-sim.org//img/productIcons/", "").replace(".png", "")
-            products[f"{quality.title()} {name}" if quality else f"{name}"] = int(item.xpath("div[1]/text()")[0].strip())
-
-        tree = await self.bot.get_content(f"{URL}militaryUnitMoneyAccount.html", return_tree=True)
-        amounts = tree.xpath('//*[@id="esim-layout"]//div[4]//div//b/text()')[:len(products)]
-        coins = tree.xpath('//*[@id="esim-layout"]//div[4]/div/text()')[2::3][:len(products)]
-
-        embed = Embed(title=nick)
-        embed.add_field(name="**Products:**", value="\n".join(f"**{product}**: {amount:,}" for product, amount in products.items()))
-        embed.add_field(name=f"**Coins (first {len(products)}):**",
-                        value="\n".join(f"**{coin.strip()}**: {float(amount):,}" for coin, amount in zip(coins, amounts)))
-        embed.set_footer(text="Military Unit Inventory")
-        await ctx.send(embed=embed)
-
-    @command()
-    async def limits(self, ctx, *, nick: IsMyNick):
-        URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(URL, return_tree=True)
-        gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
-        food_storage = tree.xpath('//*[@id="foodQ5"]/text()')[0]
-        gift_storage = tree.xpath('//*[@id="giftQ5"]/text()')[0]
-        food_limit = int(float(tree.xpath('//*[@id="foodLimit2"]')[0].text))
-        gift_limit = int(float(tree.xpath('//*[@id="giftLimit2"]')[0].text))
-        await ctx.send(
-            f"**{nick}** Limits: {food_limit}/{gift_limit}. Storage: {food_storage}/{gift_storage}\n{gold} Gold.")
 
     @command()
     async def medkit(self, ctx, *, nick: IsMyNick):

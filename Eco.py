@@ -174,71 +174,6 @@ class Eco(Cog):
             await ctx.send(f"**{nick}** ERROR: you can donate eq or gold only, not {type}")
 
     @command()
-    async def eqs(self, ctx, *, nick: IsMyNick):
-        """Shows list of EQs in storage."""
-        URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(URL + 'storage.html?storageType=EQUIPMENT', return_tree=True)
-        original_IDs = tree.xpath(f'//*[starts-with(@id, "cell")]/a/text()')
-        IDs = [f"[{ID}]({URL}showEquipment.html?id={ID.replace('#', '')})" for ID in original_IDs]
-        if sum([len(x) for x in IDs]) > 1000:
-            IDs = [ID for ID in original_IDs]
-            # Eq id instead of link
-        items = tree.xpath(f'//*[starts-with(@id, "cell")]/b/text()')
-        embed = Embed(title=nick)
-        embed.add_field(name="ID", value="\n".join(IDs), inline=True)
-        embed.add_field(name="Item", value="\n".join(items), inline=True)
-        await ctx.send(embed=embed)
-
-    @command(aliases=["inventory"])
-    async def inv(self, ctx, *, nick: IsMyNick):
-        """
-        shows all of your in-game inventory.
-        """
-        URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(f"{URL}storage.html?storageType=PRODUCT", return_tree=True)
-        tree2 = await self.bot.get_content(f"{URL}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
-        container_1 = tree.xpath("//div[@class='storage']")
-        special_items = tree2.xpath('//div[@class="specialItemInventory"]')
-        gold = tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0]
-        quantity = [gold]
-        for item in special_items:
-            if item.xpath('span/text()'):
-                if item.xpath('b/text()')[0].lower() == "medkit":
-                    quantity.append(item.xpath('span/text()')[0])
-                elif "reshuffle" in item.xpath('b/text()')[0].lower():
-                    quantity.append(item.xpath('span/text()')[0])
-                elif "upgrade" in item.xpath('b/text()')[0].lower():
-                    quantity.append(item.xpath('span/text()')[0])
-        for item in container_1:
-            quantity.append(item.xpath("div[1]/text()")[0].strip())
-        products = [f"Gold"]
-        for item in special_items:
-            if item.xpath('span/text()'):
-                if item.xpath('b/text()')[0].lower() == "medkit":
-                    products.append(item.xpath('b/text()')[0])
-                elif "reshuffle" in item.xpath('b/text()')[0].lower():
-                    products.append("Reshuffles")
-                elif "upgrade" in item.xpath('b/text()')[0].lower():
-                    products.append("Upgrades")
-        for item in container_1:
-            name = item.xpath("div[2]/img/@src")[0].replace("//cdn.e-sim.org//img/productIcons/", "").replace(
-                "Rewards/", "").replace(".png", "")
-            if name.lower() in ["iron", "grain", "diamonds", "oil", "stone", "wood"]:
-                quality = ""
-            else:
-                quality = item.xpath("div[2]/img/@src")[1].replace(
-                    "//cdn.e-sim.org//img/productIcons/", "").replace(".png", "")
-            products.append(f"{quality.title()} {name}" if quality else f"{name}")
-
-        embed = Embed(title=nick)
-        for i in range(len(products) // 5 + 1):
-            value = [f"**{a}**: {b}" for a, b in zip(products[i * 5:(i + 1) * 5], quantity[i * 5:(i + 1) * 5])]
-            embed.add_field(name="**Products: **" if not i else u"\u200B",
-                            value="\n".join(value) if value else u"\u200B")
-        embed.set_footer(text="Inventory")
-        await ctx.send(embed=embed)
-
-    @command()
     async def job(self, ctx, *, nick: IsMyNick):
         """Leaving job and apply for the best offer at the local market."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
@@ -405,8 +340,7 @@ class Eco(Cog):
             Tree = await self.bot.get_content(URL + "work/ajax", data={"action": "work"}, return_tree=True)
             if not Tree.xpath('//*[@id="taskButtonWork"]//@href'):
                 data = await utils.find_one(server, "info", nick)
-                now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%Y-%m-%d %H:%M:%S")
-                data.update({"Worked at": now})
+                data["Worked at"] = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%Y-%m-%d %H:%M:%S")
                 await utils.replace_one(server, "info", nick, data)
                 await ctx.send(f"**{nick}** Worked successfully")
             else:
