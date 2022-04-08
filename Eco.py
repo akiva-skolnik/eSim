@@ -352,7 +352,6 @@ class Eco(Cog):
                 await ctx.send(f"**{nick}** ERROR: Couldn't work")
         else:
             await ctx.send(f"**{nick}** Already worked")
-        await ctx.invoke(self.bot.get_command("work"), nick=nick)
 
     @command()
     async def auto_work(self, ctx, work_sessions: int, *, nick: IsMyNick):
