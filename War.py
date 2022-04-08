@@ -310,14 +310,17 @@ class War(Cog):
         fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
         hits_or_dmg = "hits" if dmg < 1000 else "dmg"
         self.bot.hold_fight = False
-        while not self.bot.hold_fight:
+        while not self.bot.hold_fight and damage_done < dmg:
             if weapon_quality and not wep:
-                return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}\nERROR: 0 Q{weapon_quality} weps in storage")
+                await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}\nERROR: 0 Q{weapon_quality} weps in storage")
+                break
             if Health < 50:
                 if food_storage == 0 and gift_storage == 0:
-                    return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}\nERROR: 0 food and gift in storage")
+                    output += f"\nERROR: 0 food and gift in storage"
+                    break
                 elif food_limit == 0 and gift_limit == 0:
-                    return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}\ndone limits")
+                    output += f"\nDone limits"
+                    break
                 elif food_storage == 0 or gift_storage == 0:
                     output += f"\nWARNING: 0 {'food' if food_storage == 0 else 'gift'} in storage"
 
@@ -359,7 +362,8 @@ class War(Cog):
                             fought = True
                             break
                         elif "Round is closed" in tree.text_content():
-                            return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}")
+                            fought = True
+                            break
                         else:
                             continue
                     if weapon_quality:
@@ -378,16 +382,16 @@ class War(Cog):
                         break
                     await sleep(2)
             if not fought:
-                output += f"\nDone {damage_done} {hits_or_dmg}"
-                await msg.edit(content=output)
-                return await ctx.send(f"**{nick}** There was an ERROR!")
+                output += f"\nThere was an ERROR!"
+                break
             if update % 4 == 0:
                 # dmg update every 4 berserks.
                 output += f"\n{hits_or_dmg.title()} done so far: {damage_done}"
                 await msg.edit(content=output)
-            if damage_done >= dmg:
-                return await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg} as requested.")
             await sleep(1)
+        if damage_done:
+            await msg.edit(content=output)
+            await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, Reminding limits: {food_limit}/{gift_limit}")
 
     @command(hidden=True)
     async def hold(self, ctx, *, nick: IsMyNick):
@@ -704,7 +708,7 @@ class War(Cog):
             try:
                 if sent_count == 5:
                     return await ctx.send(
-                        f"**{nick}**\n" + "\n".join(checking) + "\n\n- Successfully motivated 5 players.")
+                        f"**{nick}**\n" + "\n".join(checking) + "\n- Successfully motivated 5 players.")
                 tree = await self.bot.get_content(f'{URL}profile.html?id={citizenId}', return_tree=True)
                 today = int(tree.xpath('//*[@class="sidebar-clock"]/b/text()')[-1].split()[-1])
                 birthday = int(

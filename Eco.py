@@ -75,23 +75,28 @@ class Eco(Cog):
                 try:
                     offer_amount, price = float(offer_amount), float(price)
                     if price > max_price:
-                        return await ctx.send(f"**{nick}** The price is too high ({price}).")
+                        await ctx.send(f"**{nick}** The price is too high ({price}).")
+                        break
                     
                     payload = {'action': "buy", 'id': ID, 'ammount': min(offer_amount, amount - bought_amount),
                                'stockCompanyId': '', 'submit': 'Buy'}
                     url = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country_id}", data=payload)
                     if "MM_POST_OK_BUY" not in str(url):
-                        return await ctx.send(f"ERROR: <{url}>")
+                        await ctx.send(f"ERROR: <{url}>")
+                        break
                     await ctx.send(f"**{nick}** Bought {payload['ammount']} coins at {price} each.")
                     bought_amount += payload['ammount']
-                    if bought_amount > amount:
-                        return await ctx.send(f"**{nick}** Done.")
+                    if bought_amount >= amount:
+                        break
                     await sleep(randint(0, 2))
                     # sleeping for a random time between 0 and 2 seconds. feel free to change it
                     
                 except Exception as error:
                     await ctx.send(f"**{nick}** {error}")
                     await sleep(5)
+            if IDs and ID != IDs[-1]:
+                break
+        await ctx.send(f"**{nick}** bought {bought_amount}.")
 
     @command()
     async def buy(self, ctx, amount: int, quality: Optional[Quality], product: Product, *, nick: IsMyNick):
@@ -347,6 +352,7 @@ class Eco(Cog):
                 await ctx.send(f"**{nick}** ERROR: Couldn't work")
         else:
             await ctx.send(f"**{nick}** Already worked")
+        await ctx.invoke(self.bot.get_command("work"), nick=nick)
 
     @command()
     async def auto_work(self, ctx, work_sessions: int, *, nick: IsMyNick):

@@ -31,7 +31,7 @@ class Info(Cog):
 
     @command()
     async def eqs(self, ctx, *, nick: IsMyNick):
-        """Shows list of EQs in storage."""
+        """Shows the list of EQs in storage."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(URL + 'storage.html?storageType=EQUIPMENT', return_tree=True)
         original_IDs = tree.xpath(f'//*[starts-with(@id, "cell")]/a/text()')
@@ -190,7 +190,7 @@ class Info(Cog):
         if "Buffed at" not in data:
             data["Buffed at"] = "-"
         else:
-            days = 2 if api["premium"] else 3
+            days = 2 if api["premiumDays"] else 3
             buffed_seconds = (
                     datetime.strptime(now, date_format) - datetime.strptime(data["Buffed at"], date_format)).total_seconds()
             day_seconds = 24 * 60 * 60
@@ -269,16 +269,14 @@ class Info(Cog):
                             pass
             eqs.append(f"**[{Type}]({URL+eq_link}):** " + ", ".join(f"{val} {p}" for val, p in zip(values, parameters)))
 
-        
-        links = {"Send Message": link.replace("profile", "composeMessage"),
+        mu = await self.bot.get_content(f"{URL}apiMilitaryUnitById.html?id={api['militaryUnitId']}")
+        links = {f"MU: {mu['name']}": f"{URL}militaryUnit.html?id={api['militaryUnitId']}",
+                 "Send Message": link.replace("profile", "composeMessage"),
                  "Friend Request": f"{URL}friends.html?action=PROPOSE&id={api['id']}",
                  "Donate Money": link.replace("profile", "donateMoney"),
                  "Donate Products": link.replace("profile", "donateProducts"),
                  "Donate EQ": link.replace("profile", "donateEquipment")}
 
-        if api['militaryUnitId']:
-            mu = await self.bot.get_content(f"{URL}apiMilitaryUnitById.html?id={api['militaryUnitId']}")
-            links[f"MU: {mu['name']}"] =  f"{URL}militaryUnit.html?id={api['militaryUnitId']}"
         api_regions = await self.bot.get_content(URL + "apiRegions.html")
         api_countries = await self.bot.get_content(URL + "apiCountries.html")
 

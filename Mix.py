@@ -401,7 +401,6 @@ class Mix(Cog):
             link_or_id = f"{URL}law.html?id=" + link_or_id
 
         payload = {'action': f"vote{your_vote.capitalize()}", "submit": f"Vote {your_vote.upper()}"}
-        await self.bot.get_content(link_or_id)
         url = await self.bot.get_content(link_or_id, data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
