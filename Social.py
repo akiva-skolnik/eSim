@@ -50,11 +50,14 @@ class Social(Cog):
                     try:
                         alert = tree.xpath(f'//tr[{tr}]//td[2]')[0].text_content().strip()
                         alertDate = tree.xpath(f'//tr[{tr}]//td[3]')[0].text_content().strip()
+                        links = [x for x in tree.xpath(f"//tr[{tr}]//td[2]/a[2]/@href") if "profile" not in x]
                         if "has requested to add you as a friend" in alert:
-                            await self.bot.get_content(URL + str(tree.xpath(f"//tr[{tr}]//td[2]/a[2]/@href")[0]))
+                            await self.bot.get_content(URL + str(links[0]))
                         elif "has offered you to sign" in alert:
-                            alert = alert.replace("contract", f'[contract]({URL}{tree.xpath(f"//tr[{tr}]//td[2]/a[2]/@href")[0]})').replace(
+                            alert = alert.replace("contract", f'[contract]({URL}{links[0]})').replace(
                                 "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!", "\nSee `.help contract`")
+                        elif links:
+                            alert = f'[{alert}]({URL}{links[0]})'
                         reminding_alerts -= 1
                         embed.add_field(name=alertDate, value=alert, inline=False)
                     except:

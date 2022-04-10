@@ -372,8 +372,8 @@ class Mix(Cog):
             return await ctx.send(f"**{nick}** ERROR: There are not elections today")
 
         tree = await self.bot.get_content(URL + link, return_tree=True)
-        payload = ""
-        for tr in range(2, 43):
+        payload = None
+        for tr in range(2, 100):
             try:
                 name = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]//td[2]/a/text()')[0].strip().lower()
             except:

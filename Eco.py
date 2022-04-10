@@ -352,6 +352,7 @@ class Eco(Cog):
                 await ctx.send(f"**{nick}** ERROR: Couldn't work")
         else:
             await ctx.send(f"**{nick}** Already worked")
+        await ctx.invoke(self.bot.get_command("read"), nick=nick)
 
     @command()
     async def auto_work(self, ctx, work_sessions: int, *, nick: IsMyNick):
@@ -434,16 +435,16 @@ class Eco(Cog):
         blacklist = await self.staff_list(URL, blacklist)
         blacklist = await self._received(URL, blacklist, contract_name)
         blacklist = await self._remove_rejected(URL, blacklist)
-        async for nick in self._friends_list(nick, server):
-            if nick not in blacklist:
-                payload = {'id': contract_id, 'action': "PROPOSE", 'citizenProposedTo': nick, 'submit': 'Propose'}
+        async for friend in self._friends_list(nick, server):
+            if friend not in blacklist:
+                payload = {'id': contract_id, 'action': "PROPOSE", 'citizenProposedTo': friend, 'submit': 'Propose'}
                 for _ in range(10):
                     try:
                         url = await self.bot.get_content(URL + "contract.html", data=payload)
-                        await ctx.send(f"**{nick}:** <{url}>")
+                        await ctx.send(f"**{friend}:** <{url}>")
                         break  # sent
                     except Exception as error:
-                        await ctx.send(f"**{nick}** {error}")
+                        await ctx.send(f"**{nick}** {error} while sending to {friend}")
         await ctx.send(f"**{nick}** done.")
 
 

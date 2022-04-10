@@ -1,7 +1,7 @@
 from asyncio import sleep
 from datetime import datetime
 from os import environ
-from random import randint
+from random import randint, uniform
 import re
 from time import time
 from traceback import format_exception
@@ -309,8 +309,10 @@ class War(Cog):
         update = 0
         fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
         hits_or_dmg = "hits" if dmg < 1000 else "dmg"
+        round_ends = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
+        start = time()
         self.bot.hold_fight = False
-        while not self.bot.hold_fight and damage_done < dmg:
+        while not self.bot.hold_fight and damage_done < dmg and (time() - start < round_ends):
             if weapon_quality and not wep:
                 await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}\nERROR: 0 Q{weapon_quality} weps in storage")
                 break
@@ -319,7 +321,6 @@ class War(Cog):
                     output += f"\nERROR: 0 food and gift in storage"
                     break
                 elif food_limit == 0 and gift_limit == 0:
-                    output += f"\nDone limits"
                     break
                 elif food_storage == 0 or gift_storage == 0:
                     output += f"\nWARNING: 0 {'food' if food_storage == 0 else 'gift'} in storage"
@@ -347,48 +348,37 @@ class War(Cog):
                     await self.bot.get_content(f"{URL}{use}.html", data={'quality': 5})
                     Health += 50
 
-            fought = False
-            for _ in range(10):
-                try:
-                    tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
-                    if not tree.xpath("//*[@id='healthUpdate']/text()"):
-                        if "Slow down a bit!" in tree.text_content():
-                            output += "\nSlow down"
-                            await msg.edit(content=output)
-                            await sleep(1)
-                            continue
-                        elif "No health left" in tree.text_content():
-                            Health = 0
-                            fought = True
-                            break
-                        elif "Round is closed" in tree.text_content():
-                            fought = True
-                            break
-                        else:
-                            continue
-                    if weapon_quality:
-                        wep -= 5
-                    Health = float(tree.xpath("//*[@id='healthUpdate']")[0].text.split()[0])
-                    damage_done += 5 if dmg < 1000 else int(
-                        str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
-                    update += 1
-                    fought = True
-                    await sleep(0.4)
-                    break
-                except Exception as error:
-                    await ctx.send(f"**{nick}** ERROR: {error}")
-                    error_png = tree.xpath('//img/@src')
-                    if error_png and "delete.png" in error_png[0]:
+            try:
+                tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
+                if not tree.xpath("//*[@id='healthUpdate']/text()"):
+                    if "Slow down a bit!" in tree.text_content():
+                        output += "\nSlow down"
+                        await msg.edit(content=output)
+                        await sleep(1)
+                        continue
+                    elif "No health left" in tree.text_content():
+                        Health = 0
+                        continue
+                    elif "Round is closed" in tree.text_content():
                         break
-                    await sleep(2)
-            if not fought:
-                output += f"\nThere was an ERROR!"
-                break
+                if weapon_quality:
+                    wep -= 5 if dmg >= 5 else 1
+                Health = float(tree.xpath("//*[@id='healthUpdate']")[0].text.split()[0])
+                if dmg < 5:
+                    damage_done += 1
+                elif dmg < 1000:
+                    damage_done += 5
+                else:
+                    damage_done += int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
+                update += 1
+                await sleep(uniform(0.3, 0.55))
+            except Exception as error:
+                await ctx.send(f"**{nick}** ERROR: {error}")
+                await sleep(2)
             if update % 4 == 0:
                 # dmg update every 4 berserks.
                 output += f"\n{hits_or_dmg.title()} done so far: {damage_done}"
                 await msg.edit(content=output)
-            await sleep(1)
         if damage_done:
             await msg.edit(content=output)
             await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, Reminding limits: {food_limit}/{gift_limit}")
@@ -576,7 +566,7 @@ class War(Cog):
                         continue
 
     @command()
-    async def hunt_battle(self, ctx, nick: IsMyNick, link, side: Side, dmg_or_hits_per_bh="1", weapon_quality: int = 0, food: int = 5, gift: int = 5, ticket_quality: int = 1):
+    async def hunt_battle(self, ctx, nick: IsMyNick, link, side: Side, dmg_or_hits_per_bh="1", weapon_quality: int = 0, food: int = 5, gift: int = 5):
         """Hunting BH at a specific battle.
         (Good for practice battle / leagues / civil war)
 
@@ -594,7 +584,7 @@ class War(Cog):
             time_till_round_end = max(0, api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api[
                 "secondsRemaining"] - randint(15, 45))
             await ctx.send(f"**{nick}** {time_till_round_end} seconds from now, I will hit {dmg} {hits_or_dmg} at <{link}> for the {side} side.\n"
-                           f"If you want to cancel: type `.hold {nick}`")
+                           f"If you want to cancel it, type `.hold {nick}`")
             await sleep(time_till_round_end)
             tree = await self.bot.get_content(link, return_tree=True)
             food_limit = int(tree.xpath('//*[@id="foodLimit2"]')[0].text)
@@ -642,10 +632,10 @@ class War(Cog):
                     damage_done += int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
                     break
                 await sleep(randint(0, 2))
-            await ctx.send(f"**{nick}** done {damage_done} dmg")
+            await ctx.send(f"**{nick}** done {damage_done} dmg at <{link}>")
             await sleep(60)
         if not self.bot.hold_fight:
-            await ctx.send(f"**{nick}** battle id over")
+            await ctx.send(f"**{nick}** <{link}> is over")
 
     @command(aliases=["motivates"])
     async def motivate(self, ctx, *, nick):
