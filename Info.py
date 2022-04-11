@@ -141,8 +141,7 @@ class Info(Cog):
             values = await utils.find(ctx.channel.name, "info")
             values.sort(key=lambda x: x['Buffed at'])
             embed = Embed()
-            embed.add_field(name="Nick: GOld",
-                            value="\n".join([f'{row["_id"]}: {row.get("Gold", "Unknown")}' for row in values]))
+            embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
             embed.add_field(name="Worked At", value="\n".join([row.get("Worked at", "-") for row in values]))
             embed.add_field(name="Buffed At", value="\n".join([row.get("Buffed at", "-") for row in values]))
             embed.set_footer(text="Type .info <nick> for more info on a nick")

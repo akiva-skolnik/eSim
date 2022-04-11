@@ -21,7 +21,7 @@ class Side(Converter):
 
 def Quality(q):
     try:
-        return int("".join([x for x in q if x.isdigit()]))
+        return int("".join([x for x in str(q) if x.isdigit()]))
     except ValueError:
         raise BadArgument(f"""Wrong quality format (`{q}`).
 

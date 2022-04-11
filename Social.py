@@ -15,20 +15,36 @@ class Social(Cog):
         self.bot = bot
 
     @command()
-    async def comment(self, ctx, shout_or_article_link, body, *, nick: IsMyNick):
+    async def comment(self, ctx, action, shout_or_article_link, body, *, nick: IsMyNick):
         """Commenting an article or a shout.
-        
+
+        - `action` parameter can be new, edit or delete (for edit and delete comment, the link should contain id=<comment_id>)
         - `body` parameter MUST be within quotes.
-        - You can find the shout link by clicking F12 on the page where you see the shout."""
+        - You can find the shout & comment id by clicking F12 on the page where you see the shout."""
 
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         id = shout_or_article_link.split("?id=")[1].split("&")[0]
+        action = action.lower()
         if "article" in shout_or_article_link:
-            payload = {"action": "NEW", "key": f"Article {id}", "submit": "Publish", "body": body}
+            if action == "new":
+                payload = {"action": "NEW", "key": f"Article {id}", "submit": "Publish", "body": body}
+            elif action == "edit":
+                payload = {"action": "EDIT", "id": id, "submit": "Edit", "text": body}
+            elif action == "delete":
+                payload = {"action": "DELETE", "id": id, "submit": "Delete"}
+            else:
+                return await ctx.send(f"action must be `new`, `edit` or `delete`, not `{action}`")
             url = await self.bot.get_content(URL + "comment.html", data=payload)
         elif "Shout" in shout_or_article_link:
-            url = await self.bot.get_content(f"{URL}replyToShout.html?id={id}",
-                                             data={"body": body, "submit": "Shout!"})
+            if action == "new":
+                payload = {"body": body, "submit": "Shout!"}
+            elif action == "edit":
+                payload = {"action": "EDIT_SHOUT", "id": id, "submit": "Edit", "text": body}
+            elif action == "delete":
+                payload = {"action": "DELETE_SHOUT", "id": id, "submit": "Delete"}
+            else:
+                return await ctx.send(f"action must be `new`, `edit` or `delete`, not `{action}`")
+            url = await self.bot.get_content(f"{URL}replyToShout.html?id={id}", data=payload)
         else:
             return await ctx.send(f"**{nick}** ERROR: invalid article/shout link.")
         await ctx.send(f"**{nick}** <{url}>")

@@ -314,7 +314,7 @@ class War(Cog):
         self.bot.hold_fight = False
         while not self.bot.hold_fight and damage_done < dmg and (time() - start < round_ends):
             if weapon_quality and not wep:
-                await ctx.send(f"**{nick}** Done {damage_done} {hits_or_dmg}\nERROR: 0 Q{weapon_quality} weps in storage")
+                await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}\nERROR: 0 Q{weapon_quality} weps in storage")
                 break
             if Health < 50:
                 if food_storage == 0 and gift_storage == 0:
@@ -352,8 +352,6 @@ class War(Cog):
                 tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
                 if not tree.xpath("//*[@id='healthUpdate']/text()"):
                     if "Slow down a bit!" in tree.text_content():
-                        output += "\nSlow down"
-                        await msg.edit(content=output)
                         await sleep(1)
                         continue
                     elif "No health left" in tree.text_content():
@@ -377,11 +375,11 @@ class War(Cog):
                 await sleep(2)
             if update % 4 == 0:
                 # dmg update every 4 berserks.
-                output += f"\n{hits_or_dmg.title()} done so far: {damage_done}"
+                output += f"\n{hits_or_dmg.title()} done so far: {damage_done:,}"
                 await msg.edit(content=output)
         if damage_done:
             await msg.edit(content=output)
-            await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, Reminding limits: {food_limit}/{gift_limit}")
+            await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
 
     @command(hidden=True)
     async def hold(self, ctx, *, nick: IsMyNick):
@@ -685,9 +683,9 @@ class War(Cog):
 
         storage = get_storage(tree, Type)
         if not storage:
-            await ctx.invoke(self.bot.get_command("supply"), 15, 1, "wep", nick=nick)
-            await ctx.invoke(self.bot.get_command("supply"), 10, 3, "food", nick=nick)
-            await ctx.invoke(self.bot.get_command("supply"), 5, 3, "gift", nick=nick)
+            await ctx.invoke(self.bot.get_command("supply"), 15, "Q1", "wep", nick=nick)
+            await ctx.invoke(self.bot.get_command("supply"), 10, "Q3", "food", nick=nick)
+            await ctx.invoke(self.bot.get_command("supply"), 5, "Q3", "gift", nick=nick)
             storage = get_storage(tree, Type)
 
         newCitizens_tree = await self.bot.get_content(URL + 'newCitizens.html?countryId=0', return_tree=True)
