@@ -41,10 +41,10 @@ class Social(Cog):
                 link = f"replyToShout.html?id={id}"
             elif action == "edit":
                 payload = {"action": "EDIT_SHOUT", "id": id, "submit": "Edit", "text": body}
-                link = "shoutActions"
+                link = "shoutActions.html"
             elif action == "delete":
                 payload = {"action": "DELETE_SHOUT", "id": id, "submit": "Delete"}
-                link = "shoutActions"
+                link = "shoutActions.html"
             else:
                 return await ctx.send(f"action must be `reply`, `edit` or `delete`, not `{action}`")
             url = await self.bot.get_content(f"{URL}{link}", data=payload)
