@@ -134,7 +134,7 @@ class Info(Cog):
         await ctx.send(
             f"**{nick}** Limits: {food_limit}/{gift_limit}, storage: {food_storage}/{gift_storage}, {gold} Gold.")
 
-    @command(aliases=["info-", "info+"])
+    @command(aliases=["info-"])
     async def info(self, ctx, *, nick: IsMyNick):
         """Shows some info about a given user"""
         if ctx.invoked_with.lower() == "info-":
@@ -177,8 +177,6 @@ class Info(Cog):
                     storage.append(f'{amount.replace("x", "")} {item}')
             except:
                 break
-        if not storage:
-            storage = ["Empty"]
 
         api = await self.bot.get_content(URL + 'apiCitizenByName.html?name=' + nick.lower())
         data = await utils.find_one(server, "info", nick)
@@ -269,18 +267,13 @@ class Info(Cog):
             eqs.append(f"**[{Type}]({URL+eq_link}):** " + ", ".join(f"{val} {p}" for val, p in zip(values, parameters)))
 
         mu = await self.bot.get_content(f"{URL}apiMilitaryUnitById.html?id={api['militaryUnitId']}")
-        links = {f"MU: {mu['name']}": f"{URL}militaryUnit.html?id={api['militaryUnitId']}",
-                 "Send Message": link.replace("profile", "composeMessage"),
-                 "Friend Request": f"{URL}friends.html?action=PROPOSE&id={api['id']}",
-                 "Donate Money": link.replace("profile", "donateMoney"),
-                 "Donate Products": link.replace("profile", "donateProducts"),
-                 "Donate EQ": link.replace("profile", "donateEquipment")}
+        data["MU"] = f"[{mu['name']}]({URL}militaryUnit.html?id={api['militaryUnitId']})"
 
         api_regions = await self.bot.get_content(URL + "apiRegions.html")
         api_countries = await self.bot.get_content(URL + "apiCountries.html")
 
         region, country = utils.get_region_and_country_names(api_regions, api_countries, api['currentLocationRegionId'])
-        links[f"Location: {region}, {country}"] = f"{URL}region.html?id={api['currentLocationRegionId']}"
+        data["Location"] = f"[{region}, {country}]({URL}region.html?id={api['currentLocationRegionId']})"
         parameters = {"Crit": api['eqCriticalHit'],
                       "Avoid": api['eqAvoidDamage'],
                       "Miss": api['eqReduceMiss'],
@@ -296,9 +289,6 @@ class Info(Cog):
         embed.add_field(name="__Stats__", value="\n".join([f"**{k}**: {v}" for k, v in data.items()]))
         embed.add_field(name="__Parameters__", value="\n".join([f"**{k}**: {v}" for k, v in parameters.items()]))
         embed.add_field(name="__Slots__", value="\n".join(eqs) or "- no eqs found -")
-        embed.add_field(name="__Links__", value="\n".join([f"[{k}]({v})" for k, v in links.items() if v]))
-        embed.add_field(name="__Storage__", value="\n".join([f'{v:,} {k}' for k, v in storage1.items()]))
-        embed.add_field(name="__Special Items__", value=", ".join(storage) or "-")
 
         if 'companyId' in api:
             comp_link = f"{URL}company.html?id={api['companyId']}"
@@ -310,6 +300,8 @@ class Info(Cog):
             region, country = utils.get_region_and_country_names(api_regions, api_countries, int(region_id))
             embed.add_field(name=f"Works in a {company_quality} {company_type} company",
                             value=f"[{company_name}]({comp_link}) ([{region}]({URL}region.html?id={region_id}), {country})")
+        embed.add_field(name="__Storage__", value="\n".join([f'{v:,} {k}' for k, v in storage1.items()]) or "-")
+        embed.add_field(name="__Special Items__", value=", ".join(storage) or "-")
         embed.set_footer(text="Code Version: " + self.bot.VERSION)
         await ctx.send(embed=embed)
 

@@ -13,8 +13,10 @@ class IsMyNick(Converter):
 
 class Side(Converter):
     async def convert(self, ctx, side: str) -> str:
-        if side.lower() in ("defender", "attacker"):
-            return side.lower()
+        if "d" in side.lower():
+            return "defender"
+        elif "a" in side.lower():
+            return "attacker"
         else:
             raise BadArgument(f'ERROR: "side" must be "defender" or "attacker" (not {side})')
 
@@ -63,3 +65,11 @@ class Product(Converter):
 
             **Product list:**
             {", ".join(products).title()}""")
+
+
+class Dmg(Converter):
+    async def convert(self, ctx, dmg: str) -> int:
+        res = float(dmg.replace('k', '000'))
+        if "." in dmg:
+            res *= 1000 ** dmg.count("k")
+        return int(res)

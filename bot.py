@@ -155,5 +155,5 @@ if environ["TOKEN"] != "PASTE YOUR TOKEN HERE":
     bot.run(environ["TOKEN"])
 else:
     print("ERROR: please follow the instructions here: https://github.com/e-sim-python/eSim#setup")
-# todo: more converters (k - 000 f.e)
+
 # todo: formatting output (also with profile link in title)
