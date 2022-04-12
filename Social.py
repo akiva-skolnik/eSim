@@ -5,7 +5,7 @@ from random import choice
 from discord import Embed
 from discord.ext.commands import Cog, command
 
-from Converters import IsMyNick
+from Converters import Id, IsMyNick
 
 
 class Social(Cog):
@@ -142,7 +142,7 @@ class Social(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(aliases=["vote", "vote_shout"])
-    async def sub(self, ctx, id: int, *, nick: IsMyNick):
+    async def sub(self, ctx, id: Id, *, nick: IsMyNick):
         """Subscribe to specific newspaper / vote an article or a shout.
         (for voting a shout you will have to click F12 on the shouts page to find the id)"""
 

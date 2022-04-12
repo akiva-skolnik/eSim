@@ -7,7 +7,7 @@ from discord import Embed
 from discord.ext.commands import Cog, command
 from pytz import timezone
 
-from Converters import IsMyNick, Product, Quality
+from Converters import Id, IsMyNick, Product, Quality
 import utils
 
 
@@ -18,7 +18,7 @@ class Eco(Cog):
         self.bot = bot
 
     @command()
-    async def contract(self, ctx, contract_id: int, *, nick: IsMyNick):
+    async def contract(self, ctx, contract_id: Id, *, nick: IsMyNick):
         """Accept specific contract id.
         Write 0 as contract_id to get the list of contracts"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
@@ -35,18 +35,16 @@ class Eco(Cog):
             await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def bid(self, ctx, auction_id_or_link, price, delay, *, nick: IsMyNick):
+    async def bid(self, ctx, auction: Id, price, delay, *, nick: IsMyNick):
         """Bidding an auction few seconds before it's end"""
         if delay.lower() not in ("yes", "no"):
             return await ctx.send(f"**{nick}** ERROR: delay parameter must to be 'yes' or 'no' (not {delay})")
         else:
             delay = True if delay.lower() == "yes" else False
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        if ".e-sim.org/auction.html?id=" in auction_id_or_link:
-            auction_id_or_link = auction_id_or_link.split("=")[1]
-        tree = await self.bot.get_content(f"{URL}auction.html?id={auction_id_or_link}", return_tree=True)
+        tree = await self.bot.get_content(f"{URL}auction.html?id={auction}", return_tree=True)
         try:
-            auction_time = str(tree.xpath(f'//*[@id="auctionClock{auction_id_or_link}"]')[0].text)
+            auction_time = str(tree.xpath(f'//*[@id="auctionClock{auction}"]')[0].text)
         except:
             return await ctx.send(f"**{nick}** ERROR: This auction has probably finished. if you think this is a mistake -"
                                   " you are welcome to run the function again, but this time write the delay yourself")
@@ -54,14 +52,13 @@ class Eco(Cog):
         if delay:
             delay_in_seconds = int(h) * 3600 + int(m) * 60 + int(s) - 30
             await sleep(delay_in_seconds)
-        payload = {'action': "BID", 'id': auction_id_or_link, 'price': f"{float(price):.2f}"}
+        payload = {'action': "BID", 'id': auction, 'price': f"{float(price):.2f}"}
         url = await self.bot.get_content(URL + "auctionAction.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
     async def cc(self, ctx, country_id: int, max_price: float, amount: float, *, nick: IsMyNick):
-        """
-        Buying specific amount of coins, up to a pre-determined price.
+        """Buying specific amount of coins, up to a pre-determined price.
         (It can help if there are many small offers, like NPC)"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         bought_amount = 0
@@ -96,7 +93,7 @@ class Eco(Cog):
                     await sleep(5)
             if IDs and ID != IDs[-1]:
                 break
-        await ctx.send(f"**{nick}** bought {bought_amount}.")
+        await ctx.send(f"**{nick}** bought total {round(bought_amount)} coins.")
 
     @command()
     async def buy(self, ctx, amount: int, quality: Optional[Quality], product: Product, *, nick: IsMyNick):
@@ -111,27 +108,27 @@ class Eco(Cog):
         values = [float(x.strip()) for x in tree.xpath("//div//div/b/text()") if x]
         my_money = dict(zip([x for x in keys if x], values))
         products_bought = 0
-        MM_bought = None
+        mm_bought = None
         while products_bought < amount:
             tree = await self.bot.get_content(f"{URL}productMarket.html?resource={product}&quality={quality}", return_tree=True)
             product_id = tree.xpath('//*[@id="command"]/input[1]')[0].value
             stock = int(tree.xpath(f"//tr[2]//td[3]/text()")[0])
             raw_cost = tree.xpath(f"//tr[2]//td[4]//text()")
             cost = float(raw_cost[2].strip())
-            if MM_bought is None:
+            if mm_bought is None:
                 mm_type = raw_cost[-1].strip()
-                MM_bought = my_money.get(mm_type, 0)
-            MM_needed = min(stock, amount - products_bought) * cost
-            while MM_bought < MM_needed:
+                mm_bought = my_money.get(mm_type, 0)
+            mm_needed = min(stock, amount - products_bought) * cost
+            while mm_bought < mm_needed:
                 tree1 = await self.bot.get_content(URL + "monetaryMarket.html", return_tree=True)
                 try:
                     ID = tree1.xpath("//tr[2]//td[4]//form[1]//input[@value][2]")[0].value
-                    CC_offer = float(tree1.xpath('//tr[2]//td[2]//b')[0].text)
+                    cc_offer = float(tree1.xpath('//tr[2]//td[2]//b')[0].text)
                     price = float(tree1.xpath('//tr[2]//td[3]//b')[0].text)
                 except:
                     await ctx.send(f"ERROR: there's no money in the monetary market")
                     break
-                cc_quantity = min(CC_offer, (amount - products_bought) * cost)
+                cc_quantity = min(cc_offer, (amount - products_bought) * cost)
                 # TODO: No gold case
                 payload = {'action': "buy", 'id': ID, 'ammount': cc_quantity}
                 url = await self.bot.get_content(URL + "monetaryMarket.html", data=payload)
@@ -139,9 +136,9 @@ class Eco(Cog):
                     await ctx.send(f"ERROR: <{url}>")
                     break
                 await ctx.send(f"**{nick}** Bought {payload['ammount']} coins at {price} each.")
-                MM_bought += cc_quantity
+                mm_bought += cc_quantity
 
-            quantity = min(stock, amount, MM_bought // cost - products_bought)
+            quantity = min(stock, amount, mm_bought // cost - products_bought)
             payload = {'action': "buy", 'id': product_id, 'quantity': quantity, "submit": "Buy"}
             url = await self.bot.get_content(URL + "productMarket.html", data=payload)
             await ctx.send(f"**{nick}** Quantity: {quantity}. Price: {cost} {mm_type} each. <{url}>")
@@ -150,7 +147,7 @@ class Eco(Cog):
             products_bought += quantity
 
     @command()
-    async def donate(self, ctx, type, data, receiver_id: int, *, nick: IsMyNick):
+    async def donate(self, ctx, type, data, receiver_id: Id, *, nick: IsMyNick):
         """
         Donating specific EQ ID(s) to a specific user.
         `type` can be eq or gold.
@@ -162,14 +159,14 @@ class Eco(Cog):
 
         if type.lower() == "eq":
             results = []
-            ids = [x.strip() for x in data.split(",") if x.strip()]
+            ids = [int(x.strip()) for x in data.split(",") if x.strip()]
             for Index, ID in enumerate(ids):
-                payload = {"equipmentId": ID.strip(), "id": receiver_id, "reason": " ", "submit": "Donate"}
+                payload = {"equipmentId": ID, "id": receiver_id, "reason": " ", "submit": "Donate"}
                 url = await self.bot.get_content(URL + "donateEquipment.html", data=payload)
                 results.append(f"ID {ID} - <{url}>")
             await ctx.send(f"**{nick}**\n" + "\n".join(results))
-        elif type.lower() == "gold" or type.lower() == "money":
-            if not data.replace('.','',1).isdigit():
+        elif type.lower() == "gold":
+            if not data.replace('.', '', 1).isdigit():
                 await ctx.send(f"**{nick}** ERROR: you must provide the sum to donate")
             else:
                 payload = {"currencyId": 0, "sum": data, "reason": "", "submit": "Donate"}
@@ -179,14 +176,24 @@ class Eco(Cog):
             await ctx.send(f"**{nick}** ERROR: you can donate eq or gold only, not {type}")
 
     @command()
-    async def job(self, ctx, *, nick: IsMyNick):
-        """Leaving job and apply for the best offer at the local market."""
+    async def job(self, ctx, company_id: Optional[int] = 0, *, nick: IsMyNick):
+        """Leaving current job and applying to the given company_id or to the best offer at the local market."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
 
-        await self.bot.get_content(URL + "work.html", data={'action': "leave", "submit": "Submit"})
-        tree = await self.bot.get_content(URL + "jobMarket.html", return_tree=True)
-        jobId = tree.xpath("//tr[2]//td[6]//input[1]")[0].value
-        url = await self.bot.get_content(URL + "jobMarket.html", data={"id": jobId, "submit": "Apply"})
+        try:
+            await self.bot.get_content(URL + "work.html", data={'action': "leave", "submit": "Leave job"})
+        except:
+            pass
+        if company_id != 0:
+            tree = await self.bot.get_content(f"{URL}company.html?id={company_id}", return_tree=True)
+            try:
+                job_id = tree.xpath('//tr[2]//td[4]//input[1]')[0].value
+            except:
+                return await ctx.send(f"**{nick}** ERROR: There are no job offers in this company.")
+        else:
+            tree = await self.bot.get_content(URL + "jobMarket.html", return_tree=True)
+            job_id = tree.xpath("//tr[2]//td[6]//input[1]")[0].value
+        url = await self.bot.get_content(URL + "jobMarket.html", data={"id": job_id, "submit": "Apply"})
         await ctx.send(f"**{nick}** <{url}>")
         await ctx.invoke(self.bot.get_command("work"), nick=nick)
 
@@ -355,7 +362,7 @@ class Eco(Cog):
         await ctx.invoke(self.bot.get_command("read"), nick=nick)
 
     @command()
-    async def auto_work(self, ctx, work_sessions: int, *, nick: IsMyNick):
+    async def auto_work(self, ctx, work_sessions: int = 1, *, nick: IsMyNick):
         """work at random times throughout the day"""
         sec_between_works = (24*60*60) // work_sessions
         while True:  # for every day:
@@ -425,7 +432,7 @@ class Eco(Cog):
         return blacklist
 
     @command()
-    async def send_contracts(self, ctx, contract_id: int, contract_name, *, nick: IsMyNick):
+    async def send_contracts(self, ctx, contract_id: Id, contract_name, *, nick: IsMyNick):
         """
         Sending specific contract to all your friends,
         unless you have already sent them that contract, they have rejected your previous one or they are staff members"""

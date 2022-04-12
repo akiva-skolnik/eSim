@@ -4,7 +4,7 @@ from discord.ext.commands import Converter, BadArgument
 
 
 class IsMyNick(Converter):
-    async def convert(self, ctx, nick):
+    async def convert(self, ctx, nick: str) -> str:
         if nick.lower() == environ.get(ctx.channel.name, environ['nick']).lower():
             return nick
         else:
@@ -12,27 +12,38 @@ class IsMyNick(Converter):
 
 
 class Side(Converter):
-    async def convert(self, ctx, side):
-        if side.lower() not in ("defender", "attacker"):
-            raise BadArgument(f'ERROR: "side" must be "defender" or "attacker" (not {side})')
-        else:
+    async def convert(self, ctx, side: str) -> str:
+        if side.lower() in ("defender", "attacker"):
             return side.lower()
+        else:
+            raise BadArgument(f'ERROR: "side" must be "defender" or "attacker" (not {side})')
 
 
-def Quality(q):
-    try:
-        return int("".join([x for x in str(q) if x.isdigit()]))
-    except ValueError:
-        raise BadArgument(f"""Wrong quality format (`{q}`).
+class Quality(Converter):
+    async def convert(self, ctx, q: str) -> int:
+        quality = "".join([x for x in str(q) if x.isdigit()])
+        if quality.isdigit():
+            return int(quality)
+        else:
+            raise BadArgument(f"""Wrong quality format (`{q}`).
 
-        **Valid formats:**
-        - `Q5`
-        - `q5`
-        - `5`""")
+            **Valid formats:**
+            - `Q5`
+            - `q5`
+            - `5`""")
+
+
+class Id(Converter):
+    async def convert(self, ctx, id_or_link: str) -> int:
+        id = id_or_link.split("id=")[-1].split("&")[0]
+        if id.isdigit():
+            return int(id)
+        else:
+            raise BadArgument(f"Wrong link / id {id_or_link}")
 
 
 class Product(Converter):
-    async def convert(self, ctx, product):
+    async def convert(self, ctx, product: str) -> str:
         product = product.upper()
         if product in ("DS", "DEFENSE SYSTEM"):
             product = "DEFENSE_SYSTEM"

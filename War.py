@@ -10,7 +10,7 @@ from typing import Optional
 from discord.ext.commands import Cog, command
 from pytz import timezone
 
-from Converters import IsMyNick, Product, Quality, Side
+from Converters import Id, IsMyNick, Product, Quality, Side
 import utils
 
 
@@ -180,15 +180,14 @@ class War(Cog):
             await self.random_sleep(restores)
 
     @command()
-    async def BO(self, ctx, battle_link, side: Side, *, nick: IsMyNick):
+    async def BO(self, ctx, battle: Id, side: Side, *, nick: IsMyNick):
         """
         Set battle order.
         You can use battle link/id.
         """
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        battle_id = battle_link.split('=')[1].split('&')[0] if 'http' in battle_link else battle_link
         payload = {'action': "SET_ORDERS",
-                   'battleId': f"{battle_id}_{'true' if side.lower() == 'attacker' else 'false'}",
+                   'battleId': f"{battle}_{'true' if side == 'attacker' else 'false'}",
                    'submit': "Set orders"}
         url = await self.bot.get_content(URL + "militaryUnitsActions.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
@@ -232,14 +231,11 @@ class War(Cog):
         await ctx.send(f"**{nick}**\n" + "\n".join(results))
 
     @command(aliases=["travel"])
-    async def fly(self, ctx, region_link_or_id, ticket_quality: Optional[int] = 5, *, nick: IsMyNick):
+    async def fly(self, ctx, region_id: Id, ticket_quality: Optional[int] = 5, *, nick: IsMyNick):
         """traveling to a region"""
         if 1 <= ticket_quality <= 5:
             URL = f"https://{ctx.channel.name}.e-sim.org/"
-            region_id = str(region_link_or_id)
-            if "http" in region_id:
-                region_id = region_id.split("=")[1]
-            payload = {'countryId': int(region_id) // 6 + 1, 'regionId': region_id, 'ticketQuality': ticket_quality}
+            payload = {'countryId': region_id // 6 + 1, 'regionId': region_id, 'ticketQuality': ticket_quality}
             url = await self.bot.get_content(f"{URL}travel.html", data=payload)
             await ctx.send(f"**{nick}** <{url}>")
 
@@ -258,7 +254,7 @@ class War(Cog):
         return f"{URL}{fight_page_id}", data
 
     @command()
-    async def fight(self, ctx, nick: IsMyNick, link, side: Side, weapon_quality: int = 5,
+    async def fight(self, ctx, nick: IsMyNick, link: Id, side: Side, weapon_quality: int = 5,
                     dmg_or_hits="100kk", ticket_quality: int = 5):
         """
         Dumping limits at a specific battle.
@@ -274,7 +270,7 @@ class War(Cog):
         """
 
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        link = link if link.startswith("http") else f"{URL}battle.html?id={link}"
+        link = f"{URL}battle.html?id={link}"
         dmg = int(dmg_or_hits.replace("k", "000"))
         api = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
 
@@ -387,7 +383,7 @@ class War(Cog):
         await ctx.send(f"**{nick}** done.")
 
     @command()
-    async def hunt(self, ctx, nick: IsMyNick, max_dmg_for_bh="500k", weapon_quality: int = 5, start_time: int = 60,
+    async def hunt(self, ctx, nick: IsMyNick, max_dmg_for_bh="1", weapon_quality: int = 5, start_time: int = 30,
                    ticket_quality: int = 5):
         """Auto hunt BHs (attack and RWs)
         If `nick` contains more than 1 word - it must be within quotes."""
@@ -721,7 +717,7 @@ class War(Cog):
         await ctx.send(f"**{nick}** I checked the first 200 players - and now I gave up!")
 
     @command(aliases=["dow", "mpp"])
-    async def attack(self, ctx, ID: int, delay_or_battle_link="0", *, nick):
+    async def attack(self, ctx, country_or_region_id: Id, delay_or_battle_link="0", *, nick):
         """
         Propose MPP / Declaration of war / Attack region.
         Possible after certain delay / after certain battle.
@@ -746,11 +742,11 @@ class War(Cog):
             await sleep(int(delay_or_battle_link))
 
         if action == "attack":
-            payload = {'action': "ATTACK_REGION", 'regionId': ID, 'attackButton': "Attack"}
+            payload = {'action': "ATTACK_REGION", 'regionId': country_or_region_id, 'attackButton': "Attack"}
         elif action == "mpp":
-            payload = {'action': "PROPOSE_ALLIANCE", 'countryId': ID, 'submit': "Propose alliance"}
+            payload = {'action': "PROPOSE_ALLIANCE", 'countryId': country_or_region_id, 'submit': "Propose alliance"}
         elif action == "dow":
-            payload = {'action': "DECLARE_WAR", 'countryId': ID, 'submit': "Declare war"}
+            payload = {'action': "DECLARE_WAR", 'countryId': country_or_region_id, 'submit': "Declare war"}
         else:
             return await ctx.send(f"**{nick}** ERROR: parameter 'action' must be one of those: mpp/dow/attack (not {action})")
 
@@ -764,7 +760,7 @@ class War(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(aliases=["upgrade"])
-    async def reshuffle(self, ctx, eq_id_or_link, parameter, *, nick: IsMyNick):
+    async def reshuffle(self, ctx, eq_id_or_link: Id, parameter, *, nick: IsMyNick):
         """
         Reshuffle/upgrade a specific parameter.
         Parameter example: Increase chance to avoid damage by 7.08%
@@ -774,13 +770,11 @@ class War(Cog):
         """
         action = ctx.invoked_with
         if action.lower() not in ("reshuffle", "upgrade"):
-            await ctx.send(f"**{nick}** ERROR: 'action' parameter can be reshuffle/upgrade only (not{action})")
-            return
+            return await ctx.send(f"**{nick}** ERROR: 'action' parameter can be reshuffle/upgrade only (not {action})")
         URL = f"https://{ctx.channel.name}.e-sim.org/"
 
-        ID = str(eq_id_or_link).replace(f"{URL}showEquipment.html?id=", "")  # link case
-        LINK = f"{URL}showEquipment.html?id={ID}"
-        tree = await self.bot.get_content(LINK, return_tree=True)
+        link = f"{URL}showEquipment.html?id={eq_id_or_link}"
+        tree = await self.bot.get_content(link, return_tree=True)
         eq = tree.xpath('//*[@id="esim-layout"]//div/div[4]/div/h4/text()')
         parameter_id = tree.xpath('//*[@id="esim-layout"]//div/div[4]/div/h3/text()')
         if parameter in eq[0].replace("by  ", "by ") or parameter == "first":
@@ -789,20 +783,20 @@ class War(Cog):
             parameter_id = parameter_id[1].split("#")[1]
         else:
             return await ctx.send(
-                f"**{nick}** ERROR: I did not find the parameter {parameter} at <{LINK}>. Try copy & paste.")
+                f"**{nick}** ERROR: I did not find the parameter {parameter} at <{link}>. Try copy & paste.")
         payload = {'parameterId': parameter_id, 'action': f"{action.upper()}_PARAMETER", "submit": action.capitalize()}
         url = await self.bot.get_content(URL + "equipmentAction.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def rw(self, ctx, region_id_or_link, ticket_quality: Optional[int] = 5, *, nick: IsMyNick):
+    async def rw(self, ctx, region_id_or_link: Id, ticket_quality: Optional[int] = 5, *, nick: IsMyNick):
         """
         Open RW.
         Note: region can be link or id.
         * It will auto fly to that region."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
 
-        region_link = region_id_or_link if "http" in region_id_or_link else f"{URL}region.html?id={region_id_or_link}"
+        region_link = f"{URL}region.html?id={region_id_or_link}"
         await ctx.invoke(self.bot.get_command("fly"), region_link, ticket_quality, nick=nick)
         tree = await self.bot.get_content(region_link, data={"submit": "Start resistance"}, return_tree=True)
         result = tree.xpath("//*[@id='esim-layout']//div[2]/text()")[0]
@@ -823,12 +817,11 @@ class War(Cog):
     async def food(self, ctx, quality: Optional[int] = 5, *, nick: IsMyNick):
         """Using food or gift"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        url = await self.bot.get_content(f"{URL}{ctx.invoked_with.lower().replace('food', 'eat')}.html",
-                                         data={'quality': quality})
+        url = await self.bot.get_content(f"{URL}{ctx.invoked_with.lower().replace('food', 'eat')}.html", data={'quality': quality})
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def watch(self, ctx, nick: IsMyNick, link, side: Side, start_time: int = 60,
+    async def watch(self, ctx, nick: IsMyNick, link: Id, side: Side, start_time: int = 60,
                     keep_wall="3kk", let_overkill="10kk", weapon_quality: int = 5, ticket_quality: int = 5):
         """
         Fight at the last minutes of every round in a given battle.
@@ -846,14 +839,14 @@ class War(Cog):
         * If `nick` contains more than 1 word - it must be within quotes.
         """
         server = ctx.channel.name
-        link = link if link.startswith("http") else f"https://{server}.e-sim.org/battle.html?id={link}"
+        link = f"https://{server}.e-sim.org/battle.html?id={link}"
         URL = f"https://{server}.e-sim.org/"
 
         let_overkill = let_overkill.replace("k", "000")
         keep_wall = keep_wall.replace("k", "000")
         r = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
         if r['type'] == "ATTACK":
-            if side.lower() == "attacker":
+            if side == "attacker":
                 try:
                     neighboursId = [z['neighbours'] for z in await self.bot.get_content(
                         f"{URL}apiRegions.html") if z["id"] == r['regionId']][0]
@@ -865,7 +858,7 @@ class War(Cog):
                     await ctx.invoke(self.bot.get_command("fly"), aBonus, ticket_quality, nick=nick)
                 except:
                     return await ctx.send("**{nick}** ERROR: I couldn't find the bonus region")
-            elif side.lower() == "defender":
+            elif side == "defender":
                 await ctx.invoke(self.bot.get_command("fly"), r['regionId'], ticket_quality, nick=nick)
         elif r['type'] == "RESISTANCE":
             await ctx.invoke(self.bot.get_command("fly"), r['regionId'], ticket_quality, nick=nick)
@@ -887,7 +880,7 @@ class War(Cog):
 
             if time() - start > start_time:
                 break
-            if side.lower() == "attacker":
+            if side == "attacker":
                 mySide = int(str(tree.xpath('//*[@id="attackerScore"]/text()')[0]).replace(",", "").strip())
                 enemySide = int(str(tree.xpath('//*[@id="defenderScore"]/text()')[0]).replace(",", "").strip())
             else:
@@ -922,9 +915,8 @@ class War(Cog):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
 
         results = []
-        ids = [x.strip() for x in ids.split(",") if x.strip()]
+        ids = [int(x.replace("#", "").strip()) for x in ids.split(",") if x.strip()]
         for Index, ID in enumerate(ids):
-            ID = ID.replace("#", "").strip()
             payload = {'action': "PUT_OFF" if ctx.invoked_with.lower() == "unwear" else "EQUIP",
                        'itemId': ID.replace("#", "").replace(f"{URL}showEquipment.html?id=", "")}
             url = await self.bot.get_content(f"{URL}equipmentAction.html", data=payload)

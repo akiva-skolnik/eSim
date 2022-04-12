@@ -36,7 +36,7 @@ async def create_session():
     return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": environ["headers"]})
 
 
-bot.VERSION = "10/04/2022"
+bot.VERSION = "12/04/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.cookies = {}
 
@@ -57,7 +57,7 @@ async def inner_get_content(link, data=None, return_tree=False, return_type=""):
                     continue
 
                 if any(t in str(respond.url) for t in ("notLoggedIn", "error")):
-                    raise BadArgument(f"you are not logged in")
+                    raise BadArgument("You are not logged in, type `.login <nick>`")
 
                 if respond.status == 200:
                     if return_type == "json":
@@ -124,7 +124,7 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
 
 @bot.event
 async def on_message(message):
-    """allow other bots to invoke commands"""
+    """Allow other bots to invoke commands"""
     ctx = await bot.get_context(message)
     if ctx.valid:
         await bot.invoke(ctx)

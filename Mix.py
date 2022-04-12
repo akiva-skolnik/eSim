@@ -8,7 +8,7 @@ from aiohttp import ClientSession
 from discord.ext.commands import Cog, command
 from pytz import timezone
 
-from Converters import IsMyNick
+from Converters import Id, IsMyNick, Quality
 
 
 class Mix(Cog):
@@ -73,40 +73,32 @@ class Mix(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def missions(self, ctx, nick: IsMyNick, missions_to_complete="ALL", action="ALL"):
-        """Finish missions.
-        * Leave "action" parameter empty if you don't need it to do specific action.
-        * Leave "missions_to_complete" parameter empty if you don't want to complete all missions.
+    async def missions(self, ctx, nick: IsMyNick, action="ALL", missions_to_complete: int = 100):
+        """Auto finish missions.
         * "action" must be one of: start / complete / skip / ALL"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
-        if action.lower() not in ("start", "complete", "skip", "all"):
-            return await ctx.send(f"**{nick}** ERROR: action must be `start`/`complete`/`skip`/`ALL`, not `{action}`")
-
-        if missions_to_complete.lower() != "all":
-            if action.lower() != "all":
-                if action.lower() == "start":
-                    c = await self.bot.get_content(URL + "betaMissions.html?action=START",
-                                                   data={"submit": "Mission start"})
-                    if "MISSION_START_OK" not in c and "?action=START" not in c:
-                        return await ctx.send(f"**{nick}** <{c}>")
-                if action.lower() == "complete":
-                    c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE",
-                                                   data={"submit": "Collect"})
-                    if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
-                        return await ctx.send(f"**{nick}** <{c}>")
-                if action.lower() == "skip":
-                    c = await self.bot.get_content(URL + "betaMissions.html",
-                                                   data={"action": "SKIP", "submit": "Skip this mission"})
-                    if "MISSION_SKIPPED" not in c:
-                        return await ctx.send(f"**{nick}** <{c}>")
-                return await ctx.send(f"**{nick}** Done")
-        if missions_to_complete.lower() == "all":
-            RANGE = 20
-        else:
-            RANGE = int(missions_to_complete)
+        if action.lower() != "all":
+            if action.lower() == "start":
+                c = await self.bot.get_content(URL + "betaMissions.html?action=START",
+                                               data={"submit": "Mission start"})
+                if "MISSION_START_OK" not in c and "?action=START" not in c:
+                    return await ctx.send(f"**{nick}** <{c}>")
+            elif action.lower() == "complete":
+                c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE",
+                                               data={"submit": "Collect"})
+                if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
+                    return await ctx.send(f"**{nick}** <{c}>")
+            elif action.lower() == "skip":
+                c = await self.bot.get_content(URL + "betaMissions.html",
+                                               data={"action": "SKIP", "submit": "Skip this mission"})
+                if "MISSION_SKIPPED" not in c:
+                    return await ctx.send(f"**{nick}** <{c}>")
+            else:
+                return await ctx.send(f"**{nick}** ERROR: action must be `start`/`complete`/`skip`/`ALL`, not `{action}`")
+            return await ctx.send(f"**{nick}** Done")
         prv_num = 0
-        for _ in range(RANGE):
+        for _ in range(missions_to_complete):
             try:
                 tree = await self.bot.get_content(URL, return_tree=True)
                 check = tree.xpath('//*[@id="taskButtonWork"]//@href')
@@ -306,54 +298,47 @@ class Mix(Cog):
                 await ctx.send(f"**{nick}** ERROR: {error}")
                 await sleep(5)
 
-    @command()
-    async def building(self, ctx, regionId, quality, Round, *, nick: IsMyNick):
-        """Proposing a building law (for presidents)
-           `quality` = building quality (if you want to build an hospital instead, write like that: `5-hospital`"""
-        server = ctx.channel.name
-        URL = f"https://{server}.e-sim.org/"
-        quality = str(quality).replace("Q", "")
-        if "-" in quality:
-            quality, productType = quality.split("-")
-        else:
-            productType = "DEFENSE_SYSTEM"
-        regionId = regionId.replace(URL + "region.html?id=", "")
-
-        payload = {'action': "PLACE_BUILDING", 'regionId': regionId, "productType": productType.strip().upper(),
-                   "quality": quality.strip(), "round": Round, 'submit': "Propose building"}
+    @command(aliases=["hospital"])
+    async def building(self, ctx, region_id: Id, quality: Quality, round: int, *, nick: IsMyNick):
+        """Proposing a building law (for presidents)"""
+        URL = f"https://{ctx.channel.name}.e-sim.org/"
+        product_type = "DEFENSE_SYSTEM" if ctx.invoked_with.lower() == "building" else "HOSPITAL"
+        payload = {'action': "PLACE_BUILDING", 'regionId': region_id, "productType": product_type,
+                   "quality": quality, "round": round, 'submit': "Propose building"}
         url = await self.bot.get_content(URL + "countryLaws.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def register(self, ctx, password, lan, countryId, *, nick: IsMyNick):
-        """User registration."""
-        server = ctx.channel.name
-        URL = f"https://{server}.e-sim.org/"
-
-        agent = "Dalvik/2.1.0 (Linux; U; Android 5.1.1; AFTM Build/LVY48F) CTV"
-        headers = {"User-Agent": agent}
+    async def register(self, ctx, password, lan, country_id: int, *, nick: IsMyNick):
+        """User registration.
+        Note that there might be a bug with choosing country"""
+        URL = f"https://{ctx.channel.name}.e-sim.org/"
+        headers = {"User-Agent": "Dalvik/2.1.0 (Linux; U; Android 5.1.1; AFTM Build/LVY48F) CTV"}
         async with ClientSession(headers=headers) as session:
-            async with session.get(URL + "index.html?lan=" + lan.replace(f"{URL}lan.", ""), ssl=True) as _:
-                async with session.get(URL + "index.html?advancedRegistration=true", ssl=True) as _:
-                    login_params = {"login": nick, "password": password,
-                                    "mail": f'{str(nick).replace(" ", "")}@gmail.com', "countryId": countryId,
-                                    "checkHuman": "Human"}
-                    async with session.post(URL + "registration.html", data=login_params, ssl=True) as registration:
-                        await ctx.send(f"**{nick}** <{registration.url}>")
+            async with session.get(URL, ssl=True) as _:
+                async with session.get(URL + "index.html?advancedRegistration=true&lan=" + lan.replace(f"{URL}lan.", ""), ssl=True) as _:
+                    payload = {"login": nick, "password": password, "acceptRules": "yes", "rules": "yes", "countryId": country_id}
+                    async with session.post(URL + "registration.html", data=payload, ssl=True) as registration:
+                        await ctx.send(f"**{nick}** <{registration.url}>\nHINT: type `.help avatar` and `.help job`")
                         if "profile" not in str(registration.url) and URL + "index.html" not in str(registration.url):
-                            return await ctx.send(f"**{nick}** ERROR: Could not register")
-                        await ctx.send(f"**{nick}** HINT: It's recommended to use avatar and job functions next")
-                        await ctx.send(f"**{nick}** <{registration.url}>")
+                            await ctx.send(f"**{nick}** ERROR: Could not register")
 
     @command()
-    async def report(self, ctx, target_id, report_reason, *, nick: IsMyNick):
-        """Reporting a citizen"""
+    async def report(self, ctx, target_citizen: Id, category, report_reason, *, nick: IsMyNick):
+        """Reporting a citizen.
+        * The report_reason should be within quotes"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
 
-        payload = {"id": target_id, 'action': "REPORT_MULTI", "text": report_reason, "submit": "Submit"}
-        url = await self.bot.get_content(f"{URL}ticket.html", data=payload)
-        await ctx.send(f"**{nick}** <{url}>")
+        categories = ["STEALING_ORG", "POSSIBLE_MULTIPLE_ACCOUNTS", "AUTOMATED_SOFTWARE_OR_SCRIPTS", "UNPAID_DEBTS",
+                      "SLAVERY", "EXPLOITING_GAME_MECHANICS", "ACCOUNT_SITTING", "PROFILE_CONTENT", "OTHER"]
+        if category in categories:
+            payload = {"id": target_citizen, 'action': "REPORT_MULTI", "ticketReportCategory": category,
+                       "text": report_reason, "submit": "Report"}
+            url = await self.bot.get_content(f"{URL}ticket.html", data=payload)
+            await ctx.send(f"**{nick}** <{url}>")
+        else:
+            await ctx.send(f"**{nick}** category can be one of:\n" + ", ".join(categories) + f"\n(not {category})")
 
     @command()
     async def elect(self, ctx, your_candidate, *, nick: IsMyNick):
@@ -389,16 +374,17 @@ class Mix(Cog):
         if payload:
             url = await self.bot.get_content(URL + link, data=payload)
             await ctx.send(f"**{nick}** <{url}>")
+        else:
+            await ctx.send(f"**{nick}** candidate {your_candidate} was not found")
 
     @command()
-    async def law(self, ctx, link_or_id, your_vote, *, nick: IsMyNick):
+    async def law(self, ctx, link_or_id: Id, your_vote, *, nick: IsMyNick):
         """Voting a law"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         if your_vote.lower() not in ("yes", "no"):
             return await ctx.send(f"**{nick}** ERROR: Parameter 'vote' can be 'yes' or 'no' only! (not {your_vote})")
-        if ".e-sim.org/law.html?id=" not in link_or_id:
-            link_or_id = f"{URL}law.html?id=" + link_or_id
+        link_or_id = f"{URL}law.html?id={link_or_id}"
 
         payload = {'action': f"vote{your_vote.capitalize()}", "submit": f"Vote {your_vote.upper()}"}
         url = await self.bot.get_content(link_or_id, data=payload)
