@@ -75,10 +75,8 @@ class War(Cog):
 
     async def location(self, nick, server):
         """getting current location"""
-        URL = f"https://{server}.e-sim.org/"
-        await sleep(randint(1, 2))
-        apiCitizen = await self.bot.get_content(f"{URL}apiCitizenByName.html?name={nick.lower()}")
-        return apiCitizen['currentLocationRegionId']
+        return (await self.bot.get_content(f"https://{server}.e-sim.org/apiCitizenByName.html?name={nick.lower()}")
+                )['currentLocationRegionId']
 
     async def fighting(self, ctx, server, battle_id, side, wep):
         URL = f"https://{server}.e-sim.org/"
@@ -124,17 +122,16 @@ class War(Cog):
         if specific_battle and 1 <= ticket_quality <= 5:
             api = await self.bot.get_content(f"{URL}apiBattles.html?battleId={battle_id}")
             if api['type'] == "ATTACK":
-                if side.lower() == "attacker":
+                if side == "attacker":
                     try:
                         neighboursId = [region['neighbours'] for region in await self.bot.get_content(
                             f'{URL}apiRegions.html') if region["id"] == api['regionId']][0]
                         aBonus = [i for region in await self.bot.get_content(f'{URL}apiMap.html') for i in neighboursId
-                                  if
-                                  i == region['regionId'] and region['occupantId'] == api['attackerId']]
+                                  if i == region['regionId'] and region['occupantId'] == api['attackerId']]
                     except:
                         aBonus = [api['attackerId'] * 6]
                     await ctx.invoke(self.bot.get_command("fly"), aBonus[0], ticket_quality, nick=nick)
-                elif side.lower() == "defender":
+                elif side == "defender":
                     await ctx.invoke(self.bot.get_command("fly"), api['regionId'], ticket_quality, nick=nick)
             elif api['type'] == "RESISTANCE":
                 await ctx.invoke(self.bot.get_command("fly"), api['regionId'], ticket_quality, nick=nick)
@@ -155,7 +152,7 @@ class War(Cog):
             tree = await self.bot.get_content(URL, return_tree=True)
             check = tree.xpath('//*[@id="taskButtonWork"]//@href')  # checking if you can work
             if check and randint(1, 4) == 2:  # Don't work as soon as you can (suspicious)
-                current_loc = await self.location(str(nick), server)
+                current_loc = await self.location(nick, server)
                 await ctx.invoke(self.bot.get_command("work"), nick=nick)
                 await ctx.invoke(self.bot.get_command("fly"), current_loc, ticket_quality, nick=nick)
             apiBattles = await self.bot.get_content(f"{URL}apiBattles.html?battleId={battle_id}")
@@ -797,7 +794,7 @@ class War(Cog):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
 
         region_link = f"{URL}region.html?id={region_id_or_link}"
-        await ctx.invoke(self.bot.get_command("fly"), region_link, ticket_quality, nick=nick)
+        await ctx.invoke(self.bot.get_command("fly"), region_id_or_link, ticket_quality, nick=nick)
         tree = await self.bot.get_content(region_link, data={"submit": "Start resistance"}, return_tree=True)
         result = tree.xpath("//*[@id='esim-layout']//div[2]/text()")[0]
         await ctx.send(f"**{nick}** {result}")

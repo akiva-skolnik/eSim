@@ -93,7 +93,7 @@ class Eco(Cog):
                     await sleep(5)
             if IDs and ID != IDs[-1]:
                 break
-        await ctx.send(f"**{nick}** bought total {round(bought_amount)} coins.")
+        await ctx.send(f"**{nick}** bought total {round(bought_amount, 2)} coins.")
 
     @command()
     async def buy(self, ctx, amount: int, quality: Optional[Quality], product: Product, *, nick: IsMyNick):
@@ -362,7 +362,7 @@ class Eco(Cog):
         await ctx.invoke(self.bot.get_command("read"), nick=nick)
 
     @command()
-    async def auto_work(self, ctx, work_sessions: int = 1, *, nick: IsMyNick):
+    async def auto_work(self, ctx, work_sessions: Optional[int] = 1, *, nick: IsMyNick):
         """work at random times throughout the day"""
         sec_between_works = (24*60*60) // work_sessions
         while True:  # for every day:
