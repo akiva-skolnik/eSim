@@ -276,8 +276,11 @@ class War(Cog):
         gift_storage = int((tree.xpath('//*[@id="sgiftQ5"]/text()') or [0])[0])
         food_limit = int(float(tree.xpath('//*[@id="foodLimit2"]')[0].text))
         gift_limit = int(float(tree.xpath('//*[@id="giftLimit2"]')[0].text))
-        wep = weapon_quality if not weapon_quality else int(
-            tree.xpath(f'//*[@id="Q{weapon_quality}WeaponStock"]/text()')[0])
+        try:
+            wep = weapon_quality if not weapon_quality else int(
+                tree.xpath(f'//*[@id="Q{weapon_quality}WeaponStock"]/text()')[0])
+        except:
+            return await ctx.send(f"ERROR: There are 0 Q{weapon_quality} in storage")
 
         if 1 <= ticket_quality <= 5:
             if api['type'] == "ATTACK":
@@ -308,7 +311,7 @@ class War(Cog):
             if weapon_quality and not wep:
                 await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}\nERROR: 0 Q{weapon_quality} weps in storage")
                 break
-            if Health < 50:
+            if (Health < 50 and dmg >= 5) or (Health == 0 and dmg < 5):
                 if food_storage == 0 and gift_storage == 0:
                     output += f"\nERROR: 0 food and gift in storage"
                     break
@@ -369,9 +372,8 @@ class War(Cog):
                 # dmg update every 4 berserks.
                 output += f"\n{hits_or_dmg.title()} done so far: {damage_done:,}"
                 await msg.edit(content=output)
-        if damage_done:
-            await msg.edit(content=output)
-            await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
+        await msg.edit(content=output)
+        await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
 
     @command(hidden=True)
     async def hold(self, ctx, *, nick: IsMyNick):
@@ -569,8 +571,12 @@ class War(Cog):
         while not self.bot.hold_fight:  # For each round
             api = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
             if 8 in (api['defenderScore'], api['attackerScore']):
+                await ctx.send(f"**{nick}** <{link}> is over")
                 break
             seconds_till_round_end = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
+            if seconds_till_round_end < 20:
+                await sleep(30)
+                continue
             seconds_till_hit = randint(10, seconds_till_round_end - 10)
             await ctx.send(f"**{nick}** {seconds_till_hit} seconds from now (at T {timedelta(seconds=seconds_till_round_end-seconds_till_hit)},"
                            f" I will hit {dmg} {hits_or_dmg} at <{link}> for the {side} side.\n"
@@ -630,8 +636,6 @@ class War(Cog):
             if not self.bot.hold_fight:
                 await ctx.send(f"**{nick}** done {damage_done:,} dmg at <{link}>")
                 await sleep(seconds_till_round_end - seconds_till_hit + 15)
-        if not self.bot.hold_fight:
-            await ctx.send(f"**{nick}** <{link}> is over")
 
     @command(aliases=["motivates"])
     async def motivate(self, ctx, *, nick):
