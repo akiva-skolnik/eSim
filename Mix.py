@@ -329,7 +329,8 @@ class Mix(Cog):
         """User registration.
         Note that there might be a bug with choosing country
         If you want to register with a different nick, see .help set_nick"""
-        URL = f"https://{ctx.channel.name}.e-sim.org/"
+        server = ctx.channel.name
+        URL = f"https://{server}.e-sim.org/"
         headers = {"User-Agent": "Dalvik/2.1.0 (Linux; U; Android 5.1.1; AFTM Build/LVY48F) CTV"}
         async with ClientSession(headers=headers) as session:
             async with session.get(URL, ssl=True) as _:
@@ -341,6 +342,13 @@ class Mix(Cog):
                             await ctx.send(f"**{nick}** ERROR: Could not register")
                         else:
                             await ctx.send(f"**{nick}** <{registration.url}>\nHINT: type `.help avatar` and `.help job`")
+                            filename = "config.json"
+                            with open(filename, "r") as file:
+                                big_dict = json.load(file)
+                            big_dict[server+"_pw"] = password
+                            environ[server+"_pw"] = password
+                            with open(filename, "w") as file:
+                                json.dump(big_dict, file)
 
     @command()
     async def report(self, ctx, target_citizen: Id, category, report_reason, *, nick: IsMyNick):
