@@ -1,5 +1,5 @@
 from asyncio import sleep
-from datetime import datetime
+from datetime import datetime, timedelta
 from os import environ
 from random import randint, uniform
 import re
@@ -572,7 +572,8 @@ class War(Cog):
                 break
             seconds_till_round_end = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
             seconds_till_hit = randint(10, seconds_till_round_end - 10)
-            await ctx.send(f"**{nick}** {seconds_till_hit} seconds from now, I will hit {dmg} {hits_or_dmg} at <{link}> for the {side} side.\n"
+            await ctx.send(f"**{nick}** {seconds_till_hit} seconds from now (at T {timedelta(seconds=seconds_till_round_end-seconds_till_hit)},"
+                           f" I will hit {dmg} {hits_or_dmg} at <{link}> for the {side} side.\n"
                            f"If you want to cancel it, type `.hold {nick}`")
             await sleep(seconds_till_hit)
             tree = await self.bot.get_content(link, return_tree=True)
@@ -627,7 +628,7 @@ class War(Cog):
                     break
                 await sleep(randint(0, 2))
             if not self.bot.hold_fight:
-                await ctx.send(f"**{nick}** done {damage_done} dmg at <{link}>")
+                await ctx.send(f"**{nick}** done {damage_done:,} dmg at <{link}>")
                 await sleep(seconds_till_round_end - seconds_till_hit + 15)
         if not self.bot.hold_fight:
             await ctx.send(f"**{nick}** <{link}> is over")

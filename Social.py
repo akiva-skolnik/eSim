@@ -87,11 +87,11 @@ class Social(Cog):
             tree = await self.bot.get_content(URL + "inboxMessages.html", return_tree=True)
             embed = Embed(title=f"**{nick}** {URL}inboxMessages.html")
             for tr in range(2, msgs + 2):
-                AUTHOR = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[1]//div/a[2]/text()')[0].strip()
-                CONTENT = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[2]/div[1]')[0].text_content().strip()
-                Title = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[2]/b[1]//div')[0].text_content().strip()
-                date = str(tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[3]')[0].text).strip()
-                embed.add_field(name=AUTHOR, value=f"**{Title}**\n{CONTENT}\n{date}", inline=False)
+                author = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[1]//div/a[2]/text()')[0].strip()
+                content = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[2]/div[1]')[0].text_content().strip()
+                title = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[2]/b[1]//div')[0].text_content().strip()
+                date = str(tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[3]/b')[0].text).strip()
+                embed.add_field(name=author, value=f"**{title}**\n{content}\n{date}", inline=False)
             await ctx.send(embed=embed)
         if not alerts and not msgs:
             await ctx.send(f"**{nick}:** There are no new alerts or messages!")

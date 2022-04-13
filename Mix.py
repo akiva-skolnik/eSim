@@ -2,6 +2,7 @@ from asyncio import sleep
 from base64 import b64encode
 from datetime import datetime
 from io import BytesIO
+import json
 from random import choice, randint
 
 from aiohttp import ClientSession
@@ -308,10 +309,24 @@ class Mix(Cog):
         url = await self.bot.get_content(URL + "countryLaws.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
+    @command(hidden=True)
+    async def set_nick(self, ctx, custom_nick, *, main_nick: IsMyNick):
+        """Set custom nick to specific server
+        If the new nick contains more than one word, it should be within quotes"""
+        server = ctx.channel.name
+        filename = "config.json"
+        with open(filename, "r") as file:
+            big_dict = json.load(file)
+        big_dict[server] = custom_nick
+        with open(filename, "w") as file:
+            json.dump(big_dict, file)
+        await ctx.send(f"{main_nick}'s new nick on {server} is `{custom_nick}`!")
+
     @command()
     async def register(self, ctx, password, lan, country_id: int, *, nick: IsMyNick):
         """User registration.
-        Note that there might be a bug with choosing country"""
+        Note that there might be a bug with choosing country
+        If you want to register with a different nick, see .help set_nick"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         headers = {"User-Agent": "Dalvik/2.1.0 (Linux; U; Android 5.1.1; AFTM Build/LVY48F) CTV"}
         async with ClientSession(headers=headers) as session:

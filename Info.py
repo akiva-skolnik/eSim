@@ -134,6 +134,41 @@ class Info(Cog):
         await ctx.send(
             f"**{nick}** Limits: {food_limit}/{gift_limit}, storage: {food_storage}/{gift_storage}, {gold} Gold.")
 
+    @command()
+    async def regions(self, ctx, country):
+        if environ.get("help", "") != "ignore":
+            return
+        URL = f"https://{ctx.channel.name}.e-sim.org/"
+        api_regions = await self.bot.get_content(URL + "apiRegions.html")
+        api_countries = await self.bot.get_content(URL + "apiCountries.html")
+        country_id = next(x['id'] for x in api_countries if x["name"].lower() == country.lower())
+        regions = [region for region in api_regions if region["homeCountry"] == country_id]
+        embed = Embed(title=f"Core Regions {country}")
+        embed.add_field(name="Region", value="\n".join(f"[{region['name']}]({URL}region.html?id={region['id']})" +
+                                                       (" (capital)" if region["capital"] else "") for region in regions))
+        embed.add_field(name="Resource", value="\n".join(f"{region['rawRichness'].title()} {region.get('resource', '').title()}" for region in regions))
+        embed.add_field(name="Neighbours Ids", value="\n".join(", ".join(str(x) for x in region['neighbours']) for region in regions))
+        await ctx.send(embed=embed)
+
+    @command()
+    async def country(self, ctx, country):
+        if environ.get("help", "") != "ignore":
+            return
+        URL = f"https://{ctx.channel.name}.e-sim.org/"
+        api_countries = await self.bot.get_content(URL + "apiCountries.html")
+        country = next(x for x in api_countries if x["name"].lower() == country.lower())
+        embed = Embed(title=country["name"])
+        embed.add_field(name="Id", value=country["id"])
+        embed.add_field(name="Capital", value=f'[{country["capitalName"]}]({URL}region.html?id={country["capitalRegionId"]})')
+        embed.add_field(name="Currency", value=country["currencyName"])
+        embed.add_field(name="Short Name", value=country["shortName"])
+        if "president" in country:
+            president = await self.bot.get_content(f'{URL}apiCitizenById.html?id={country["president"]}')
+            embed.add_field(name="President", value=f"[{president['login']}]({URL}profile.html?id={country['president']})")
+        else:
+            embed.add_field(name="President", value="-")
+        await ctx.send(embed=embed)
+
     @command(aliases=["info-"])
     async def info(self, ctx, *, nick: IsMyNick):
         """Shows some info about a given user"""
