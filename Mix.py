@@ -2,6 +2,7 @@ from asyncio import sleep
 from base64 import b64encode
 from datetime import datetime
 from io import BytesIO
+from os import environ
 import json
 from random import choice, randint
 
@@ -318,6 +319,7 @@ class Mix(Cog):
         with open(filename, "r") as file:
             big_dict = json.load(file)
         big_dict[server] = custom_nick
+        environ[server] = custom_nick
         with open(filename, "w") as file:
             json.dump(big_dict, file)
         await ctx.send(f"{main_nick}'s new nick on {server} is `{custom_nick}`!")
@@ -332,11 +334,13 @@ class Mix(Cog):
         async with ClientSession(headers=headers) as session:
             async with session.get(URL, ssl=True) as _:
                 async with session.get(URL + "index.html?advancedRegistration=true&lan=" + lan.replace(f"{URL}lan.", ""), ssl=True) as _:
-                    payload = {"login": nick, "password": password, "acceptRules": "yes", "rules": "yes", "countryId": country_id}
+                    payload = {"login": nick, "password": password, "mail": "",
+                               "countryId": country_id, "checkHuman": "Human"}
                     async with session.post(URL + "registration.html", data=payload, ssl=True) as registration:
-                        await ctx.send(f"**{nick}** <{registration.url}>\nHINT: type `.help avatar` and `.help job`")
                         if "profile" not in str(registration.url) and URL + "index.html" not in str(registration.url):
                             await ctx.send(f"**{nick}** ERROR: Could not register")
+                        else:
+                            await ctx.send(f"**{nick}** <{registration.url}>\nHINT: type `.help avatar` and `.help job`")
 
     @command()
     async def report(self, ctx, target_citizen: Id, category, report_reason, *, nick: IsMyNick):
