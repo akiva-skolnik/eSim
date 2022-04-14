@@ -41,8 +41,10 @@ class Info(Cog):
             # Eq id instead of link
         items = tree.xpath(f'//*[starts-with(@id, "cell")]/b/text()')
         embed = Embed(title=nick)
-        embed.add_field(name="ID", value="\n".join(IDs), inline=True)
-        embed.add_field(name="Item", value="\n".join(items), inline=True)
+        embed.add_field(name="ID", value="\n".join(IDs[:100]), inline=True)
+        embed.add_field(name="Item", value="\n".join(items[:100]), inline=True)
+        if len(IDs) > 100:
+            embed.set_footer(text="(first 100 items)")
         await ctx.send(embed=embed)
 
     @command(aliases=["inventory"])

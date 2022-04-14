@@ -311,44 +311,44 @@ class Mix(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(hidden=True)
-    async def set_nick(self, ctx, custom_nick, *, main_nick: IsMyNick):
-        """Set custom nick to specific server
-        If the new nick contains more than one word, it should be within quotes"""
-        server = ctx.channel.name
+    async def config(self, ctx, key, value, *, nick: IsMyNick):
+        """Examples:
+            .config alpha Admin  my_nick
+            .config alpha_pw 1234  my_nick
+            .config help ""  my_nick
+        """
         filename = "config.json"
         with open(filename, "r") as file:
             big_dict = json.load(file)
-        big_dict[server] = custom_nick
-        environ[server] = custom_nick
+        if not value and key in big_dict:
+            del big_dict[key]
+            del environ[key]
+            await ctx.send(f"I have deleted the `{key}` key from {nick}'s config.json file")
+        else:
+            big_dict[key] = value
+            environ[key] = value
+            await ctx.send(f"I have added the following pair to {nick}'s config.json file: `{key} = {value}`")
         with open(filename, "w") as file:
             json.dump(big_dict, file)
-        await ctx.send(f"{main_nick}'s new nick on {server} is `{custom_nick}`!")
 
     @command()
-    async def register(self, ctx, password, lan, country_id: int, *, nick: IsMyNick):
+    async def register(self, ctx, lan, country_id: int, *, nick: IsMyNick):
         """User registration.
         Note that there might be a bug with choosing country
-        If you want to register with a different nick, see .help set_nick"""
+        If you want to register with a different nick or with another password, see .help config"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         headers = {"User-Agent": "Dalvik/2.1.0 (Linux; U; Android 5.1.1; AFTM Build/LVY48F) CTV"}
         async with ClientSession(headers=headers) as session:
             async with session.get(URL, ssl=True) as _:
                 async with session.get(URL + "index.html?advancedRegistration=true&lan=" + lan.replace(f"{URL}lan.", ""), ssl=True) as _:
-                    payload = {"login": nick, "password": password, "mail": "",
+                    payload = {"login": nick, "password": environ.get(server+"_pw", environ['pw']), "mail": "",
                                "countryId": country_id, "checkHuman": "Human"}
                     async with session.post(URL + "registration.html", data=payload, ssl=True) as registration:
                         if "profile" not in str(registration.url) and URL + "index.html" not in str(registration.url):
                             await ctx.send(f"**{nick}** ERROR: Could not register")
                         else:
                             await ctx.send(f"**{nick}** <{registration.url}>\nHINT: type `.help avatar` and `.help job`")
-                            filename = "config.json"
-                            with open(filename, "r") as file:
-                                big_dict = json.load(file)
-                            big_dict[server+"_pw"] = password
-                            environ[server+"_pw"] = password
-                            with open(filename, "w") as file:
-                                json.dump(big_dict, file)
 
     @command()
     async def report(self, ctx, target_citizen: Id, category, report_reason, *, nick: IsMyNick):

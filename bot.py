@@ -36,7 +36,7 @@ async def create_session():
     return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": environ["headers"]})
 
 
-bot.VERSION = "14/04/2022"
+bot.VERSION = "15/04/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.cookies = {}
 
