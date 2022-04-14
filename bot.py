@@ -19,7 +19,7 @@ with open("config.json", 'r') as file:
 
 # you should change the following line in all your accounts (except for 1) to `"help": ""` https://github.com/e-sim-python/eSim/blob/main/config.json#L9
 # this way the bot will send only one help commands.
-if environ.get("help", "") != "ignore":
+if utils.is_helper():
     bot.remove_command("help")
     
 for extension in ("Eco", "Mix", "Social", "War", "Info"):
@@ -139,7 +139,8 @@ async def on_command_error(ctx, error):
         return await ctx.send("ERROR: you can't use this command in a private message!")
     if isinstance(error, commands.CommandNotFound):
         return
-
+    if isinstance(error, commands.errors.MissingRequiredArgument) and utils.is_helper():
+        return
     last_msg = str(list(await ctx.channel.history(limit=1).flatten())[0].content)
     error_msg = f"```{''.join(format_exception(type(error), error, error.__traceback__))}```"
     if error_msg != last_msg:

@@ -139,7 +139,7 @@ class Info(Cog):
 
     @command()
     async def regions(self, ctx, country):
-        if environ.get("help", "") != "ignore":
+        if utils.is_helper():
             return
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         api_regions = await self.bot.get_content(URL + "apiRegions.html")
@@ -155,7 +155,7 @@ class Info(Cog):
 
     @command()
     async def country(self, ctx, country):
-        if environ.get("help", "") != "ignore":
+        if utils.is_helper():
             return
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         api_countries = await self.bot.get_content(URL + "apiCountries.html")
@@ -172,10 +172,12 @@ class Info(Cog):
             embed.add_field(name="President", value="-")
         await ctx.send(embed=embed)
 
-    @command(aliases=["info-"])
-    async def info(self, ctx, *, nick: IsMyNick):
+    @command()
+    async def info(self, ctx, *, nick: IsMyNick = None):
         """Shows some info about a given user"""
-        if ctx.invoked_with.lower() == "info-":
+        if nick is None:
+            if not utils.is_helper():
+                return
             values = await utils.find(ctx.channel.name, "info")
             values.sort(key=lambda x: x['Buffed at'])
             embed = Embed()
