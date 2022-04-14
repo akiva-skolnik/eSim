@@ -68,17 +68,23 @@ class Social(Cog):
                 for tr in range(2, min(20, reminding_alerts) + 2):
                     try:
                         alert = tree.xpath(f'//tr[{tr}]//td[2]')[0].text_content().strip()
-                        alertDate = tree.xpath(f'//tr[{tr}]//td[3]')[0].text_content().strip()
-                        links = [x for x in tree.xpath(f"//tr[{tr}]//td[2]/a[2]/@href") if "profile" not in x]
+                        alert_date = tree.xpath(f'//tr[{tr}]//td[3]')[0].text_content().strip()
+                        links = [x for x in tree.xpath(f"//tr[{tr}]//td[2]/a[2]/@href")]
                         if "has requested to add you as a friend" in alert:
                             await self.bot.get_content(URL + str(links[0]))
                         elif "has offered you to sign" in alert:
                             alert = alert.replace("contract", f'[contract]({URL}{links[0]})').replace(
                                 "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!", "\nSee `.help contract`")
+                        elif len(links) > 1:
+                            link = [x for x in links if "profile" not in x]
+                            if link:
+                                alert = f'[{alert}]({URL}{link[0]})'
+                            else:
+                                alert = f'[{alert}]({URL}{links[0]})'
                         elif links:
                             alert = f'[{alert}]({URL}{links[0]})'
                         reminding_alerts -= 1
-                        embed.add_field(name=alertDate, value=alert, inline=False)
+                        embed.add_field(name=alert_date, value=alert, inline=False)
                     except:
                         break
                 await ctx.send(embed=embed)

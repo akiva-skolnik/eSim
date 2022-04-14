@@ -27,7 +27,7 @@ class Info(Cog):
                 await sleep(randint(1, 3))
 
             if nick.lower() == environ.get(ctx.channel.name, environ["nick"]).lower():
-                await ctx.send(f'**{environ.get(ctx.channel.name, environ["nick"])}** - online')
+                await ctx.send(f'**{environ.get(ctx.channel.name, environ["nick"])}** Code Version: {self.bot.VERSION}')
 
     @command()
     async def eqs(self, ctx, *, nick: IsMyNick):
@@ -126,7 +126,10 @@ class Info(Cog):
     async def limits(self, ctx, *, nick: IsMyNick):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(URL, return_tree=True)
-        gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
+        try:
+            gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
+        except IndexError:
+            return await ctx.send(f"**{nick}** you are not logged in! Please type `.login {nick}` and try again")
         food_storage = tree.xpath('//*[@id="foodQ5"]/text()')[0]
         gift_storage = tree.xpath('//*[@id="giftQ5"]/text()')[0]
         food_limit = tree.xpath('//*[@id="foodLimit2"]')[0].text

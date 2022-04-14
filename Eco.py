@@ -7,7 +7,7 @@ from discord import Embed
 from discord.ext.commands import Cog, command
 from pytz import timezone
 
-from Converters import Id, IsMyNick, Product, Quality
+from Converters import Bool, Id, IsMyNick, Product, Quality
 import utils
 
 
@@ -18,7 +18,7 @@ class Eco(Cog):
         self.bot = bot
 
     @command()
-    async def contract(self, ctx, contract_id: Id, *, nick: IsMyNick):
+    async def contract(self, ctx, contract_id: Optional[Id] = 0, *, nick: IsMyNick):
         """Accept specific contract id.
         Write 0 as contract_id to get the list of contracts"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
@@ -26,21 +26,20 @@ class Eco(Cog):
             tree = await self.bot.get_content(f"{URL}contracts.html", return_tree=True)
             text = [x.text_content().strip().replace("\n", " ").replace("\t", "") for x in tree.xpath('//*[@id="esim-layout"]//div[2]//ul//li')[:5]]
             links = tree.xpath('//*[@id="esim-layout"]//div[2]//ul//li//a/@href')[::2][:5]
-            embed = Embed(title=nick)
-            embed.add_field(name="Contracts (first 5)", value="\n".join(f"[{t}]({URL+link})" for t, link in zip(text, links)))
-            await ctx.send(embed=embed)
+            if links:
+                embed = Embed(title=nick)
+                embed.add_field(name="Contracts (first 5)", value="\n".join(f"[{t}]({URL+link})" for t, link in zip(text, links)))
+                await ctx.send(embed=embed)
+            else:
+                await ctx.send(f"**{nick}** no pending contracts")
         else:
             payload = {'action': "ACCEPT", "id": contract_id, "submit": "Accept"}
             url = await self.bot.get_content(f"https://{ctx.channel.name}.e-sim.org/contract.html", data=payload)
             await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def bid(self, ctx, auction: Id, price, delay, *, nick: IsMyNick):
+    async def bid(self, ctx, auction: Id, price: float, delay: Optional[Bool] = False, *, nick: IsMyNick):
         """Bidding an auction few seconds before it's end"""
-        if delay.lower() not in ("yes", "no"):
-            return await ctx.send(f"**{nick}** ERROR: delay parameter must to be 'yes' or 'no' (not {delay})")
-        else:
-            delay = True if delay.lower() == "yes" else False
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(f"{URL}auction.html?id={auction}", return_tree=True)
         try:
@@ -48,8 +47,8 @@ class Eco(Cog):
         except:
             return await ctx.send(f"**{nick}** ERROR: This auction has probably finished. if you think this is a mistake -"
                                   " you are welcome to run the function again, but this time write the delay yourself")
-        h, m, s = auction_time.split(":")
         if delay:
+            h, m, s = auction_time.split(":")
             delay_in_seconds = int(h) * 3600 + int(m) * 60 + int(s) - 30
             await sleep(delay_in_seconds)
         payload = {'action': "BID", 'id': auction, 'price': f"{float(price):.2f}"}
