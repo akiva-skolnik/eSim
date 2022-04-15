@@ -5,7 +5,7 @@ from traceback import format_exception
 
 from aiohttp import ClientSession, ClientTimeout
 from discord.ext import commands
-from discord.ext.commands import BadArgument, Bot
+from discord.ext.commands import BadArgument, Bot, errors
 from lxml.html import fromstring
 
 import utils
@@ -56,7 +56,7 @@ async def inner_get_content(link, data=None, return_tree=False, return_type=""):
                     continue
 
                 if any(t in str(respond.url) for t in ("notLoggedIn", "error")):
-                    raise BadArgument("You are not logged in, type `.login <nick>`")
+                    raise RuntimeError("You are not logged in, type `.login <nick>`")
 
                 if respond.status == 200:
                     if return_type == "json":
@@ -66,7 +66,7 @@ async def inner_get_content(link, data=None, return_tree=False, return_type=""):
                             await sleep(5)
                             continue
                         if "error" in api:
-                            raise BadArgument(api["error"])
+                            raise RuntimeError(api["error"])
                         return api if "apiBattles" not in link else api[0]
                     else:
                         try:
@@ -78,7 +78,7 @@ async def inner_get_content(link, data=None, return_tree=False, return_type=""):
                 else:
                     await sleep(5)
         except Exception as e:
-            if type(e) in (BadArgument, OSError):
+            if type(e) in (RuntimeError, OSError):
                 raise e
             await sleep(5)
 
@@ -86,9 +86,9 @@ async def inner_get_content(link, data=None, return_tree=False, return_type=""):
 
 
 async def get_content(link, data=None, return_tree=False, return_type=""):
-    nick = environ['nick']
     link = link.split("#")[0].replace("http://", "https://")
     server = link.split("https://", 1)[1].split(".e-sim.org", 1)[0]
+    nick = environ.get(server, environ['nick'])
     if not bot.cookies:
         bot.cookies = await utils.find_one(server, "cookies", nick)
     URL = f"https://{server}.e-sim.org/"
@@ -97,7 +97,7 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
     if server in bot.cookies:
         try:
             tree = await inner_get_content(link, data, return_tree, return_type)
-        except BadArgument as e:
+        except RuntimeError as e:
             if "you are not logged in" not in str(e):
                 raise e
             else:
@@ -106,13 +106,12 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
         await bot.session.close()
         bot.session = await create_session()
 
-        payload = {'login': environ.get(server, environ['nick']),
-                   'password': environ.get(server+"_pw", environ['pw']), "submit": "Login"}
+        payload = {'login': nick, 'password': environ.get(server+"_pw", environ['pw']), "submit": "Login"}
         async with bot.session.get(URL, ssl=True) as _:
             async with bot.session.post(URL + "login.html", data=payload, ssl=True) as r:
                 if "index.html?act=login" not in str(r.url):
                     print(r.url)
-                    raise BadArgument("Failed to login")
+                    raise RuntimeError(f"{nick} - Failed to login")
                 bot.cookies.update({server: {cookie.key: cookie.value for cookie in bot.session.cookie_jar}})
         await utils.replace_one(server, "cookies", nick, bot.cookies)
         tree = await inner_get_content(link, data, return_tree, return_type)
@@ -132,13 +131,11 @@ async def on_message(message):
 @bot.event
 async def on_command_error(ctx, error):
     error = getattr(error, 'original', error)
-    if isinstance(error, RuntimeError):
-        return
     if isinstance(error, commands.NoPrivateMessage):
         return await ctx.send("ERROR: you can't use this command in a private message!")
-    if isinstance(error, commands.CommandNotFound):
+    if isinstance(error, (commands.CommandNotFound, errors.CheckFailure)):
         return
-    if isinstance(error, commands.errors.MissingRequiredArgument) and await utils.is_helper():
+    if isinstance(error, (errors.MissingRequiredArgument, errors.BadArgument)) and not await utils.is_helper():
         return
     last_msg = str(list(await ctx.channel.history(limit=1).flatten())[0].content)
     error_msg = f"```{''.join(format_exception(type(error), error, error.__traceback__))}```"
