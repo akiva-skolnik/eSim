@@ -1,6 +1,6 @@
 from os import environ
 
-from discord.ext.commands import Converter, BadArgument
+from discord.ext.commands import BadArgument, Converter, errors
 
 
 class IsMyNick(Converter):
@@ -8,7 +8,7 @@ class IsMyNick(Converter):
         if nick.lower() == environ.get(ctx.channel.name, environ['nick']).lower():
             return nick
         else:
-            raise
+            raise errors.CheckFailure
 
 
 class Side(Converter):
