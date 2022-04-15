@@ -4,7 +4,7 @@ from os import environ
 from random import randint
 
 from discord import Embed
-from discord.ext.commands import Cog, command
+from discord.ext.commands import check, Cog, command
 from lxml.html import fromstring
 from pytz import timezone
 
@@ -51,32 +51,15 @@ class Info(Cog):
     async def inv(self, ctx, *, nick: IsMyNick):
         """Shows all of your in-game inventory."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(f"{URL}storage.html?storageType=PRODUCT", return_tree=True)
-        tree2 = await self.bot.get_content(f"{URL}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
-        container_1 = tree.xpath("//div[@class='storage']")
-        special_items = tree2.xpath('//div[@class="specialItemInventory"]')
-        gold = tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0]
-        quantity = [gold]
-        for item in special_items:
+        storage_tree = await self.bot.get_content(f"{URL}storage.html?storageType=PRODUCT", return_tree=True)
+        special_tree = await self.bot.get_content(f"{URL}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
+        special = {}
+        products = {}
+        for item in special_tree.xpath('//div[@class="specialItemInventory"]'):
             if item.xpath('span/text()'):
-                if item.xpath('b/text()')[0].lower() == "medkit":
-                    quantity.append(item.xpath('span/text()')[0])
-                elif "reshuffle" in item.xpath('b/text()')[0].lower():
-                    quantity.append(item.xpath('span/text()')[0])
-                elif "upgrade" in item.xpath('b/text()')[0].lower():
-                    quantity.append(item.xpath('span/text()')[0])
-        for item in container_1:
-            quantity.append(item.xpath("div[1]/text()")[0].strip())
-        products = ["Gold"]
-        for item in special_items:
-            if item.xpath('span/text()'):
-                if item.xpath('b/text()')[0].lower() == "medkit":
-                    products.append(item.xpath('b/text()')[0])
-                elif "reshuffle" in item.xpath('b/text()')[0].lower():
-                    products.append("Reshuffles")
-                elif "upgrade" in item.xpath('b/text()')[0].lower():
-                    products.append("Upgrades")
-        for item in container_1:
+                special[item.xpath('b/text()')[0]] = item.xpath('span/text()')[0]
+
+        for item in storage_tree.xpath("//div[@class='storage']"):
             name = item.xpath("div[2]/img/@src")[0].replace("//cdn.e-sim.org//img/productIcons/", "").replace(
                 "Rewards/", "").replace(".png", "")
             if name.lower() in ["iron", "grain", "diamonds", "oil", "stone", "wood"]:
@@ -84,14 +67,13 @@ class Info(Cog):
             else:
                 quality = item.xpath("div[2]/img/@src")[1].replace(
                     "//cdn.e-sim.org//img/productIcons/", "").replace(".png", "")
-            products.append(f"{quality.title()} {name}" if quality else f"{name}")
+            products[f"{quality.title()} {name}"] = item.xpath("div[1]/text()")[0].strip()
 
-        embed = Embed(title=nick)
-        for i in range(len(products) // 5 + 1):
-            value = [f"**{a}**: {b}" for a, b in zip(products[i * 5:(i + 1) * 5], quantity[i * 5:(i + 1) * 5])]
-            embed.add_field(name="**Products: **" if not i else u"\u200B",
-                            value="\n".join(value) if value else u"\u200B")
-        embed.set_footer(text="Inventory")
+        embed = Embed(title=nick, description=storage_tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0] + " Gold")
+        if products:
+            embed.add_field(name="**Storage:**", value="\n".join(f"**{k}**: {v}" for k, v in products.items()))
+        if special:
+            embed.add_field(name="**Special Items:**", value="\n".join(f"**{k}**: {v}" for k, v in special.items()))
         await ctx.send(embed=embed)
 
     @command()
@@ -108,19 +90,20 @@ class Info(Cog):
             else:
                 quality = item.xpath("div[2]/img/@src")[1].replace("//cdn.e-sim.org//img/productIcons/",
                                                                    "").replace(".png", "")
-            products[f"{quality.title()} {name}" if quality else f"{name}"] = int(
-                item.xpath("div[1]/text()")[0].strip())
+            products[f"{quality.title()} {name}"] = int(item.xpath("div[1]/text()")[0].strip())
 
+        coins_len = max(5, len(products))
         tree = await self.bot.get_content(f"{URL}militaryUnitMoneyAccount.html", return_tree=True)
-        amounts = tree.xpath('//*[@id="esim-layout"]//div[4]//div//b/text()')[:len(products)]
-        coins = tree.xpath('//*[@id="esim-layout"]//div[4]/div/text()')[2::3][:len(products)]
+        amounts = tree.xpath('//*[@id="esim-layout"]//div[4]//div//b/text()')[:coins_len]
+        coins = tree.xpath('//*[@id="esim-layout"]//div[4]/div/text()')[2::3][:coins_len]
 
         embed = Embed(title=nick)
-        embed.add_field(name="**Products:**",
-                        value="\n".join(f"**{product}**: {amount:,}" for product, amount in products.items()))
-        embed.add_field(name=f"**Coins (first {len(products)}):**",
-                        value="\n".join(
-                            f"**{coin.strip()}**: {float(amount):,}" for coin, amount in zip(coins, amounts)))
+        if products:
+            embed.add_field(name="**Products:**",
+                            value="\n".join(f"**{product}**: {amount:,}" for product, amount in products.items()))
+        if coins:
+            embed.add_field(name=f"**Coins (first {coins_len}):**",
+                            value="\n".join(f"**{coin.strip()}**: {round(float(amount), 2):,}" for coin, amount in zip(coins, amounts)))
         embed.set_footer(text="Military Unit Inventory")
         await ctx.send(embed=embed)
 
@@ -140,9 +123,8 @@ class Info(Cog):
             f"**{nick}** Limits: {food_limit}/{gift_limit}, storage: {food_storage}/{gift_storage}, {gold} Gold.")
 
     @command()
+    @check(utils.is_helper())
     async def regions(self, ctx, country):
-        if utils.is_helper():
-            return
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         api_regions = await self.bot.get_content(URL + "apiRegions.html")
         api_countries = await self.bot.get_content(URL + "apiCountries.html")
@@ -156,9 +138,8 @@ class Info(Cog):
         await ctx.send(embed=embed)
 
     @command()
+    @check(utils.is_helper())
     async def country(self, ctx, country):
-        if utils.is_helper():
-            return
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         api_countries = await self.bot.get_content(URL + "apiCountries.html")
         country = next(x for x in api_countries if x["name"].lower() == country.lower())
@@ -174,21 +155,23 @@ class Info(Cog):
             embed.add_field(name="President", value="-")
         await ctx.send(embed=embed)
 
-    @command()
-    async def info(self, ctx, *, nick: IsMyNick = None):
-        """Shows some info about a given user"""
-        if nick is None:
-            if not utils.is_helper():
-                return
-            values = await utils.find(ctx.channel.name, "info")
-            values.sort(key=lambda x: x['Buffed at'])
-            embed = Embed()
-            embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
-            embed.add_field(name="Worked At", value="\n".join([row.get("Worked at", "-") for row in values]))
-            embed.add_field(name="Buffed At", value="\n".join([row.get("Buffed at", "-") for row in values]))
-            embed.set_footer(text="Type .info <nick> for more info on a nick")
-            return await ctx.send(embed=embed)
+    @command(name="info-", hidden=True)
+    @check(utils.is_helper())
+    async def info_(self, ctx):
+        values = await utils.find(ctx.channel.name, "info")
+        values.sort(key=lambda x: x['Buffed at'])
+        embed = Embed()
+        embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
+        embed.add_field(name="Worked At", value="\n".join([row.get("Worked at", "-") for row in values]))
+        embed.add_field(name="Buffed At", value="\n".join([row.get("Buffed at", "-") for row in values]))
+        embed.set_footer(text="Type .info <nick> for more info on a nick")
+        await ctx.send(embed=embed)
 
+    @command()
+    async def info(self, ctx, *, nick: IsMyNick):
+        """Shows some info about a given user.
+        .info- will give you a brief info about all users connected to MongoDB
+        (if you did not set it via config.json, the info is only about you)"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         tree = await self.bot.get_content(URL + "storage.html?storageType=PRODUCT", return_tree=True)
