@@ -123,7 +123,7 @@ class Info(Cog):
             f"**{nick}** Limits: {food_limit}/{gift_limit}, storage: {food_storage}/{gift_storage}, {gold} Gold.")
 
     @command()
-    @check(utils.is_helper())
+    @check(utils.is_helper)
     async def regions(self, ctx, country):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         api_regions = await self.bot.get_content(URL + "apiRegions.html")
@@ -138,7 +138,7 @@ class Info(Cog):
         await ctx.send(embed=embed)
 
     @command()
-    @check(utils.is_helper())
+    @check(utils.is_helper)
     async def country(self, ctx, country):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         api_countries = await self.bot.get_content(URL + "apiCountries.html")
@@ -156,16 +156,19 @@ class Info(Cog):
         await ctx.send(embed=embed)
 
     @command(name="info-", hidden=True)
-    @check(utils.is_helper())
+    @check(utils.is_helper)
     async def info_(self, ctx):
         values = await utils.find(ctx.channel.name, "info")
-        values.sort(key=lambda x: x['Buffed at'])
-        embed = Embed()
-        embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
-        embed.add_field(name="Worked At", value="\n".join([row.get("Worked at", "-") for row in values]))
-        embed.add_field(name="Buffed At", value="\n".join([row.get("Buffed at", "-") for row in values]))
-        embed.set_footer(text="Type .info <nick> for more info on a nick")
-        await ctx.send(embed=embed)
+        if values:
+            values.sort(key=lambda x: x['Buffed at'])
+            embed = Embed()
+            embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
+            embed.add_field(name="Worked At", value="\n".join([row.get("Worked at", "-") for row in values]))
+            embed.add_field(name="Buffed At", value="\n".join([row.get("Buffed at", "-") for row in values]))
+            embed.set_footer(text="Type .info <nick> for more info on a nick")
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("No data available")
 
     @command()
     async def info(self, ctx, *, nick: IsMyNick):

@@ -64,5 +64,5 @@ def get_region_and_country_names(api_regions, api_countries, region_id):
                     return region['name'], country['name']
 
 
-async def is_helper():
+async def is_helper(ctx=None):
     return os.environ.get("help", "") != "ignore"
