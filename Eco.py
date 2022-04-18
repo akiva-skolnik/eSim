@@ -386,50 +386,6 @@ class Eco(Cog):
             midnight = tz.localize(datetime.combine(now+timedelta(days=1), time(0, 0, 0, 0)))
             await sleep((midnight-now).seconds+20)
 
-    async def _received(self, URL, blacklist, contract_name):
-        tree = await self.bot.get_content(f'{URL}contracts.html', return_tree=True)
-        li = 0
-        while True:
-            try:
-                li += 1
-                line = tree.xpath(f'//*[@id="esim-layout"]//div[2]//ul//li[{li}]/a/text()')
-                if contract_name.lower() in line[0].strip().lower() and "offered to" in tree.xpath(f'//*[@id="esim-layout"]//div[2]//ul//li[{li}]/text()')[1]:
-                    blacklist.add(line[1].strip())
-            except:
-                break
-        return blacklist
-
-    async def _remove_rejected(self, URL, blacklist):
-        tree = await self.bot.get_content(URL+'notifications.html?filter=CONTRACTS', return_tree=True)
-        last_page = tree.xpath("//ul[@id='pagination-digg']//li[last()-1]//@href") or ['page=1']
-        last_page = int(last_page[0].split('page=')[1])
-        for page in range(1, int(last_page)+1):
-            if page != 1:
-                tree = await self.bot.get_content(f'{URL}notifications.html?filter=CONTRACTS&page={page}', return_tree=True)
-            for tr in range(2, 22):
-                if "   has rejected your  " in tree.xpath(f"//tr[{tr}]//td[2]/text()"):
-                    blacklist.add(str(tree.xpath(f"//tr[{tr}]//td[2]//a[1]")[0].text).strip())
-        return blacklist
-
-    async def _friends_list(self, nick, server):
-        URL = f"https://{server}.e-sim.org/"
-        apiCitizen = await self.bot.get_content(f'{URL}apiCitizenByName.html?name={nick.lower()}')
-
-        for page in range(1, 100):
-            tree = await self.bot.get_content(f'{URL}profileFriendsList.html?id={apiCitizen["id"]}&page={page}', return_tree=True)
-            for div in range(1, 13):
-                friend = tree.xpath(f'//div//div[1]//div[{div}]/a/text()')
-                if not friend:
-                    return
-                yield friend[0].strip()
-
-    async def staff_list(self, URL, blacklist):
-        tree = await self.bot.get_content(f"{URL}staff.html", return_tree=True)
-        nicks = tree.xpath('//*[@id="esim-layout"]//a/text()')
-        for nick in nicks:
-            blacklist.add(nick.strip())
-        return blacklist
-
     @command()
     async def send_contracts(self, ctx, contract_id: Id, contract_name, *, nick: IsMyNick):
         """
@@ -438,10 +394,10 @@ class Eco(Cog):
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         blacklist = set()
-        blacklist = await self.staff_list(URL, blacklist)
-        blacklist = await self._received(URL, blacklist, contract_name)
-        blacklist = await self._remove_rejected(URL, blacklist)
-        async for friend in self._friends_list(nick, server):
+        blacklist = await staff_list(self.bot, URL, blacklist)
+        blacklist = await _received(self.bot, URL, blacklist, contract_name)
+        blacklist = await remove_rejected(self.bot, URL, blacklist)
+        async for friend in _friends_list(self.bot, nick, server):
             if friend not in blacklist:
                 payload = {'id': contract_id, 'action': "PROPOSE", 'citizenProposedTo': friend, 'submit': 'Propose'}
                 for _ in range(10):
@@ -452,6 +408,54 @@ class Eco(Cog):
                     except Exception as error:
                         await ctx.send(f"**{nick}** {error} while sending to {friend}")
         await ctx.send(f"**{nick}** done.")
+
+
+async def remove_rejected(bot, URL, blacklist, filter="CONTRACTS", text="has rejected your"):
+    tree = await bot.get_content(URL+'notifications.html?filter='+filter, return_tree=True)
+    last_page = tree.xpath("//ul[@id='pagination-digg']//li[last()-1]//@href") or ['page=1']
+    last_page = int(last_page[0].split('page=')[1])
+    for page in range(1, int(last_page)+1):
+        if page != 1:
+            tree = await bot.get_content(f'{URL}notifications.html?filter={filter}&page={page}', return_tree=True)
+        for tr in range(2, 22):
+            if text in " ".join(tree.xpath(f"//tr[{tr}]//td[2]/text()")):
+                blacklist.add(tree.xpath(f"//tr[{tr}]//td[2]//a[1]/text()")[0].strip())
+    return blacklist
+
+
+async def _friends_list(bot, nick, server):
+    URL = f"https://{server}.e-sim.org/"
+    apiCitizen = await bot.get_content(f'{URL}apiCitizenByName.html?name={nick.lower()}')
+
+    for page in range(1, 100):
+        tree = await bot.get_content(f'{URL}profileFriendsList.html?id={apiCitizen["id"]}&page={page}', return_tree=True)
+        for div in range(1, 13):
+            friend = tree.xpath(f'//div//div[1]//div[{div}]/a/text()')
+            if not friend:
+                return
+            yield friend[0].strip()
+
+
+async def staff_list(bot, URL, blacklist):
+    tree = await bot.get_content(f"{URL}staff.html", return_tree=True)
+    nicks = tree.xpath('//*[@id="esim-layout"]//a/text()')
+    for nick in nicks:
+        blacklist.add(nick.strip())
+    return blacklist
+
+
+async def _received(bot, URL, blacklist, contract_name):
+    tree = await bot.get_content(f'{URL}contracts.html', return_tree=True)
+    li = 0
+    while True:
+        try:
+            li += 1
+            line = tree.xpath(f'//*[@id="esim-layout"]//div[2]//ul//li[{li}]/a/text()')
+            if contract_name.lower() in line[0].strip().lower() and "offered to" in tree.xpath(f'//*[@id="esim-layout"]//div[2]//ul//li[{li}]/text()')[1]:
+                blacklist.add(line[1].strip())
+        except:
+            break
+    return blacklist
 
 
 def setup(bot):

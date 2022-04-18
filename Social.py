@@ -6,6 +6,7 @@ from discord import Embed
 from discord.ext.commands import Cog, command
 
 from Converters import Id, IsMyNick
+import Eco
 
 
 class Social(Cog):
@@ -166,6 +167,8 @@ class Social(Cog):
         """Sending friend request to the entire server / all online citizens"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         await ctx.send(f"**{nick}** on it")
+        blacklist = set()
+        blacklist = await Eco.remove_rejected(self.bot, URL, blacklist, "OTHER", "has removed you")
         results = list()
         if ctx.invoked_with.lower() == "friends":
             for Index, row in enumerate(await self.bot.get_content(f"{URL}apiOnlinePlayers.html")):
@@ -173,13 +176,17 @@ class Social(Cog):
                     await ctx.send(f"**{nick}**\n" + "\n".join(results))
                     results.clear()
                 row = loads(row)
-                try:
-                    url = await self.bot.get_content(f"{URL}friends.html?action=PROPOSE&id={row['id']}")
-                    if "PROPOSED_FRIEND_OK" in str(url):
-                        results.append("Sent to: " + row['login'])
-                except Exception as error:
-                    await ctx.send(f"**{nick}** ERROR: {error}")
-                await sleep(1)
+                if row['login'] not in blacklist:
+                    try:
+                        url = f"{URL}friends.html?action=PROPOSE&id={row['id']}"
+                        send = await self.bot.get_content(url)
+                        if send == url:
+                            return await ctx.send(f"**{nick}** ERROR: you are not logged in, see `.help login`")
+                        results.append(row['login'] + f": <{send}>")
+                        await sleep(1)
+                    except Exception as error:
+                        await ctx.send(f"**{nick}** ERROR: {error}")
+
         else:
             tree = await self.bot.get_content(URL + 'citizenStatistics.html?statisticType=DAMAGE&countryId=0', return_tree=True)
             last = tree.xpath("//ul[@id='pagination-digg']//li[last()-1]//@href")
@@ -188,18 +195,22 @@ class Social(Cog):
                 if page != 1:
                     tree = await self.bot.get_content(
                         URL + 'citizenStatistics.html?statisticType=DAMAGE&countryId=0&page=' + str(page), return_tree=True)
-                for link in tree.xpath("//td/a/@href"):
-                    try:
-                        url = f"{URL}friends.html?action=PROPOSE&id={link.split('=')[1]}"
-                        send = await self.bot.get_content(url)
-                        if send == url:
-                            await ctx.send(f"**{nick}** ERROR: you are not logged in, see `.help login`")
-                        results.append(f"<{send}>")
-                    except Exception as error:
-                        await ctx.send(f"**{nick}** ERROR: {error}")
-                    await sleep(1)
+                friends = tree.xpath("//td/a/text()")
+                links = tree.xpath("//td/a/@href")
+                for friend, link in zip(friends, links):
+                    friend = friend.strip()
+                    if friend not in blacklist:
+                        try:
+                            url = f"{URL}friends.html?action=PROPOSE&id={link.split('=')[1]}"
+                            send = await self.bot.get_content(url)
+                            if send == url:
+                                return await ctx.send(f"**{nick}** ERROR: you are not logged in, see `.help login`")
+                            results.append(friend + f": <{send}>")
+                            await sleep(1)
+                        except Exception as error:
+                            await ctx.send(f"**{nick}** ERROR: {error}")
                 if results:
-                    await ctx.send(f"**{nick}**\n" + "\n".join(results))
+                    await ctx.send(f"**{nick}**, page {page}\n" + "\n".join(results))
                     results.clear()
         if results:
             await ctx.send(f"**{nick}**\n" + "\n".join(results))

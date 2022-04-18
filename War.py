@@ -923,10 +923,9 @@ class War(Cog):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
 
         results = []
-        ids = [int(x.replace("#", "").strip()) for x in ids.split(",") if x.strip()]
+        ids = [int(x.replace("#", "").replace(f"{URL}showEquipment.html?id=", "").strip()) for x in ids.split(",") if x.strip()]
         for Index, ID in enumerate(ids):
-            payload = {'action': "PUT_OFF" if ctx.invoked_with.lower() == "unwear" else "EQUIP",
-                       'itemId': ID.replace("#", "").replace(f"{URL}showEquipment.html?id=", "")}
+            payload = {'action': "PUT_OFF" if ctx.invoked_with.lower() == "unwear" else "EQUIP", 'itemId': ID}
             url = await self.bot.get_content(f"{URL}equipmentAction.html", data=payload)
             await sleep(randint(1, 2))
             if url == "http://www.google.com/":
