@@ -101,6 +101,8 @@ class Mix(Cog):
             return await ctx.send(f"**{nick}** Done")
         prv_num = 0
         for _ in range(missions_to_complete):
+            if self.bot.should_break(ctx):
+                break
             try:
                 tree = await self.bot.get_content(URL, return_tree=True)
                 my_id = str(tree.xpath('//*[@id="userName"]/@href')[0]).split("=")[1]
@@ -291,6 +293,7 @@ class Mix(Cog):
             except Exception as error:
                 await ctx.send(f"**{nick}** ERROR: {error}")
                 await sleep(5)
+        await ctx.send(f"**{nick}** missions command reached its end.")
     """
     Mission #1: Check messages.
     Mission #2: First training.

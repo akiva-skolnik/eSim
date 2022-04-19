@@ -38,6 +38,16 @@ async def create_session():
 bot.VERSION = "19/04/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.cookies = {}
+bot.should_break_dict = {}
+
+
+def should_break(ctx):
+    server = ctx.channel.name
+    cmd = str(ctx.command)
+    res = bot.should_break_dict.get(server, {}).get(cmd)
+    if res:
+        bot.should_break_dict[server][cmd] = False
+    return res
 
 
 async def inner_get_content(link, data=None, return_tree=False, return_type=""):
@@ -149,6 +159,7 @@ async def on_command_error(ctx, error):
 
 
 bot.get_content = get_content
+bot.should_break = should_break
 if environ["TOKEN"] != "PASTE YOUR TOKEN HERE":
     bot.run(environ["TOKEN"])
 else:

@@ -34,17 +34,23 @@ class Info(Cog):
         """Shows the list of EQs in storage."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(URL + 'storage.html?storageType=EQUIPMENT', return_tree=True)
-        original_IDs = tree.xpath(f'//*[starts-with(@id, "cell")]/a/text()')
-        IDs = [f"[{ID}]({URL}showEquipment.html?id={ID.replace('#', '')})" for ID in original_IDs]
-        if sum([len(x) for x in IDs]) > 1000:
-            IDs = [ID for ID in original_IDs]
-            # Eq id instead of link
         items = tree.xpath(f'//*[starts-with(@id, "cell")]/b/text()')
+        original_ids = [ID.replace('#', '') for ID in tree.xpath(f'//*[starts-with(@id, "cell")]/a/text()')]
+        for ID in original_ids:
+            for p in tree.xpath(f'//*[@id="cell{ID}"]/text()')[3:]:
+                parameter, value = utils.get_parameter(p)
+                print(f"{value} {parameter}")
+        parameters = [[utils.get_parameter(p) for p in tree.xpath(f'//*[@id="cell{ID}"]/text()')[3:]] for ID in original_ids]
+        ids = [f"[{ID}]({URL}showEquipment.html?id={ID})" for ID in original_ids]
+        if sum([len(x) for x in ids]) > 1000:
+            ids = [ID for ID in original_ids]
+            # Eq id instead of link
         embed = Embed(title=nick)
-        embed.add_field(name="ID", value="\n".join(IDs[:100]), inline=True)
-        embed.add_field(name="Item", value="\n".join(items[:100]), inline=True)
-        if len(IDs) > 100:
-            embed.set_footer(text="(first 100 items)")
+        embed.add_field(name="ID", value="\n".join(ids[:50]))
+        embed.add_field(name="Item", value="\n".join(items[:50]))
+        embed.add_field(name="Parameters", value="\n".join(", ".join(f"{par_val[1]} {par_val[0]}" for par_val in eq) for eq in parameters[:50]))
+        if len(ids) > 50:
+            embed.set_footer(text="(first 50 items)")
         await ctx.send(embed=embed)
 
     @command(aliases=["inventory"])
@@ -254,24 +260,6 @@ class Info(Cog):
                  "Medals": f"{api['medalsCount']:,}", "Friends": f"{api['friendsCount']:,}", "Medkits": medkits, "Gold": gold}
         data.update(stats)
 
-        all_parameters = {"avoid": "Chance to avoid damage",
-                          "max": "Increased maximum damage",
-                          "crit": "Increased critical hit chance",
-                          "damage": "Increased damage", "dmg": "Increased damage",
-                          "miss": "Miss chance reduction",
-                          "flight": "Chance for free flight",
-                          "consume": "Save ammunition",
-                          "eco": "Increased economy skill",
-                          "str": "Increased strength",
-                          "hit": "Increased hit",
-                          "less": "Less weapons for Berserk",
-                          "find": "Find a weapon",
-                          "split": "Improved split",
-                          "production": "Bonus * production",
-                          "merging": "Merge bonus",
-                          "merge": "Reduced equipment merge price",
-                          "restore": "Restoration",
-                          "increase": "Increase other parameters"}
         eqs = []
         for slot_path in tree.xpath('//*[@id="profileEquipmentNew"]//div//div//div//@title'):
             tree = fromstring(slot_path)
@@ -284,14 +272,9 @@ class Info(Cog):
             parameters = []
             values = []
             for parameter_string in tree.xpath('//p/text()'):
-                for x in all_parameters:
-                    if x in parameter_string.lower():
-                        parameters.append(x)
-                        try:
-                            values.append(float(parameter_string.split(" ")[-1].replace("%", "").strip()))
-                            break
-                        except:
-                            pass
+                parameter, value = utils.get_parameter(parameter_string)
+                parameters.append(parameter)
+                values.append(value)
             eqs.append(f"**[{Type}]({URL+eq_link}):** " + ", ".join(f"{val} {p}" for val, p in zip(values, parameters)))
 
         mu = await self.bot.get_content(f"{URL}apiMilitaryUnitById.html?id={api['militaryUnitId']}")
@@ -329,7 +312,7 @@ class Info(Cog):
             embed.add_field(name=f"Works in a {company_quality} {company_type} company",
                             value=f"[{company_name}]({comp_link}) ([{region}]({URL}region.html?id={region_id}), {country})")
         embed.add_field(name="__Storage__", value="\n".join([f'{v:,} {k}' for k, v in storage1.items()]) or "-")
-        embed.add_field(name="__Special Items__", value=", ".join(storage) or "-")
+        embed.add_field(name="__Special Items__", value="\n".join(storage) or "-")
         embed.set_footer(text="Code Version: " + self.bot.VERSION)
         await ctx.send(embed=embed)
 

@@ -51,9 +51,10 @@ class Eco(Cog):
             h, m, s = auction_time.split(":")
             delay_in_seconds = int(h) * 3600 + int(m) * 60 + int(s) - 30
             await sleep(delay_in_seconds)
-        payload = {'action': "BID", 'id': auction, 'price': f"{float(price):.2f}"}
-        url = await self.bot.get_content(URL + "auctionAction.html", data=payload)
-        await ctx.send(f"**{nick}** <{url}>")
+        if not self.bot.should_break(ctx):
+            payload = {'action': "BID", 'id': auction, 'price': f"{float(price):.2f}"}
+            url = await self.bot.get_content(URL + "auctionAction.html", data=payload)
+            await ctx.send(f"**{nick}** <{url}>")
 
     @command()
     async def cc(self, ctx, country_id: int, max_price: float, amount: float, *, nick: IsMyNick):
@@ -68,6 +69,8 @@ class Eco(Cog):
             amounts = tree.xpath('//td[2]//b/text()')
             prices = tree.xpath("//td[3]//b/text()")
             for ID, offer_amount, price in zip(IDs, amounts, prices):
+                if self.bot.should_break(ctx):
+                    return
                 try:
                     offer_amount, price = float(offer_amount), float(price)
                     if price > max_price:
@@ -108,7 +111,7 @@ class Eco(Cog):
         my_money = dict(zip([x for x in keys if x], values))
         products_bought = 0
         mm_bought = None
-        while products_bought < amount:
+        while products_bought < amount and not self.bot.should_break(ctx):
             tree = await self.bot.get_content(f"{URL}productMarket.html?resource={product}&quality={quality}", return_tree=True)
             product_id = tree.xpath('//*[@id="command"]/input[1]')[0].value
             stock = int(tree.xpath(f"//tr[2]//td[3]/text()")[0])
@@ -118,7 +121,7 @@ class Eco(Cog):
                 mm_type = raw_cost[-1].strip()
                 mm_bought = my_money.get(mm_type, 0)
             mm_needed = min(stock, amount - products_bought) * cost
-            while mm_bought < mm_needed:
+            while mm_bought < mm_needed and not self.bot.should_break(ctx):
                 tree1 = await self.bot.get_content(URL + "monetaryMarket.html", return_tree=True)
                 try:
                     ID = tree1.xpath("//tr[2]//td[4]//form[1]//input[@value][2]")[0].value
@@ -236,6 +239,8 @@ class Eco(Cog):
                 for i in range(1, max_q_to_merge + 1):
                     if i in DICT and len(DICT[i]) > 2:
                         for z in range(int(len(DICT[i]) / 3)):
+                            if self.bot.should_break(ctx):
+                                return
                             EQ1, EQ2, EQ3 = DICT[i][z * 3:z * 3 + 3]
                             payload = {'action': "MERGE", f'itemId[{EQ1}]': EQ1, f'itemId[{EQ2}]': EQ2,
                                        f'itemId[{EQ3}]': EQ3}
@@ -274,6 +279,8 @@ class Eco(Cog):
         api = await self.bot.get_content(URL + "apiCountries.html")
         storage_tree = await self.bot.get_content(URL + "storage.html?storageType=MONEY", return_tree=True)
         for i in range(2, 20):
+            if self.bot.should_break(ctx):
+                return
             try:
                 CC = storage_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/text()')[-1].strip()
                 cc = [i["id"] for i in api if i["currencyName"] == CC][0]
@@ -293,6 +300,8 @@ class Eco(Cog):
         tree = await self.bot.get_content(URL + "monetaryMarket.html", return_tree=True)
         IDs = tree.xpath('//*[@id="command"]//input[1]')
         for i in range(2, 20):
+            if self.bot.should_break(ctx):
+                return
             try:
                 CC = tree.xpath(f'//*[@id="esim-layout"]//table[2]//tr[{i}]//td[1]/text()')[-1].strip()
                 cc = [i["id"] for i in api if i["currencyName"] == CC][0]
@@ -311,13 +320,15 @@ class Eco(Cog):
 
     @command()
     async def sell(self, ctx, ids, price: float, hours: int, *, nick: IsMyNick):
-        """Sell specific EQ ID(s) & reshuffle & upgrade  at auctions.
+        """Sell specific EQ ID(s) & reshuffle & upgrade at auctions.
         `ids` MUST be separated by a comma, and without spaces (or with spaces, but within quotes)"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
 
         results = []
         ids = [x.strip() for x in ids.split(",") if x.strip()]
         for Index, ID in enumerate(ids):
+            if self.bot.should_break(ctx):
+                return
             ID = ID.replace(URL + "showEquipment.html?id=", "").strip()
             if ID == "reshuffle":
                 item = "SPECIAL_ITEM 20"
@@ -379,7 +390,7 @@ class Eco(Cog):
     async def auto_work(self, ctx, work_sessions: Optional[int] = 1, *, nick: IsMyNick):
         """work at random times throughout the day"""
         sec_between_works = (24*60*60) // work_sessions
-        while True:  # for every day:
+        while not self.bot.should_break(ctx):  # for every day:
             tz = timezone('Europe/Berlin')
             now = datetime.now(tz)
             midnight = tz.localize(datetime.combine(now+timedelta(days=1), time(0, 0, 0, 0)))
@@ -389,7 +400,7 @@ class Eco(Cog):
             await ctx.invoke(self.bot.get_command("work"), nick=nick)
             i = work_sessions - 2
 
-            while x + sec_between_works < sec_til_midnight:
+            while x + sec_between_works < sec_til_midnight and not self.bot.should_break(ctx):
                 x = randint(x + sec_between_works + 20, sec_til_midnight - i*sec_between_works - i*60)
                 await sleep(x)
                 await ctx.invoke(self.bot.get_command("work"), nick=nick)
@@ -413,6 +424,8 @@ class Eco(Cog):
         blacklist = await _received(self.bot, URL, blacklist, contract_name)
         blacklist = await remove_rejected(self.bot, URL, blacklist)
         async for friend in _friends_list(self.bot, nick, server):
+            if self.bot.should_break(ctx):
+                break
             if friend not in blacklist:
                 payload = {'id': contract_id, 'action': "PROPOSE", 'citizenProposedTo': friend, 'submit': 'Propose'}
                 for _ in range(10):
