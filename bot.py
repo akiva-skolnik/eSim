@@ -138,13 +138,14 @@ async def on_command_error(ctx, error):
     if isinstance(error, (errors.MissingRequiredArgument, errors.BadArgument)) and not await utils.is_helper():
         return
     last_msg = str(list(await ctx.channel.history(limit=1).flatten())[0].content)
-    error_msg = f"```{''.join(format_exception(type(error), error, error.__traceback__))}```"
+    nick = environ.get(ctx.channel.name, environ['nick'])
+    error_msg = f"**{nick}** ```{''.join(format_exception(type(error), error, error.__traceback__))}```"[:2000]
     if error_msg != last_msg:
         # Don't send from all users.
         try:
-            await ctx.send(error_msg)
+            await ctx.reply(error_msg)
         except:
-            await ctx.send(error)
+            await ctx.reply(error)
 
 
 bot.get_content = get_content

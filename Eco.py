@@ -178,11 +178,6 @@ class Eco(Cog):
     async def job(self, ctx, company_id: Optional[int] = 0, *, nick: IsMyNick):
         """Leaving current job and applying to the given company_id or to the best offer at the local market."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-
-        try:
-            await self.bot.get_content(URL + "work.html", data={'action': "leave", "submit": "Leave job"})
-        except:
-            pass
         if company_id != 0:
             tree = await self.bot.get_content(f"{URL}company.html?id={company_id}", return_tree=True)
             try:
@@ -192,7 +187,11 @@ class Eco(Cog):
         else:
             tree = await self.bot.get_content(URL + "jobMarket.html", return_tree=True)
             job_id = tree.xpath("//tr[2]//td[6]//input[1]")[0].value
-        url = await self.bot.get_content(URL + "jobMarket.html", data={"id": job_id, "submit": "Apply"})
+        try:
+            url = await self.bot.get_content(URL + "jobMarket.html", data={"id": job_id, "submit": "Apply"})
+        except:
+            await self.bot.get_content(URL + "work.html", data={'action': "leave", "submit": "Leave job"})
+            url = await self.bot.get_content(URL + "jobMarket.html", data={"id": job_id, "submit": "Apply"})
         await ctx.send(f"**{nick}** <{url}>")
         await ctx.invoke(self.bot.get_command("work"), nick=nick)
 
@@ -349,18 +348,22 @@ class Eco(Cog):
             await self.bot.get_content(URL + "taskQueue.html", data=payload2)
 
         tree = await self.bot.get_content(URL + "work.html", return_tree=True)
-        if tree.xpath('//*[@id="taskButtonWork"]//@href'):
-            try:
-                region = tree.xpath(
-                    '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a/@href')[0].split("=")[1]
-                payload = {'countryId': int(region) // 6 + 1, 'regionId': region, 'ticketQuality': 5}
-                await self.bot.get_content(URL + "travel.html", data=payload)
-            except:
-                return await ctx.send(f"**{nick}** ERROR: I couldn't find in which region your work is. If you don't have a job, see `.help job`")
-
+        if tree.xpath('//*[@id="taskButtonTrain"]//@href'):
             await self.bot.get_content(URL + "train/ajax", data={"action": "train"})
             await ctx.send(f"**{nick}** Trained successfully")
-            Tree = await self.bot.get_content(URL + "work/ajax", data={"action": "work"}, return_tree=True)
+        if tree.xpath('//*[@id="taskButtonWork"]//@href'):
+            if tree.xpath('//*[@id="workButton"]'):
+                Tree = await self.bot.get_content(URL + "work/ajax", data={"action": "work"}, return_tree=True)
+            else:
+                try:
+                    region = tree.xpath(
+                        '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a/@href')[0].split("=")[1]
+                    payload = {'countryId': int(region) // 6 + 1, 'regionId': region, 'ticketQuality': 5}
+                    await self.bot.get_content(URL + "travel.html", data=payload)
+                    Tree = await self.bot.get_content(URL + "work/ajax", data={"action": "work"}, return_tree=True)
+                except:
+                    return await ctx.send(f"**{nick}** ERROR: I couldn't find in which region your work is. If you don't have a job, see `.help job`")
+
             if not Tree.xpath('//*[@id="taskButtonWork"]//@href'):
                 data = await utils.find_one(server, "info", nick)
                 data["Worked at"] = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%Y-%m-%d %H:%M:%S")
@@ -435,7 +438,7 @@ async def remove_rejected(bot, URL, blacklist, filter="CONTRACTS", text="has rej
     return blacklist
 
 
-async def _friends_list(bot, nick, server):
+async def _friends_list(bot, nick, server, skip_banned_and_inactive=True):
     URL = f"https://{server}.e-sim.org/"
     apiCitizen = await bot.get_content(f'{URL}apiCitizenByName.html?name={nick.lower()}')
 
@@ -443,6 +446,10 @@ async def _friends_list(bot, nick, server):
         tree = await bot.get_content(f'{URL}profileFriendsList.html?id={apiCitizen["id"]}&page={page}', return_tree=True)
         for div in range(1, 13):
             friend = tree.xpath(f'//div//div[1]//div[{div}]/a/text()')
+            if skip_banned_and_inactive:
+                status = (tree.xpath(f'//div//div[1]//div[{div}]/a/@style') or [""])[0]
+                if "color: #f00" in status or "color: #888" in status:  # Banned or inactive
+                    continue
             if not friend:
                 return
             yield friend[0].strip()

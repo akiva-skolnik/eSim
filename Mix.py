@@ -75,7 +75,7 @@ class Mix(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def missions(self, ctx, nick: IsMyNick, action="ALL", missions_to_complete: int = 100):
+    async def missions(self, ctx, nick: IsMyNick, action="ALL", missions_to_complete: int = 30):
         """Auto finish missions.
         * "action" must be one of: start / complete / skip / ALL"""
         server = ctx.channel.name
@@ -83,7 +83,7 @@ class Mix(Cog):
         if action.lower() != "all":
             if action.lower() == "start":
                 c = await self.bot.get_content(URL + "betaMissions.html?action=START",
-                                               data={"submit": "Mission start"})
+                                               data={"submit": "Start mission"})
                 if "MISSION_START_OK" not in c and "?action=START" not in c:
                     return await ctx.send(f"**{nick}** <{c}>")
             elif action.lower() == "complete":
@@ -93,7 +93,7 @@ class Mix(Cog):
                     return await ctx.send(f"**{nick}** <{c}>")
             elif action.lower() == "skip":
                 c = await self.bot.get_content(URL + "betaMissions.html",
-                                               data={"action": "SKIP", "submit": "Skip this mission"})
+                                               data={"action": "SKIP", "submit": "Skip"})
                 if "MISSION_SKIPPED" not in c:
                     return await ctx.send(f"**{nick}** <{c}>")
             else:
@@ -103,42 +103,35 @@ class Mix(Cog):
         for _ in range(missions_to_complete):
             try:
                 tree = await self.bot.get_content(URL, return_tree=True)
-                check = tree.xpath('//*[@id="taskButtonWork"]//@href')
-                if check:
-                    await ctx.invoke(self.bot.get_command("work"), nick=nick)
                 my_id = str(tree.xpath('//*[@id="userName"]/@href')[0]).split("=")[1]
                 try:
                     num = int(str(tree.xpath('//*[@id="inProgressPanel"]/div[1]/div/strong')[0].text).split("#")[1])
                 except:
-                    # need to collect reward / no more missions
+                    if tree.xpath('//*[@id="missionDropdown"]//div[2]/text()'):
+                        return await ctx.send(f"**{nick}** You have completed all your missions for today, come back tomorrow!")
                     c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE", data={"submit": "Collect"})
-                    if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
-                        return await ctx.send(f"**{nick}** No more missions today. Come back tomorrow!")
                     await ctx.send(f"**{nick}** <{c}>")
                     continue
                 if prv_num == num:
                     c = await self.bot.get_content(URL + "betaMissions.html",
-                                                   data={"action": "SKIP", "submit": "Skip this mission"})
-                    if "MISSION_SKIPPED" not in c and "?action=SKIP" not in c:
+                                                   data={"action": "SKIP", "submit": "Skip"})
+                    if "MISSION_SKIPPED" not in c:
                         return
                     else:
                         await ctx.send(f"**{nick}** WARNING: Skipped mission {num}")
-                if not num:
-                    return await ctx.send("**{nick}** You have completed all your missions for today, come back tomorrow!")
+                        continue
+
                 await ctx.send(f"**{nick}** Mission number {num}")
-                c = await self.bot.get_content(URL + "betaMissions.html?action=START", data={"submit": "Mission start"})
+                c = await self.bot.get_content(URL + "betaMissions.html?action=START", data={"submit": "Start mission"})
                 if "MISSION_START_OK" not in c:
-                    c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE",
-                                                   data={"submit": "Collect"})
-                if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
+                    c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE", data={"submit": "Collect"})
+                if "MISSION_REWARD_OK" not in c:
                     if num == 1:
                         await self.bot.get_content(URL + "inboxMessages.html")
-                        await self.bot.get_content(f"{URL}profile.html?id={my_id}")
-
                     elif num in (2, 4, 16, 27, 28, 36, 43, 59):
                         await ctx.invoke(self.bot.get_command("work"), nick=nick)
                     elif num in (3, 7):
-                        await ctx.invoke(self.bot.get_command("job"), nick=nick)
+                        await ctx.invoke(self.bot.get_command("auto_fight"), nick, 1)
                     elif num in (5, 26, 32, 35, 38, 40, 47, 51, 53, 64):
                         if num == 31:
                             restores = "3"
@@ -151,9 +144,8 @@ class Mix(Cog):
                     elif num == 6:
                         for q in range(1, 6):
                             try:
-                                food = tree.xpath(f'//*[@id="foodQ{q}"]/text()')[0]
-                                await self.bot.get_content(f"{URL}food.html", data={'quality': food})
-                            except IndexError:
+                                await self.bot.get_content(f"{URL}food.html", data={'quality': q})
+                            except:
                                 pass
                     elif num == 8:
                         await self.bot.get_content(URL + "editCitizen.html")
@@ -162,7 +154,7 @@ class Mix(Cog):
                     elif num == 10:
                         await self.bot.get_content(URL + "newMap.html")
                     elif num == 11:
-                        tree = await self.bot.get_content(f"{URL}productMarket.html")
+                        tree = await self.bot.get_content(f"{URL}productMarket.html", return_tree=True)
                         productId = tree.xpath('//*[@id="command"]/input[1]')[0].value
                         payload = {'action': "buy", 'id': productId, 'quantity': 1, "submit": "Buy"}
                         await self.bot.get_content(URL + "productMarket.html", data=payload)
@@ -181,7 +173,7 @@ class Mix(Cog):
                         payload = {'action': "EQUIP", 'itemId': ID.replace("#", "")}
                         await self.bot.get_content(URL + "equipmentAction.html", data=payload)
                     elif num == 15:
-                        await self.bot.get_content(f"{URL}vote.html", data={"id": 1})
+                        await self.bot.get_content(f"{URL}vote.html", data={"id": randint(1, 15)})
                     # day 2
                     elif num == 18:
                         shout_body = choice(["Mission: Say hello", "Hi", "Hello", "Hi guys :)", "Mission"])
@@ -289,7 +281,7 @@ class Mix(Cog):
                                                        data={"submit": "Collect"})
                         if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
                             c = await self.bot.get_content(URL + "betaMissions.html",
-                                                           data={"action": "SKIP", "submit": "Skip this mission"})
+                                                           data={"action": "SKIP", "submit": "Skip"})
                             if "MISSION_SKIPPED" not in c and "?action=SKIP" not in c:
                                 return
                             else:
@@ -299,6 +291,23 @@ class Mix(Cog):
             except Exception as error:
                 await ctx.send(f"**{nick}** ERROR: {error}")
                 await sleep(5)
+    """
+    Mission #1: Check messages.
+    Mission #2: First training.
+    Mission #3: Your first job.
+    Mission #4: First day of work.
+    Mission #5: Five hits.
+    Mission #6: Restore your health points.
+    Mission #7: Go 'Berserk' in practice battle.
+    Mission #8: Choose your avatar.
+    Mission #9: Check notifications.
+    Mission #10: Look at the map.
+    Mission #11: Buy product
+    Mission #12 Travel to the capital of your country.
+    Mission #13 Learn about achievements.
+    Mission #14 Wear something.
+    Mission #15: Upvote one article.
+    """
 
     @command(aliases=["hospital"])
     async def building(self, ctx, region_id: Id, quality: Quality, round: int, *, nick: IsMyNick):
@@ -334,7 +343,6 @@ class Mix(Cog):
     @command()
     async def register(self, ctx, lan, country_id: int, *, nick: IsMyNick):
         """User registration.
-        Note that there might be a bug with choosing country
         If you want to register with a different nick or with another password, see .help config"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"

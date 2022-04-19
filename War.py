@@ -193,7 +193,7 @@ class War(Cog):
     async def buff(self, ctx, buffs_names, *, nick: IsMyNick):
         """Buy and use buffs.
         The buff names should be formal (can be found via F12), but here are some shortcuts:
-        VAC = EXTRA_VACATIONS, SPA = EXTRA_SPA, SEWER = SEWER_GUIDE, STR = STEROIDS
+        VAC = EXTRA_VACATIONS, SPA = EXTRA_SPA, SEWER = SEWER_GUIDE, STR = STEROIDS, PD_10 = PAIN_DEALER_10_H
         More examples: BANDAGE_SIZE_C and CAMOUFLAGE_II"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
@@ -209,6 +209,8 @@ class War(Cog):
                 buff_name = "SEWER_GUIDE"
             elif "STR" in buff_name:
                 buff_name = "STEROIDS"
+            elif "PD" in buff_name:
+                buff_name = buff_name.replace("PD", "PAIN_DEALER") + "_H"
 
             actions = ("BUY", "USE")
             for Index, action in enumerate(actions):
@@ -374,9 +376,13 @@ class War(Cog):
         await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
 
     @command(hidden=True)
-    async def hold(self, ctx, *, nick: IsMyNick):
-        self.bot.hold_fight = True
-        await ctx.send(f"**{nick}** done.")
+    async def hold(self, ctx, *, nicks):
+        for nick in [x.strip() for x in nicks.split(",") if x.strip()]:
+            if nick.lower() == "all":
+                nick = environ.get(ctx.channel.name, environ["nick"])
+            if nick.lower() == environ.get(ctx.channel.name, environ["nick"]).lower():
+                self.bot.hold_fight = True
+                await ctx.send(f"**{nick}** done.")
 
     @command()
     async def hunt(self, ctx, nick: IsMyNick, max_dmg_for_bh: Dmg = 1, weapon_quality: int = 5, start_time: int = 30,
