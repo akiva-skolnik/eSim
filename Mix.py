@@ -418,6 +418,13 @@ class Mix(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(hidden=True)
+    async def click(self, ctx, link, *, nick: IsMyNick):
+        """Clicks on a given link.
+        (redeem code, add friend etc.)"""
+        url = await self.bot.get_content(link)
+        await ctx.send(f"**{nick}** <{url}>")
+
+    @command(hidden=True)
     async def login(self, ctx, *, nick: IsMyNick):
         server = ctx.channel.name
         if server in self.bot.cookies:

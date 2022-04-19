@@ -5,7 +5,7 @@ from traceback import format_exception
 
 from aiohttp import ClientSession, ClientTimeout
 from discord.ext import commands
-from discord.ext.commands import BadArgument, Bot, errors
+from discord.ext.commands import Bot, errors
 from lxml.html import fromstring
 
 import utils
@@ -35,7 +35,7 @@ async def create_session():
     return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": environ["headers"]})
 
 
-bot.VERSION = "15/04/2022"
+bot.VERSION = "19/04/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.cookies = {}
 

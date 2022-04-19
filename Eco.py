@@ -222,6 +222,7 @@ class Eco(Cog):
         else:
             max_q_to_merge = int(ids_or_quality.lower().replace("q", ""))  # max_q_to_merge - including
             results = list()
+            error = False
             for Index in range(5):
                 tree = await self.bot.get_content(f'{URL}storage.html?storageType=EQUIPMENT', return_tree=True)
                 IDs = tree.xpath(f'//*[starts-with(@id, "cell")]/a/text()')
@@ -248,12 +249,23 @@ class Eco(Cog):
 
                             elif "?actionStatus=CONVERT_ITEM_OK" not in url:
                                 # no money etc
+                                error = True
                                 break
                     if results:
-                        await ctx.send(f"**{nick}**\n" + "\n".join(results))
+                        try:
+                            await ctx.send(f"**{nick}**\n" + "\n".join(results))
+                        except:
+                            pass
                         results.clear()
-            if results:
+                    if error:
+                        break
+                if error:
+                    break
+            try:
                 await ctx.send(f"**{nick}**\n" + "\n".join(results))
+            except:
+                pass
+
         await ctx.invoke(self.bot.get_command("eqs"), nick=nick)
 
     @command()

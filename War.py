@@ -252,20 +252,18 @@ class War(Cog):
 
     @command()
     async def fight(self, ctx, nick: IsMyNick, link: Id, side: Side, weapon_quality: int = 5,
-                    dmg_or_hits: Dmg = 200, ticket_quality: int = 5):
+                    dmg_or_hits: Dmg = 200, ticket_quality: int = 5, consume_first="food"):
         """
         Dumping limits at a specific battle.
 
         * It will auto fly to bonus region.
         * if dmg_or_hits < 1000 - it's hits, otherwise - dmg.
-
-
-        If `nick` contains more than 1 word - it must be within quotes.
-        If you want to skip a parameter, you should write the default value.
-        Example: `.fight "My Nick" 100 "" attacker 0 5` - skip `battle_id` in order to change `food`
-        - You can't stop it after it started to fight, so be careful with the `dmg_or_hits` parameter
+        * set `consume_first` to `none` if you want to consume `1/1` (fast servers)
+        * If `nick` contains more than 1 word - it must be within quotes.
         """
 
+        if consume_first.lower() not in ("food", "gift", "none"):
+            return await ctx.send(f"**{nick}** `consume_first` parameter must be food, gift, or none (not {consume_first})")
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         link = f"{URL}battle.html?id={link}"
         dmg = dmg_or_hits
@@ -321,7 +319,7 @@ class War(Cog):
                     output += f"\nWARNING: 0 {'food' if food_storage == 0 else 'gift'} in storage"
 
                 use = None
-                if food_limit > 20:  # use gifts limits first (save motivates limits)
+                if consume_first.lower() == "gift" or (consume_first.lower() == "none" and gift_limit > food_limit):
                     if gift_storage > 0 and gift_limit > 0:
                         use = "gift"
                         gift_limit -= 1
