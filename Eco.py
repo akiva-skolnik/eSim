@@ -7,8 +7,8 @@ from discord import Embed
 from discord.ext.commands import Cog, command
 from pytz import timezone
 
-from Converters import Bool, Id, IsMyNick, Product, Quality
 import utils
+from Converters import Bool, Id, IsMyNick, Product, Quality
 
 
 class Eco(Cog):

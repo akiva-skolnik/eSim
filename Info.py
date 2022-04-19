@@ -1,15 +1,14 @@
 from asyncio import sleep
 from datetime import date, datetime, timedelta
-from os import environ
 from random import randint
 
 from discord import Embed
-from discord.ext.commands import check, Cog, command
+from discord.ext.commands import Cog, check, command
 from lxml.html import fromstring
 from pytz import timezone
 
-from Converters import IsMyNick
 import utils
+from Converters import IsMyNick
 
 
 class Info(Cog):
@@ -21,13 +20,14 @@ class Info(Cog):
     @command(hidden=True)
     async def ping(self, ctx, *, nicks):
         """Shows who is connected to host"""
+        server = ctx.channel.name
         for nick in [x.strip() for x in nicks.split(",") if x.strip()]:
             if nick.lower() == "all":
-                nick = environ.get(ctx.channel.name, environ["nick"])
+                nick = utils.my_nick(server)
                 await sleep(randint(1, 3))
 
-            if nick.lower() == environ.get(ctx.channel.name, environ["nick"]).lower():
-                await ctx.send(f'**{environ.get(ctx.channel.name, environ["nick"])}** Code Version: {self.bot.VERSION}')
+            if nick.lower() == utils.my_nick(server).lower():
+                await ctx.send(f'**{utils.my_nick(server)}** Code Version: {self.bot.VERSION}')
 
     @command()
     async def eqs(self, ctx, *, nick: IsMyNick):

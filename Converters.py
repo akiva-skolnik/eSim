@@ -1,11 +1,11 @@
-from os import environ
-
 from discord.ext.commands import BadArgument, Converter, errors
+
+import utils
 
 
 class IsMyNick(Converter):
     async def convert(self, ctx, nick: str) -> str:
-        if nick.lower() == environ.get(ctx.channel.name, environ['nick']).lower():
+        if nick.lower() == utils.my_nick(ctx.channel.name).lower():
             return nick
         else:
             raise errors.CheckFailure

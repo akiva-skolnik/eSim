@@ -1,7 +1,7 @@
-from asyncio import sleep
-from datetime import datetime
 import json
 import os
+from asyncio import sleep
+from datetime import datetime
 from random import randint
 
 if "database_url" in os.environ:
@@ -156,3 +156,7 @@ def get_parameter(parameter_string):
                 return parameter, value
             except:
                 pass
+
+
+def my_nick(server):
+    return os.environ.get(server, os.environ['nick'])

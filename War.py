@@ -1,8 +1,7 @@
+import re
 from asyncio import sleep
 from datetime import datetime, timedelta
-from os import environ
 from random import randint, uniform
-import re
 from time import time
 from traceback import format_exception
 from typing import Optional
@@ -10,8 +9,8 @@ from typing import Optional
 from discord.ext.commands import Cog, command
 from pytz import timezone
 
-from Converters import Dmg, Id, IsMyNick, Product, Quality, Side
 import utils
+from Converters import Dmg, Id, IsMyNick, Product, Quality, Side
 
 
 class War(Cog):
@@ -40,7 +39,7 @@ class War(Cog):
                 await sleep(randint(1, 2))
             except Exception as error:
                 await ctx.send(
-                    f"**{environ.get(server, environ['nick'])}** ```{''.join(format_exception(type(error), error, error.__traceback__))}```")
+                    f"**{utils.my_nick(server)}** ```{''.join(format_exception(type(error), error, error.__traceback__))}```")
                 await sleep(randint(2, 5))
 
     @command()
@@ -320,8 +319,8 @@ class War(Cog):
         server = ctx.channel.name
         for nick in [x.strip() for x in nicks.split(",") if x.strip()]:
             if nick.lower() == "all":
-                nick = environ.get(server, environ["nick"])
-            if nick.lower() == environ.get(ctx.channel.name, environ["nick"]).lower():
+                nick = utils.my_nick(server)
+            if nick.lower() == utils.my_nick(server).lower():
                 if server not in self.bot.should_break_dict:
                     self.bot.should_break_dict[server] = {}
                 self.bot.should_break_dict[server][Command] = True

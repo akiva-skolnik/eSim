@@ -5,8 +5,8 @@ from random import choice
 from discord import Embed
 from discord.ext.commands import Cog, command
 
-from Converters import Id, IsMyNick
 import Eco
+from Converters import Id, IsMyNick
 
 
 class Social(Cog):

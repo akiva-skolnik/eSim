@@ -35,7 +35,7 @@ async def create_session():
     return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": environ["headers"]})
 
 
-bot.VERSION = "19/04/2022"
+bot.VERSION = "20/04/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.cookies = {}
 bot.should_break_dict = {}
@@ -66,7 +66,7 @@ async def inner_get_content(link, data=None, return_tree=False, return_type=""):
                     continue
 
                 if any(t in str(respond.url) for t in ("notLoggedIn", "error")):
-                    raise RuntimeError("You are not logged in, type `.login <nick>`")
+                    raise RuntimeError(f"You are not logged in, type `.login {utils.my_nick(server)}`")
 
                 if respond.status == 200:
                     if return_type == "json":
@@ -98,7 +98,7 @@ async def inner_get_content(link, data=None, return_tree=False, return_type=""):
 async def get_content(link, data=None, return_tree=False, return_type=""):
     link = link.split("#")[0].replace("http://", "https://")
     server = link.split("https://", 1)[1].split(".e-sim.org", 1)[0]
-    nick = environ.get(server, environ['nick'])
+    nick = utils.my_nick(server)
     if not bot.cookies:
         bot.cookies = await utils.find_one(server, "cookies", nick)
     URL = f"https://{server}.e-sim.org/"
@@ -148,7 +148,7 @@ async def on_command_error(ctx, error):
     if isinstance(error, (errors.MissingRequiredArgument, errors.BadArgument)) and not await utils.is_helper():
         return
     last_msg = str(list(await ctx.channel.history(limit=1).flatten())[0].content)
-    nick = environ.get(ctx.channel.name, environ['nick'])
+    nick = utils.my_nick(ctx.channel.name)
     error_msg = f"**{nick}** ```{''.join(format_exception(type(error), error, error.__traceback__))}```"[:2000]
     if error_msg != last_msg:
         # Don't send from all users.
