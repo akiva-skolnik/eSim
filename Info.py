@@ -36,10 +36,6 @@ class Info(Cog):
         tree = await self.bot.get_content(URL + 'storage.html?storageType=EQUIPMENT', return_tree=True)
         items = tree.xpath(f'//*[starts-with(@id, "cell")]/b/text()')
         original_ids = [ID.replace('#', '') for ID in tree.xpath(f'//*[starts-with(@id, "cell")]/a/text()')]
-        for ID in original_ids:
-            for p in tree.xpath(f'//*[@id="cell{ID}"]/text()')[3:]:
-                parameter, value = utils.get_parameter(p)
-                print(f"{value} {parameter}")
         parameters = [[utils.get_parameter(p) for p in tree.xpath(f'//*[@id="cell{ID}"]/text()')[3:]] for ID in original_ids]
         ids = [f"[{ID}]({URL}showEquipment.html?id={ID})" for ID in original_ids]
         if sum([len(x) for x in ids]) > 1000:
@@ -159,6 +155,40 @@ class Info(Cog):
             embed.add_field(name="President", value=f"[{president['login']}]({URL}profile.html?id={country['president']})")
         else:
             embed.add_field(name="President", value="-")
+        await ctx.send(embed=embed)
+
+    @command()
+    @check(utils.is_helper)
+    async def auctions(self, ctx):
+        URL = f"https://{ctx.channel.name}.e-sim.org/"
+        tree = await self.bot.get_content(URL + "auctions.html", return_tree=True)
+        col1 = list()
+        col2 = list()
+        col3 = list()
+        for tr in range(2, 13):
+            try:
+                seller = tree.xpath(f'//tr[{tr}]//td[1]/a/text()')[0].strip()
+            except IndexError:  # No more auctions
+                break
+            buyer = (tree.xpath(f'//tr[{tr}]//td[2]/a/text()') or ["None"])[0].strip()
+            item = tree.xpath(f'//tr[{tr}]//td[3]/b/text()')
+            parameters = tree.xpath(f'//tr[{tr}]//td[3]/text()')
+            if not item:
+                parameters = parameters[1]
+            else:
+                item = item[0].lower().replace("personal", "").replace("charm", "").replace("weapon upgrade", "WU").title()
+                parameters = f"**{item}:** " + ", ".join(f"{par_val[1]} {par_val[0]}" for par_val in (utils.get_parameter(p) for p in parameters[5:]))
+
+            price = tree.xpath(f'//tr[{tr}]//td[4]/b/text()')[0]
+            link = tree.xpath(f'//tr[{tr}]//td[5]/a/@href')[0]
+            time = tree.xpath(f'//tr[{tr}]//td[6]/span/text()')[0]
+            col1.append(f"{seller} : {buyer}"[:30])
+            col2.append(parameters[:30])
+            col3.append(f"{float(price):,}g : [{time}]({URL + link})")
+        embed = Embed(title="First 10 auctions")
+        embed.add_field(name="Seller : Buyer", value="\n".join(col1))
+        embed.add_field(name="Item", value="\n".join(col2))
+        embed.add_field(name="Gold : Time Reminding", value="\n".join(col3))
         await ctx.send(embed=embed)
 
     @command(name="info-", hidden=True)
