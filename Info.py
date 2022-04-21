@@ -299,7 +299,7 @@ class Info(Cog):
             except IndexError:
                 continue
             eq_link = tree.xpath("//a/@href")[0]
-            parameters = [utils.get_parameter(parameter_string) for parameter_string in tree.xpath('//p/text()')]
+            parameters = [utils.get_parameter(p) for p in tree.xpath('//p/text()') if p.replace("Merged by", "").strip()]
             eqs.append(f"**[{Type}]({URL+eq_link}):** " + ", ".join(f"{p[0]} {p[1]}" for p in parameters))
 
         if api['militaryUnitId']:

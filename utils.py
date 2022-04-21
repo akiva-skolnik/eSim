@@ -130,7 +130,7 @@ async def location(bot, nick, server):
             )['currentLocationRegionId']
 
 
-def get_parameter(parameter_string):
+def get_parameter(parameter_string) -> (float, str):
     all_parameters = {"avoid": "Chance to avoid damage",
                       "max": "Increased maximum damage",
                       "crit": "Increased critical hit chance",
@@ -156,6 +156,7 @@ def get_parameter(parameter_string):
                 return value, parameter
             except:
                 pass
+    return 0, ""
 
 
 def my_nick(server):
