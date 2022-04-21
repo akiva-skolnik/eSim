@@ -110,17 +110,23 @@ class Eco(Cog):
         values = [float(x.strip()) for x in tree.xpath("//div//div/b/text()") if x]
         my_money = dict(zip([x for x in keys if x], values))
         products_bought = 0
-        mm_bought = None
+        mm_got = None
         while products_bought < amount and not self.bot.should_break(ctx):
             tree = await self.bot.get_content(f"{URL}productMarket.html?resource={product}&quality={quality}", return_tree=True)
-            product_id = tree.xpath('//*[@id="command"]/input[1]')[0].value
+            try:
+                product_id = tree.xpath('//*[@id="command"]/input[1]')[0].value
+            except IndexError:
+                await ctx.send(f"**{nick}** ERROR: there are no Q{quality} {product} in the market.")
+                break
             stock = int(tree.xpath(f"//tr[2]//td[3]/text()")[0])
             raw_cost = tree.xpath(f"//tr[2]//td[4]//text()")
             cost = float(raw_cost[2].strip())
-            if mm_bought is None:
+            if mm_got is None:
                 mm_type = raw_cost[-1].strip()
-                mm_bought = my_money.get(mm_type, 0)
-            mm_needed = min(stock, amount - products_bought) * cost
+                mm_got = my_money.get(mm_type, 0)
+
+            mm_needed = min(stock, amount - products_bought) * cost - mm_got
+            mm_bought = 0
             while mm_bought < mm_needed and not self.bot.should_break(ctx):
                 tree1 = await self.bot.get_content(URL + "monetaryMarket.html", return_tree=True)
                 try:
@@ -128,25 +134,26 @@ class Eco(Cog):
                     cc_offer = float(tree1.xpath('//tr[2]//td[2]//b')[0].text)
                     price = float(tree1.xpath('//tr[2]//td[3]//b')[0].text)
                 except:
-                    await ctx.send(f"ERROR: there's no money in the monetary market")
+                    await ctx.send(f"**{nick}** ERROR: there's no money in the monetary market")
                     break
                 cc_quantity = round(min(cc_offer, (amount - products_bought) * cost), 2)
-                # TODO: No gold case
                 payload = {'action': "buy", 'id': ID, 'ammount': cc_quantity}
                 url = await self.bot.get_content(URL + "monetaryMarket.html", data=payload)
-                if "MM_POST_OK_BUY" not in str(url):
+                if "MM_POST_OK_BUY" not in url:
                     await ctx.send(f"ERROR: <{url}>")
                     break
                 await ctx.send(f"**{nick}** Bought {payload['ammount']} coins at {price} each.")
                 mm_bought += cc_quantity
+            mm_got += mm_bought
 
-            quantity = min(stock, amount, mm_bought // cost - products_bought)
+            quantity = min(stock, amount, mm_got // cost)
             payload = {'action': "buy", 'id': product_id, 'quantity': quantity, "submit": "Buy"}
             url = await self.bot.get_content(URL + "productMarket.html", data=payload)
             await ctx.send(f"**{nick}** Quantity: {quantity}. Price: {cost} {mm_type} each. <{url}>")
-            if "POST_PRODUCT_NOT_ENOUGH_MONEY" in str(url):
+            if "POST_PRODUCT_BUY_OK" not in url:
                 break
             products_bought += quantity
+            mm_got -= quantity * cost
 
     @command()
     async def donate(self, ctx, type, data, receiver_id: Id, *, nick: IsMyNick):
