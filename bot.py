@@ -27,7 +27,7 @@ async def on_ready():
     print(bot.user.name)
     # you should change the following line in all your accounts (except for 1) to `"help": ""` https://github.com/e-sim-python/eSim/blob/main/config.json#L9
     # this way the bot will send only one help commands.
-    if await utils.is_helper():
+    if not await utils.is_helper():
         bot.remove_command("help")
 
 
