@@ -44,7 +44,7 @@ class Info(Cog):
         embed = Embed(title=nick)
         embed.add_field(name="ID", value="\n".join(ids[:50]))
         embed.add_field(name="Item", value="\n".join(items[:50]))
-        embed.add_field(name="Parameters", value="\n".join(", ".join(f"{par_val[1]} {par_val[0]}" for par_val in eq) for eq in parameters[:50]))
+        embed.add_field(name="Parameters", value="\n".join(", ".join(f"{par_val[0]} {par_val[1]}" for par_val in eq) for eq in parameters[:50]))
         if len(ids) > 50:
             embed.set_footer(text="(first 50 items)")
         await ctx.send(embed=embed)
@@ -177,7 +177,7 @@ class Info(Cog):
                 parameters = parameters[1]
             else:
                 item = item[0].lower().replace("personal", "").replace("charm", "").replace("weapon upgrade", "WU").title()
-                parameters = f"**{item}:** " + ", ".join(f"{par_val[1]} {par_val[0]}" for par_val in (utils.get_parameter(p) for p in parameters[5:]))
+                parameters = f"{item} " + ", ".join(par_val[1] for par_val in (utils.get_parameter(p) for p in parameters[5:]))
 
             price = tree.xpath(f'//tr[{tr}]//td[4]/b/text()')[0]
             link = tree.xpath(f'//tr[{tr}]//td[5]/a/@href')[0]
@@ -299,13 +299,8 @@ class Info(Cog):
             except IndexError:
                 continue
             eq_link = tree.xpath("//a/@href")[0]
-            parameters = []
-            values = []
-            for parameter_string in tree.xpath('//p/text()'):
-                parameter, value = utils.get_parameter(parameter_string)
-                parameters.append(parameter)
-                values.append(value)
-            eqs.append(f"**[{Type}]({URL+eq_link}):** " + ", ".join(f"{val} {p}" for val, p in zip(values, parameters)))
+            parameters = [utils.get_parameter(parameter_string) for parameter_string in tree.xpath('//p/text()')]
+            eqs.append(f"**[{Type}]({URL+eq_link}):** " + ", ".join(f"{p[0]} {p[1]}" for p in parameters))
 
         if api['militaryUnitId']:
             mu = await self.bot.get_content(f"{URL}apiMilitaryUnitById.html?id={api['militaryUnitId']}")

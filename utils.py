@@ -153,7 +153,7 @@ def get_parameter(parameter_string):
         if parameter in parameter_string.lower():
             try:
                 value = float(parameter_string.split(" ")[-1].replace("%", "").strip())
-                return parameter, value
+                return value, parameter
             except:
                 pass
 
