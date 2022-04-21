@@ -35,7 +35,7 @@ async def create_session():
     return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": environ["headers"]})
 
 
-bot.VERSION = "20/04/2022"
+bot.VERSION = "21/04/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.cookies = {}
 bot.should_break_dict = {}
@@ -104,7 +104,7 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
     URL = f"https://{server}.e-sim.org/"
     notLoggedIn = False
     tree = None
-    if server in bot.cookies:
+    if server in bot.cookies or "api" in link:
         try:
             tree = await inner_get_content(link, data, return_tree, return_type)
         except RuntimeError as e:

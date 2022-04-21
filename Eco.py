@@ -91,7 +91,7 @@ class Eco(Cog):
                     # sleeping for a random time between 0 and 2 seconds. feel free to change it
                     
                 except Exception as error:
-                    await ctx.send(f"**{nick}** {error}")
+                    await ctx.send(f"**{nick}** ERROR {error}")
                     await sleep(5)
             if IDs and ID != IDs[-1]:
                 break
@@ -130,7 +130,7 @@ class Eco(Cog):
                 except:
                     await ctx.send(f"ERROR: there's no money in the monetary market")
                     break
-                cc_quantity = min(cc_offer, (amount - products_bought) * cost)
+                cc_quantity = round(min(cc_offer, (amount - products_bought) * cost), 2)
                 # TODO: No gold case
                 payload = {'action': "buy", 'id': ID, 'ammount': cc_quantity}
                 url = await self.bot.get_content(URL + "monetaryMarket.html", data=payload)

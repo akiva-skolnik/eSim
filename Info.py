@@ -184,7 +184,7 @@ class Info(Cog):
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         tree = await self.bot.get_content(URL + "storage.html?storageType=PRODUCT", return_tree=True)
-        medkits = str(tree.xpath('//*[@id="medkitButton"]')[0].text).replace("Use medkit", "").replace("(you have", "").replace(")", "").strip() or "0"
+        medkits = (tree.xpath('//*[@id="medkitButton"]/text()') or "0")[0].replace("Use medkit", "").replace("(you have", "").replace(")", "").strip()
 
         gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
         storage1 = {}
@@ -277,8 +277,11 @@ class Info(Cog):
                 values.append(value)
             eqs.append(f"**[{Type}]({URL+eq_link}):** " + ", ".join(f"{val} {p}" for val, p in zip(values, parameters)))
 
-        mu = await self.bot.get_content(f"{URL}apiMilitaryUnitById.html?id={api['militaryUnitId']}")
-        data["MU"] = f"[{mu['name']}]({URL}militaryUnit.html?id={api['militaryUnitId']})"
+        if api['militaryUnitId']:
+            mu = await self.bot.get_content(f"{URL}apiMilitaryUnitById.html?id={api['militaryUnitId']}")
+            data["MU"] = f"[{mu['name']}]({URL}militaryUnit.html?id={api['militaryUnitId']})"
+        else:
+            data["MU"] = "No MU"
 
         api_regions = await self.bot.get_content(URL + "apiRegions.html")
         api_countries = await self.bot.get_content(URL + "apiCountries.html")

@@ -77,7 +77,8 @@ class Mix(Cog):
     @command()
     async def missions(self, ctx, nick: IsMyNick, action="ALL", missions_to_complete: int = 30):
         """Auto finish missions.
-        * "action" must be one of: start / complete / skip / ALL"""
+        * "action" must be one of: start / complete / skip / ALL
+        If nick contains more than 1 word - it must be within quotes"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         if action.lower() != "all":
@@ -99,6 +100,8 @@ class Mix(Cog):
             else:
                 return await ctx.send(f"**{nick}** ERROR: action must be `start`/`complete`/`skip`/`ALL`, not `{action}`")
             return await ctx.send(f"**{nick}** Done")
+
+        await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.hold missions {nick}`")
         prv_num = 0
         for _ in range(missions_to_complete):
             if self.bot.should_break(ctx):
@@ -136,13 +139,14 @@ class Mix(Cog):
                         await ctx.invoke(self.bot.get_command("auto_fight"), nick, 1)
                     elif num in (5, 26, 32, 35, 38, 40, 47, 51, 53, 64):
                         if num == 31:
-                            restores = "3"
+                            restores = 3
                             await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
                         elif num == 46:
-                            restores = "2"
+                            restores = 2
                             await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
-
-                        await ctx.invoke(self.bot.get_command("auto_fight"), nick, 1)
+                        else:
+                            restores = 1
+                        await ctx.invoke(self.bot.get_command("auto_fight"), nick, restores)
                     elif num == 6:
                         for q in range(1, 6):
                             try:
@@ -184,16 +188,21 @@ class Mix(Cog):
                         await self.bot.get_content(f"{URL}shoutActions.html", data=payload)
                     elif num == 19:
                         Citizen = await self.bot.get_content(f'{URL}apiCitizenById.html?id={my_id}')
-                        tree = await self.bot.get_content(
-                            URL + 'monetaryMarket.html?buyerCurrencyId=0&sellerCurrencyId=' + str(
-                                int(Citizen['currentLocationRegionId'] / 6)))
-                        ID = tree.xpath("//tr[2]//td[4]//form[1]//input[@value][2]")[0].value
-                        payload = {'action': "buy", 'id': ID, 'ammount': 0.5, "submit": "OK"}
-                        await self.bot.get_content(URL + "monetaryMarket.html", data=payload)
+                        tree = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId=0&sellerCurrencyId=" +
+                                                          str(Citizen['citizenshipId']), return_tree=True)
+                        try:
+                            ID = tree.xpath("//tr[2]//td[4]//form[1]//input[@value][2]")[0].value
+                            payload = {'action': "buy", 'id': ID, 'ammount': 0.5, "submit": "OK"}
+                            await self.bot.get_content(URL + "monetaryMarket.html", data=payload)
+                        except IndexError:
+                            await ctx.send(f"**{nick}** ERROR: couldn't buy 0.5 gold")
                     elif num == 21:
-                        tree = await self.bot.get_content(URL + 'storage.html?storageType=EQUIPMENT')
-                        ID = tree.xpath(f'//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
-                        await ctx.invoke(self.bot.get_command("sell"), ID, 0.01, 48, nick=nick)
+                        tree = await self.bot.get_content(URL + 'storage.html?storageType=EQUIPMENT', return_tree=True)
+                        try:
+                            ID = tree.xpath(f'//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
+                            await ctx.invoke(self.bot.get_command("sell"), ID, 0.01, 48, nick=nick)
+                        except IndexError:
+                            await ctx.send(f"**{nick}** ERROR: no equipment in storage")
                     elif num == 22:
                         Citizen = await self.bot.get_content(f'{URL}apiCitizenById.html?id={my_id}')
                         payload = {'product': "GRAIN", 'countryId': Citizen['citizenshipId'], 'storageType': "PRODUCT",
@@ -276,14 +285,11 @@ class Mix(Cog):
                     else:
                         await ctx.send(f"**{nick}** ERROR: I don't know how to finish this mission ({num}).")
                     await sleep(randint(1, 7))
-                    c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE",
-                                                   data={"submit": "Collect"})
+                    c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE", data={"submit": "Collect"})
                     if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
-                        c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE",
-                                                       data={"submit": "Collect"})
+                        c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE", ata={"submit": "Collect"})
                         if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
-                            c = await self.bot.get_content(URL + "betaMissions.html",
-                                                           data={"action": "SKIP", "submit": "Skip"})
+                            c = await self.bot.get_content(URL + "betaMissions.html", data={"action": "SKIP", "submit": "Skip"})
                             if "MISSION_SKIPPED" not in c and "?action=SKIP" not in c:
                                 return
                             else:
@@ -292,7 +298,12 @@ class Mix(Cog):
                 prv_num = num
             except Exception as error:
                 await ctx.send(f"**{nick}** ERROR: {error}")
-                await sleep(5)
+                c = await self.bot.get_content(URL + "betaMissions.html",
+                                               data={"action": "SKIP", "submit": "Skip"})
+                if "MISSION_SKIPPED" not in c and "?action=SKIP" not in c:
+                    return
+                else:
+                    await ctx.send(f"**{nick}** WARNING: Skipped mission {num}")
         await ctx.send(f"**{nick}** missions command reached its end.")
     """
     Mission #1: Check messages.
@@ -336,6 +347,8 @@ class Mix(Cog):
             del big_dict[key]
             del environ[key]
             await ctx.send(f"I have deleted the `{key}` key from {nick}'s config.json file")
+            if key == "help":
+                self.bot.remove_command("help")
         else:
             big_dict[key] = value
             environ[key] = value

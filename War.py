@@ -43,7 +43,7 @@ class War(Cog):
                 await sleep(randint(2, 5))
 
     @command()
-    async def auto_fight(self, ctx, nick: IsMyNick, restores: int = 100, battle_id: int = 0,
+    async def auto_fight(self, ctx, nick: IsMyNick, restores: int = 100, battle_id: Id = 0,
                          side: Side = "attacker", wep: int = 0, food: int = 5, gift: int = 0, ticket_quality: int = 5,
                          chance_to_skip_restore: int = 15):
         """Dumping health at a random time every restore
@@ -55,7 +55,7 @@ class War(Cog):
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         specific_battle = (battle_id != 0)
-        await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.hold {ctx.command} {nick}`")
+        await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.hold auto_fight {nick}`")
 
         if specific_battle and 1 <= ticket_quality <= 5:
             api = await self.bot.get_content(f"{URL}apiBattles.html?battleId={battle_id}")
@@ -238,7 +238,7 @@ class War(Cog):
             elif api['type'] == "RESISTANCE":
                 await ctx.invoke(self.bot.get_command("fly"), api['regionId'], ticket_quality, nick=nick)
         output = f"**{nick}** Limits: {food_limit}/{gift_limit}. Storage: {food_storage}/{gift_storage}/{wep} Q{weapon_quality} weps.\n" \
-                 f"If you want me to stop, type `.hold {ctx.command} {nick}`"
+                 f"If you want me to stop, type `.hold fight {nick}`"
         msg = await ctx.send(output)
         damage_done = 0
         update = 0
@@ -524,7 +524,7 @@ class War(Cog):
             seconds_till_hit = randint(10, seconds_till_round_end - 10)
             await ctx.send(f"**{nick}** {seconds_till_hit} seconds from now (at T {timedelta(seconds=seconds_till_round_end-seconds_till_hit)}),"
                            f" I will hit {dmg} {hits_or_dmg} at <{link}> for the {side} side.\n"
-                           f"If you want to cancel it, type `.hold {ctx.command} {nick}`")
+                           f"If you want to cancel it, type `.hold hunt_battle {nick}`")
             await sleep(seconds_till_hit)
             tree = await self.bot.get_content(link, return_tree=True)
             side_dmg = int(str(tree.xpath(f'//*[@id="{side}Score"]/text()')[0]).replace(",", "").strip())
