@@ -8,7 +8,7 @@ from random import choice, randint
 from typing import Optional
 
 from aiohttp import ClientSession
-from discord.ext.commands import Cog, command
+from discord.ext.commands import Cog, command, is_owner
 from pytz import timezone
 
 import utils
@@ -24,16 +24,18 @@ class Mix(Cog):
     @command()
     async def party(self, ctx, party: Optional[Id] = 0, *, nick: IsMyNick):
         """Joins a party.
-        Do not provide party if you want it to auto-apply to the first party"""
+        Do not provide party if you want it to auto-apply to the first party.
+        For leaving party, send a negative party id."""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
-        if not party:
+        if party < 0:
+            return await self.bot.get_content(URL + "partyStatistics.html", data={"action": "LEAVE", "submit": "Leave party"})
+        if party == 0:
             tree = await self.bot.get_content(URL + "partyStatistics.html?statisticType=MEMBERS", return_tree=True)
-            party_id = str(tree.xpath('//*[@id="esim-layout"]//table//tr[2]//td[3]//@href')[0]).split("=")[1]
+            party = str(tree.xpath('//*[@id="esim-layout"]//table//tr[2]//td[3]//@href')[0]).split("=")[1]
         party_payload = {"action": "JOIN", "id": party, "submit": "Join"}
         url = await self.bot.get_content(URL + "partyStatistics.html", data=party_payload)
-        if url != URL + "?actionStatus=PARTY_JOIN_ALREADY_IN_PARTY":
-            await ctx.send(f"**{nick}** <{url}>")
+        await ctx.send(f"**{nick}** <{url}>")
 
     @command()
     async def candidate(self, ctx, *, nick: IsMyNick):
@@ -452,11 +454,20 @@ class Mix(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(hidden=True)
-    async def click(self, ctx, link, *, nick: IsMyNick):
+    async def click(self, ctx, link, data, *, nick: IsMyNick):
         """Clicks on a given link.
-        (redeem code, add friend etc.)"""
-        url = await self.bot.get_content(link)
+        Examples:
+        .click https://secura.e-sim.org/partyStatistics.html"   {"action": "LEAVE", "submit": "Leave party"}   my nick
+        .click https://secura.e-sim.org/friends.html?action=PROPOSE&id=1   {}   my nick"""
+        url = await self.bot.get_content(link, data=json.loads(data))
         await ctx.send(f"**{nick}** <{url}>")
+
+    @command(hidden=True)
+    @is_owner()
+    async def evaluate(self, ctx, code, *, nick: IsMyNick):
+        """Evaluates a given Python code.
+        This is limited to the bot's owner only for security reasons."""
+        await ctx.send(f"**{nick}** {eval(code)}")
 
     @command(hidden=True)
     async def login(self, ctx, *, nick: IsMyNick):
