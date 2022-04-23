@@ -247,8 +247,8 @@ class War(Cog):
         round_ends = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
         start = time()
         while not self.bot.should_break(ctx) and damage_done < dmg and (time() - start < round_ends):
-            if weapon_quality and not wep:
-                await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}\nERROR: 0 Q{weapon_quality} weps in storage")
+            if weapon_quality > 0 and ((dmg >= 5 and wep < 5) or (dmg < 5 and wep == 0)):
+                await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}\nERROR: no Q{weapon_quality} weps in storage")
                 break
             if (Health < 50 and dmg >= 5) or (Health == 0 and dmg < 5):
                 if food_storage == 0 and gift_storage == 0:

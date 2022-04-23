@@ -4,17 +4,26 @@ from asyncio import sleep
 from datetime import datetime
 from random import randint
 
-if "database_url" in os.environ:
-    try:
-        from motor.motor_asyncio import AsyncIOMotorClient
-    except:
-        import pip
-        pip.main(['install', "dnspython"])
-        pip.main(['install', "motor"])
-        from motor.motor_asyncio import AsyncIOMotorClient
-    client = AsyncIOMotorClient(os.environ['database_url'])
-else:
-    client = None
+
+client = None
+
+
+def initiate_db():
+    global client
+    if "database_url" in os.environ:
+        try:
+            from motor.motor_asyncio import AsyncIOMotorClient
+        except:
+            import pip
+            pip.main(['install', "dnspython"])
+            pip.main(['install', "motor"])
+            from motor.motor_asyncio import AsyncIOMotorClient
+        client = AsyncIOMotorClient(os.environ['database_url'])
+    else:
+        client = None
+
+
+initiate_db()
 
 
 async def find(server: str, collection: str) -> list:

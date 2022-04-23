@@ -5,11 +5,13 @@ from datetime import datetime
 from io import BytesIO
 from os import environ
 from random import choice, randint
+from typing import Optional
 
 from aiohttp import ClientSession
 from discord.ext.commands import Cog, command
 from pytz import timezone
 
+import utils
 from Converters import Id, IsMyNick, Quality
 
 
@@ -20,9 +22,22 @@ class Mix(Cog):
         self.bot = bot
 
     @command()
+    async def party(self, ctx, party: Optional[Id] = 0, *, nick: IsMyNick):
+        """Joins a party.
+        Do not provide party if you want it to auto-apply to the first party"""
+        server = ctx.channel.name
+        URL = f"https://{server}.e-sim.org/"
+        if not party:
+            tree = await self.bot.get_content(URL + "partyStatistics.html?statisticType=MEMBERS", return_tree=True)
+            party_id = str(tree.xpath('//*[@id="esim-layout"]//table//tr[2]//td[3]//@href')[0]).split("=")[1]
+        party_payload = {"action": "JOIN", "id": party, "submit": "Join"}
+        url = await self.bot.get_content(URL + "partyStatistics.html", data=party_payload)
+        if url != URL + "?actionStatus=PARTY_JOIN_ALREADY_IN_PARTY":
+            await ctx.send(f"**{nick}** <{url}>")
+
+    @command()
     async def candidate(self, ctx, *, nick: IsMyNick):
-        """
-        Candidate for congress / president elections.
+        """Candidate for congress / president elections.
         It will also auto join to the first party (by members) if necessary."""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
@@ -37,16 +52,9 @@ class Mix(Cog):
             return await ctx.send(f"**{nick}** ERROR: I can't candidate today. Try another time.")
 
         try:
-            tree = await self.bot.get_content(URL + "partyStatistics.html?statisticType=MEMBERS", return_tree=True)
-            ID = str(tree.xpath('//*[@id="esim-layout"]//table//tr[2]//td[3]//@href')[0]).split("=")[1]
-            party_payload = {"action": "JOIN", "id": ID, "submit": "Join"}
-            url = await self.bot.get_content(URL + "partyStatistics.html", data=party_payload)
-            if str(url) != URL + "?actionStatus=PARTY_JOIN_ALREADY_IN_PARTY":
-                await ctx.send(f"**{nick}** <{url}>")
-
+            await ctx.invoke(self.bot.get_command("party"), nick=nick)
         except:
             pass
-
         url = await self.bot.get_content(URL + link, data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
@@ -355,6 +363,8 @@ class Mix(Cog):
             await ctx.send(f"I have added the following pair to {nick}'s config.json file: `{key} = {value}`")
         with open(filename, "w") as file:
             json.dump(big_dict, file)
+        if key == "database_url":
+            utils.initiate_db()
 
     @command()
     async def register(self, ctx, lan, country_id: int, *, nick: IsMyNick):

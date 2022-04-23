@@ -314,7 +314,7 @@ class Eco(Cog):
                 cc = [i["id"] for i in api if i["currencyName"] == CC][0]
                 tree = await self.bot.get_content(f'{URL}monetaryMarket.html?buyerCurrencyId={cc}&sellerCurrencyId=0', return_tree=True)
                 seller = tree.xpath("//tr[2]//td[1]/a/text()")[0].strip()
-                if seller != nick:
+                if seller.lower() != nick.lower():
                     try:
                         MM = tree.xpath("//tr[2]//td[3]/b")[0].text
                     except:
