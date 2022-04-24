@@ -126,9 +126,10 @@ class War(Cog):
         url = await self.bot.get_content(URL + "militaryUnitsActions.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
-    @command(aliases=["buffs"])
+    @command(aliases=["buff-"])
     async def buff(self, ctx, buffs_names, *, nick: IsMyNick):
         """Buy and use buffs.
+        type `.buff-` if you don't want to buy the buff.
         The buff names should be formal (can be found via F12), but here are some shortcuts:
         VAC = EXTRA_VACATIONS, SPA = EXTRA_SPA, SEWER = SEWER_GUIDE, STR = STEROIDS, PD_10 = PAIN_DEALER_10_H
         More examples: BANDAGE_SIZE_C and CAMOUFLAGE_II"""
@@ -149,7 +150,7 @@ class War(Cog):
             elif "PD" in buff_name:
                 buff_name = buff_name.replace("PD", "PAIN_DEALER") + "_H"
 
-            actions = ("BUY", "USE")
+            actions = ("BUY", "USE") if ctx.invoked_with.lower() == "buff" else ("USE", )
             for Index, action in enumerate(actions):
                 if self.bot.should_break(ctx):
                     return

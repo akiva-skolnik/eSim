@@ -5,7 +5,7 @@ import utils
 
 class IsMyNick(Converter):
     async def convert(self, ctx, nick: str) -> str:
-        if nick.lower() == utils.my_nick(ctx.channel.name).lower():
+        if nick.replace('"', "").strip().lower() == utils.my_nick(ctx.channel.name).lower():
             return nick
         else:
             raise errors.CheckFailure

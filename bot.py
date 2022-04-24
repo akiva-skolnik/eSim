@@ -1,6 +1,6 @@
 from asyncio import sleep
 from json import load
-from os import environ
+import os
 from traceback import format_exception
 
 from aiohttp import ClientSession, ClientTimeout
@@ -12,10 +12,11 @@ import utils
 
 bot = Bot(command_prefix=".", case_insensitive=True)
 
-with open("config.json", 'r') as file:
-    for k, v in load(file).items():
-        if k not in environ:
-            environ[k] = v
+if "config.json" in os.listdir():
+    with open("config.json", 'r') as file:
+        for k, v in load(file).items():
+            if k not in os.environ:
+                os.environ[k] = v
 
 for extension in ("Eco", "Mix", "Social", "War", "Info"):
     bot.load_extension(extension)
@@ -32,10 +33,10 @@ async def on_ready():
 
 
 async def create_session():
-    return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": environ["headers"]})
+    return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": os.environ["headers"]})
 
 
-bot.VERSION = "23/04/2022"
+bot.VERSION = "24/04/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.cookies = {}
 bot.should_break_dict = {}
@@ -116,7 +117,7 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
         await bot.session.close()
         bot.session = await create_session()
 
-        payload = {'login': nick, 'password': environ.get(server+"_pw", environ['pw']), "submit": "Login"}
+        payload = {'login': nick, 'password': os.environ.get(server+"_pw", os.environ['pw']), "submit": "Login"}
         async with bot.session.get(URL, ssl=True) as _:
             async with bot.session.post(URL + "login.html", data=payload, ssl=True) as r:
                 if "index.html?act=login" not in str(r.url):
@@ -160,8 +161,8 @@ async def on_command_error(ctx, error):
 
 bot.get_content = get_content
 bot.should_break = should_break
-if environ["TOKEN"] != "PASTE YOUR TOKEN HERE":
-    bot.run(environ["TOKEN"])
+if os.environ["TOKEN"] != "PASTE YOUR TOKEN HERE":
+    bot.run(os.environ["TOKEN"])
 else:
     print("ERROR: please follow the instructions here: https://github.com/e-sim-python/eSim#setup")
 
