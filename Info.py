@@ -41,12 +41,13 @@ class Info(Cog):
         if sum([len(x) for x in ids]) > 1000:
             ids = [ID for ID in original_ids]
             # Eq id instead of link
+        length = 20
         embed = Embed(title=nick)
-        embed.add_field(name="ID", value="\n".join(ids[:50]))
-        embed.add_field(name="Item", value="\n".join(items[:50]))
-        embed.add_field(name="Parameters", value="\n".join(", ".join(f"{par_val[0]} {par_val[1]}" for par_val in eq) for eq in parameters[:50]))
-        if len(ids) > 50:
-            embed.set_footer(text="(first 50 items)")
+        embed.add_field(name="ID", value="\n".join(ids[:length]))
+        embed.add_field(name="Item", value="\n".join(items[:length]))
+        embed.add_field(name="Parameters", value="\n".join(", ".join(f"{par_val[0]} {par_val[1]}" for par_val in eq) for eq in parameters[:length]))
+        if len(ids) > length:
+            embed.set_footer(text=f"(first {length} items)")
         await ctx.send(embed=embed)
 
     @command(aliases=["inventory"])

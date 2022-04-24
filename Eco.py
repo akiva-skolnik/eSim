@@ -166,7 +166,7 @@ class Eco(Cog):
         """
         URL = f"https://{ctx.channel.name}.e-sim.org/"
 
-        if type.lower() == "eq":
+        if "eq" in type.lower():
             results = []
             ids = [int(x.strip()) for x in data.split(",") if x.strip()]
             for Index, ID in enumerate(ids):
@@ -244,24 +244,23 @@ class Eco(Cog):
                             DICT[Q] = []
                         DICT[Q].append(int(ID.replace("#", "")))
                 for i in range(1, max_q_to_merge + 1):
-                    if i in DICT and len(DICT[i]) > 2:
-                        for z in range(int(len(DICT[i]) / 3)):
-                            if self.bot.should_break(ctx):
-                                return
-                            EQ1, EQ2, EQ3 = DICT[i][z * 3:z * 3 + 3]
-                            payload = {'action': "MERGE", f'itemId[{EQ1}]': EQ1, f'itemId[{EQ2}]': EQ2,
-                                       f'itemId[{EQ3}]': EQ3}
-                            url = await self.bot.get_content(URL + "equipmentAction.html", data=payload)
-                            results.append(f"<{url}>")
-                            await sleep(1)
-                            if url == "http://www.google.com/":
-                                # e-sim error
-                                await sleep(5)
+                    for z in range(len(DICT.get(i, [])) // 3):
+                        if self.bot.should_break(ctx):
+                            return
+                        EQ1, EQ2, EQ3 = DICT[i][z * 3:z * 3 + 3]
+                        payload = {'action': "MERGE", f'itemId[{EQ1}]': EQ1, f'itemId[{EQ2}]': EQ2,
+                                   f'itemId[{EQ3}]': EQ3}
+                        url = await self.bot.get_content(URL + "equipmentAction.html", data=payload)
+                        results.append(f"<{url}>")
+                        await sleep(1)
+                        if url == "http://www.google.com/":
+                            # e-sim error
+                            await sleep(5)
 
-                            elif "?actionStatus=CONVERT_ITEM_OK" not in url:
-                                # no money etc
-                                error = True
-                                break
+                        elif "?actionStatus=CONVERT_ITEM_OK" not in url:
+                            # no money etc
+                            error = True
+                            break
                     if results:
                         try:
                             await ctx.send(f"**{nick}**\n" + "\n".join(results))
