@@ -45,9 +45,9 @@ class Info(Cog):
         embed = Embed(title=nick)
         embed.add_field(name="ID", value="\n".join(ids[:length]))
         embed.add_field(name="Item", value="\n".join(items[:length]))
-        embed.add_field(name="Parameters", value="\n".join(", ".join(f"{par_val[0]} {par_val[1]}" for par_val in eq) for eq in parameters[:length]))
+        embed.add_field(name="Parameters", value="\n".join(", ".join(par_val[1] for par_val in eq) for eq in parameters[:length]))
         if len(ids) > length:
-            embed.set_footer(text=f"(first {length} items)")
+            embed.set_footer(text=f"({length} out of {len(ids)} items)")
         await ctx.send(embed=embed)
 
     @command(aliases=["inventory"])
