@@ -634,10 +634,12 @@ class War(Cog):
 
         storage = get_storage(tree, Type)
         if not storage:
-            await ctx.invoke(self.bot.get_command("supply"), 15, "Q1", "wep", nick=nick)
-            await ctx.invoke(self.bot.get_command("supply"), 10, "Q3", "food", nick=nick)
-            await ctx.invoke(self.bot.get_command("supply"), 5, "Q3", "gift", nick=nick)
+            await ctx.invoke(self.bot.get_command("supply"), 15, "1", "WEAPON", nick=nick)
+            await ctx.invoke(self.bot.get_command("supply"), 10, "3", "FOOD", nick=nick)
+            await ctx.invoke(self.bot.get_command("supply"), 5, "3", "GIFT", nick=nick)
             storage = get_storage(tree, Type)
+        if not storage:
+            return await ctx.send(f"**{nick}** ERROR: Cannot motivate")
 
         newCitizens_tree = await self.bot.get_content(URL + 'newCitizens.html?countryId=0', return_tree=True)
         citizenId = int(newCitizens_tree.xpath("//tr[2]//td[1]/a/@href")[0].split("=")[1])

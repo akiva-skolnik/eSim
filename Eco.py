@@ -77,7 +77,7 @@ class Eco(Cog):
                         await ctx.send(f"**{nick}** The price is too high ({price}).")
                         break
                     
-                    payload = {'action': "buy", 'id': ID, 'ammount': min(offer_amount, amount - bought_amount),
+                    payload = {'action': "buy", 'id': ID, 'ammount': round(min(offer_amount, amount - bought_amount), 2),
                                'stockCompanyId': '', 'submit': 'Buy'}
                     url = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country_id}", data=payload)
                     if "MM_POST_OK_BUY" not in str(url):
