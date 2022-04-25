@@ -465,7 +465,7 @@ class Mix(Cog):
 
     @command(hidden=True)
     @is_owner()
-    async def evaluate(self, ctx, code, *, nick: IsMyNick):
+    async def evaluate(self, ctx, nick: IsMyNick, *, code):
         """Evaluates a given Python code.
         This is limited to the bot's owner only for security reasons."""
         await ctx.send(f"**{nick}** {eval(code)}")
