@@ -325,7 +325,16 @@ class Eco(Cog):
                 break
 
     @command()
-    async def sell(self, ctx, ids, price: float, hours: int, *, nick: IsMyNick):
+    async def sell(self, ctx, quantity: int, quality: Optional[Quality], product: Product, price: float, country_id, *, nick: IsMyNick):
+        """Sell products at market."""
+        URL = f"https://{ctx.channel.name}.e-sim.org/"
+        payload = {'storageType': 'PRODUCT', 'action': 'POST_OFFER', 'product': f'{quality or 5}-{product}',
+                   'countryId': country_id, 'quantity': quantity, 'price': price}
+        url = await self.bot.get_content(URL + "storage.html", data=payload)
+        await ctx.send(f"**{nick}** <{url}>")
+
+    @command()
+    async def auction(self, ctx, ids, price: float, hours: int, *, nick: IsMyNick):
         """Sell specific EQ ID(s) & reshuffle & upgrade at auctions.
         `ids` MUST be separated by a comma, and without spaces (or with spaces, but within quotes)"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"

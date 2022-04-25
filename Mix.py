@@ -423,10 +423,10 @@ class Mix(Cog):
         payload = None
         for tr in range(2, 100):
             try:
-                name = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]//td[2]/a/text()')[0].strip().lower()
+                name = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]//td[2]/a/text()')[0].strip()
             except:
                 return await ctx.send(f"**{nick}** ERROR: No such candidate ({your_candidate})")
-            if name == your_candidate.lower():
+            if name.lower() == your_candidate.lower():
                 if president:
                     candidateId = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]/td[4]/form/input[2]')[0].value
                 else:
@@ -435,8 +435,9 @@ class Mix(Cog):
                 break
 
         if payload:
-            url = await self.bot.get_content(URL + link, data=payload)
-            await ctx.send(f"**{nick}** <{url}>")
+            tree = await self.bot.get_content(URL + link, data=payload, return_tree=True)
+            msg = tree.xpath('//*[@id="esim-layout"]//div[1]/text()')
+            await ctx.send(f"**{nick}** {' '.join(msg)}")
         else:
             await ctx.send(f"**{nick}** candidate {your_candidate} was not found")
 
@@ -465,10 +466,10 @@ class Mix(Cog):
 
     @command(hidden=True)
     @is_owner()
-    async def evaluate(self, ctx, nick: IsMyNick, *, code):
+    async def execute(self, ctx, nick: IsMyNick, *, code):
         """Evaluates a given Python code.
         This is limited to the bot's owner only for security reasons."""
-        await ctx.send(f"**{nick}** {eval(code)}")
+        exec(code)
 
     @command(hidden=True)
     async def login(self, ctx, *, nick: IsMyNick):

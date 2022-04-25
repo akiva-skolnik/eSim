@@ -765,7 +765,7 @@ class War(Cog):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(URL, return_tree=True)
         my_id = str(tree.xpath('//*[@id="userName"]/@href')[0]).split("=")[1]
-        payload = {'product': f"{quality}-{product}" if quality else product, 'quantity': amount,
+        payload = {'product': f"{quality or 5}-{product}", 'quantity': amount,
                    "reason": " ", "citizen1": my_id, "submit": "Donate"}
         url = await self.bot.get_content(URL + "militaryUnitStorage.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
