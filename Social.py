@@ -75,7 +75,8 @@ class Social(Cog):
                             await self.bot.get_content(URL + str(links[0]))
                         elif "has offered you to sign" in alert:
                             alert = alert.replace("contract", f'[contract]({URL}{links[0]})').replace(
-                                "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!", "\nSee `.help contract`")
+                                "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!",
+                                f"\ntype `.contract {links[0].split('=')[1]} {nick}` to accept it.")
                         elif len(links) > 1:
                             link = [x for x in links if "profile" not in x]
                             if link:

@@ -454,12 +454,13 @@ class Mix(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(hidden=True)
-    async def click(self, ctx, link, data, *, nick: IsMyNick):
+    async def click(self, ctx, nick: IsMyNick, link, *, data="{}"):
         """Clicks on a given link.
         Examples:
-        .click https://secura.e-sim.org/partyStatistics.html"   {"action": "LEAVE", "submit": "Leave party"}   my nick
-        .click https://secura.e-sim.org/friends.html?action=PROPOSE&id=1   {}   my nick"""
-        url = await self.bot.get_content(link, data=json.loads(data))
+        .click "my nick" https://secura.e-sim.org/partyStatistics.html   {"action": "LEAVE", "submit": "Leave party"}
+        .click "my nick" https://secura.e-sim.org/friends.html?action=PROPOSE&id=1
+        """
+        url = await self.bot.get_content(link, data=json.loads(data.replace("'", '"')) or None)
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(hidden=True)
