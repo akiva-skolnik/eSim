@@ -197,9 +197,8 @@ class Eco(Cog):
         else:
             tree = await self.bot.get_content(URL + "jobMarket.html", return_tree=True)
             job_id = tree.xpath("//tr[2]//td[6]//input[1]")[0].value
-        try:
-            url = await self.bot.get_content(URL + "jobMarket.html", data={"id": job_id, "submit": "Apply"})
-        except:
+        url = await self.bot.get_content(URL + "jobMarket.html", data={"id": job_id, "submit": "Apply"})
+        if "APPLY_FOR_JOB_ALREADY_HAVE_JOB" in url:
             await self.bot.get_content(URL + "work.html", data={'action': "leave", "submit": "Leave job"})
             url = await self.bot.get_content(URL + "jobMarket.html", data={"id": job_id, "submit": "Apply"})
         await ctx.send(f"**{nick}** <{url}>")

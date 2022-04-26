@@ -294,6 +294,10 @@ class War(Cog):
                         continue
                     elif "Round is closed" in tree.text_content():
                         break
+                    else:
+                        res = tree.xpath('//*[@id="fightResponse"]//div//div/text()')
+                        await ctx.send(f"**{nick}** ERROR: {' '.join(res)}")
+                        break
                 if weapon_quality:
                     wep -= 5 if dmg >= 5 else 1
                 Health = float(tree.xpath("//*[@id='healthUpdate']")[0].text.split()[0])
@@ -574,7 +578,9 @@ class War(Cog):
                     elif "Round is closed" in tree.text_content():
                         break
                     else:
-                        continue
+                        res = tree.xpath('//*[@id="fightResponse"]//div//div/text()')
+                        await ctx.send(f"**{nick}** ERROR: {' '.join(res)}")
+                        break
                 if dmg < 5:
                     damage_done += 1
                 elif dmg < 1000:

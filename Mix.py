@@ -85,35 +85,16 @@ class Mix(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def missions(self, ctx, nick: IsMyNick, action="ALL", missions_to_complete: int = 30):
+    async def missions(self, ctx, *, nick: IsMyNick):
         """Auto finish missions.
         * "action" must be one of: start / complete / skip / ALL
         If nick contains more than 1 word - it must be within quotes"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
-        if action.lower() != "all":
-            if action.lower() == "start":
-                c = await self.bot.get_content(URL + "betaMissions.html?action=START",
-                                               data={"submit": "Start mission"})
-                if "MISSION_START_OK" not in c and "?action=START" not in c:
-                    return await ctx.send(f"**{nick}** <{c}>")
-            elif action.lower() == "complete":
-                c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE",
-                                               data={"submit": "Collect"})
-                if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
-                    return await ctx.send(f"**{nick}** <{c}>")
-            elif action.lower() == "skip":
-                c = await self.bot.get_content(URL + "betaMissions.html",
-                                               data={"action": "SKIP", "submit": "Skip"})
-                if "MISSION_SKIPPED" not in c:
-                    return await ctx.send(f"**{nick}** <{c}>")
-            else:
-                return await ctx.send(f"**{nick}** ERROR: action must be `start`/`complete`/`skip`/`ALL`, not `{action}`")
-            return await ctx.send(f"**{nick}** Done")
 
         await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.hold missions {nick}`")
         prv_num = 0
-        for _ in range(missions_to_complete):
+        for _ in range(30):
             if self.bot.should_break(ctx):
                 break
             try:
@@ -427,11 +408,14 @@ class Mix(Cog):
             except:
                 return await ctx.send(f"**{nick}** ERROR: No such candidate ({your_candidate})")
             if name.lower() == your_candidate.lower():
-                if president:
-                    candidateId = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]/td[4]/form/input[2]')[0].value
-                else:
-                    candidateId = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]//td[5]//*[@id="command"]/input[2]')[0].value
-                payload = {'action': "VOTE", 'candidateId': candidateId, "submit": "Vote"}
+                try:
+                    if president:
+                        candidate_id = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]/td[4]/form/input[2]')[0].value
+                    else:
+                        candidate_id = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]//td[5]//*[@id="command"]/input[2]')[0].value
+                except:
+                    return await ctx.send(f"**{nick}** ERROR: I couldn't find the vote button.")
+                payload = {'action': "VOTE", 'candidateId': candidate_id, "submit": "Vote"}
                 break
 
         if payload:
