@@ -5,7 +5,11 @@ from datetime import datetime
 from io import BytesIO
 from os import environ
 from random import choice, randint
+import textwrap
 from typing import Optional
+from contextlib import redirect_stdout
+from io import StringIO
+import traceback
 
 from aiohttp import ClientSession
 from discord.ext.commands import Cog, command, is_owner
@@ -453,7 +457,38 @@ class Mix(Cog):
     async def execute(self, ctx, nick: IsMyNick, *, code):
         """Evaluates a given Python code.
         This is limited to the bot's owner only for security reasons."""
-        exec(code)
+        # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/admin.py#L215
+        env = {
+            'bot': self.bot,
+            'ctx': ctx,
+            'channel': ctx.channel,
+            'author': ctx.author,
+            'guild': ctx.guild,
+            'message': ctx.message,
+        }
+
+        env.update(globals())
+        to_compile = f'async def func():\n{textwrap.indent(code, "  ")}'
+        stdout = StringIO()
+        try:
+            exec(to_compile, env)
+        except Exception as e:
+            return await ctx.send(f'```py\n{e.__class__.__name__}: {e}\n```')
+        func = env['func']
+        try:
+            with redirect_stdout(stdout):
+                ret = await func()
+        except Exception as e:
+            value = stdout.getvalue()
+            await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
+        else:
+            value = stdout.getvalue()
+
+            if ret is None:
+                if value:
+                    await ctx.send(f'```py\n{value}\n```')
+            else:
+                await ctx.send(f'```py\n{value}{ret}\n```')
 
     @command(hidden=True)
     async def login(self, ctx, *, nick: IsMyNick):
