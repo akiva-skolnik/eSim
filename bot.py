@@ -109,7 +109,7 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
         try:
             tree = await inner_get_content(link, data, return_tree, return_type)
         except RuntimeError as e:
-            if "you are not logged in" not in str(e):
+            if "You are not logged in" not in str(e):
                 raise e
             else:
                 notLoggedIn = True
@@ -121,8 +121,7 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
         async with bot.session.get(URL, ssl=True) as _:
             async with bot.session.post(URL + "login.html", data=payload, ssl=True) as r:
                 if "index.html?act=login" not in str(r.url):
-                    print(r.url)
-                    raise RuntimeError(f"{nick} - Failed to login")
+                    raise RuntimeError(f"{nick} - Failed to login {r.url}")
                 bot.cookies.update({server: {cookie.key: cookie.value for cookie in bot.session.cookie_jar}})
         await utils.replace_one(server, "cookies", nick, bot.cookies)
         tree = await inner_get_content(link, data, return_tree, return_type)
