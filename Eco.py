@@ -65,9 +65,9 @@ class Eco(Cog):
 
         for Index in range(10):  # 10 pages
             tree = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country_id}", return_tree=True)
-            IDs = [ID.value for ID in tree.xpath("//td[4]//form[1]//input[@value][2]")]
-            amounts = tree.xpath('//td[2]//b/text()')
             prices = tree.xpath("//td[3]//b/text()")
+            IDs = [ID.value for ID in tree.xpath("//td[4]//form[1]//input[@value][2]")][:len(prices)]
+            amounts = tree.xpath('//td[2]//b/text()')[:len(prices)]
             for ID, offer_amount, price in zip(IDs, amounts, prices):
                 if self.bot.should_break(ctx):
                     return

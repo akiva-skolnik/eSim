@@ -430,16 +430,17 @@ class Mix(Cog):
             await ctx.send(f"**{nick}** candidate {your_candidate} was not found")
 
     @command()
-    async def law(self, ctx, link_or_id: Id, your_vote, *, nick: IsMyNick):
+    async def law(self, ctx, law: Id, your_vote, *, nick: IsMyNick):
         """Voting a law"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         if your_vote.lower() not in ("yes", "no"):
             return await ctx.send(f"**{nick}** ERROR: Parameter 'vote' can be 'yes' or 'no' only! (not {your_vote})")
-        link_or_id = f"{URL}law.html?id={link_or_id}"
+        link = f"{URL}law.html?id={law}"
 
         payload = {'action': f"vote{your_vote.capitalize()}", "submit": f"Vote {your_vote.upper()}"}
-        url = await self.bot.get_content(link_or_id, data=payload)
+        await self.bot.get_content(link)
+        url = await self.bot.get_content(link, data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(hidden=True)

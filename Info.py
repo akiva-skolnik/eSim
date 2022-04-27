@@ -24,7 +24,7 @@ class Info(Cog):
         for nick in [x.strip() for x in nicks.split(",") if x.strip()]:
             if nick.lower() == "all":
                 nick = utils.my_nick(server)
-                await sleep(randint(1, 3))
+                await sleep(randint(1, 10))
 
             if nick.lower() == utils.my_nick(server).lower():
                 await ctx.send(f'**{utils.my_nick(server)}** Code Version: {self.bot.VERSION}')

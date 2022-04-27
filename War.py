@@ -295,8 +295,8 @@ class War(Cog):
                     elif "Round is closed" in tree.text_content():
                         break
                     else:
-                        res = tree.xpath('//*[@id="fightResponse"]//div//div/text()')
-                        await ctx.send(f"**{nick}** ERROR: {' '.join(res)}")
+                        res = tree.xpath('//div//div/text()')
+                        await ctx.send(f"**{nick}** ERROR: {' '.join(res).strip()}")
                         break
                 if weapon_quality:
                     wep -= 5 if dmg >= 5 else 1
@@ -329,6 +329,7 @@ class War(Cog):
                 if server not in self.bot.should_break_dict:
                     self.bot.should_break_dict[server] = {}
                 self.bot.should_break_dict[server][Command] = True
+                await sleep(randint(1, 10))
                 await ctx.send(f"**{nick}** done.")
 
     @command()
@@ -578,8 +579,8 @@ class War(Cog):
                     elif "Round is closed" in tree.text_content():
                         break
                     else:
-                        res = tree.xpath('//*[@id="fightResponse"]//div//div/text()')
-                        await ctx.send(f"**{nick}** ERROR: {' '.join(res)}")
+                        res = tree.xpath('//div//div/text()')
+                        await ctx.send(f"**{nick}** ERROR: {' '.join(res).strip()}")
                         break
                 if dmg < 5:
                     damage_done += 1
