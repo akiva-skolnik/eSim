@@ -8,8 +8,6 @@ from discord.ext import commands
 from discord.ext.commands import Bot, errors
 from lxml.html import fromstring
 
-import utils
-
 bot = Bot(command_prefix=".", case_insensitive=True)
 
 if "config.json" in os.listdir():
@@ -17,6 +15,8 @@ if "config.json" in os.listdir():
         for k, v in load(file).items():
             if k not in os.environ:
                 os.environ[k] = v
+
+import utils
 
 for extension in ("Eco", "Mix", "Social", "War", "Info"):
     bot.load_extension(extension)

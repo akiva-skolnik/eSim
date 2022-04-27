@@ -13,12 +13,13 @@ def initiate_db():
     if "database_url" in os.environ:
         try:
             from motor.motor_asyncio import AsyncIOMotorClient
+            client = AsyncIOMotorClient(os.environ['database_url'])
         except:
             import pip
             pip.main(['install', "dnspython"])
             pip.main(['install', "motor"])
             from motor.motor_asyncio import AsyncIOMotorClient
-        client = AsyncIOMotorClient(os.environ['database_url'])
+            client = AsyncIOMotorClient(os.environ['database_url'])
     else:
         client = None
 
