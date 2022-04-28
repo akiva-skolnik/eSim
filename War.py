@@ -644,6 +644,7 @@ class War(Cog):
             await ctx.invoke(self.bot.get_command("supply"), 15, "1", "WEAPON", nick=nick)
             await ctx.invoke(self.bot.get_command("supply"), 10, "3", "FOOD", nick=nick)
             await ctx.invoke(self.bot.get_command("supply"), 5, "3", "GIFT", nick=nick)
+            tree = await self.bot.get_content(URL + 'storage.html?storageType=PRODUCT', return_tree=True)
             storage = get_storage(tree, Type)
         if not storage:
             return await ctx.send(f"**{nick}** ERROR: Cannot motivate")
@@ -667,11 +668,15 @@ class War(Cog):
                 if tree.xpath('//*[@id="motivateCitizenButton"]'):
                     for num in storage:
                         payload = {'type': num, "submit": "Motivate", "id": citizenId}
-                        url = await self.bot.get_content(f"{URL}motivateCitizen.html?id={citizenId}", data=payload)
+                        tree, url = await self.bot.get_content(f"{URL}motivateCitizen.html?id={citizenId}", data=payload, return_tree="both")
                         if "&actionStatus=SUCCESFULLY_MOTIVATED" in url:
                             checking.append(f"<{url}>")
                             sent_count += 1
                             break
+                        else:
+                            msg = ' '.join(tree.xpath("//div[2]/text()")).strip()
+                            if "too many" in msg:
+                                return await ctx.send(f"**{nick}** You have sent too many motivations today!")
                 citizenId -= 1
             except Exception as error:
                 await ctx.send(f"**{nick}** ERROR: {error}")

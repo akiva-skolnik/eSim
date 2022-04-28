@@ -36,7 +36,7 @@ async def create_session():
     return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": os.environ["headers"]})
 
 
-bot.VERSION = "27/04/2022"
+bot.VERSION = "28/04/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.cookies = {}
 bot.should_break_dict = {}
@@ -81,11 +81,12 @@ async def inner_get_content(link, data=None, return_tree=False, return_type=""):
                         return api if "apiBattles" not in link else api[0]
                     else:
                         try:
-                            return fromstring(await respond.text(encoding='utf-8')) if return_tree else str(
-                                respond.url)
+                            tree = fromstring(await respond.text(encoding='utf-8'))
                         except:
-                            return fromstring((await respond.text(encoding='utf-8'))[1:]) if return_tree else str(
-                                respond.url)
+                            tree = fromstring(await respond.text(encoding='utf-8'))[1:]
+                        if isinstance(return_tree, str):
+                            return tree, str(respond.url)
+                        return tree if return_tree else str(respond.url)
                 else:
                     await sleep(5)
         except Exception as e:
