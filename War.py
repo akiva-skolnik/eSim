@@ -509,7 +509,8 @@ class War(Cog):
                         continue
 
     @command()
-    async def hunt_battle(self, ctx, nick: IsMyNick, link, side: Side, dmg_or_hits_per_bh: Dmg = 1, weapon_quality: int = 0, food: int = 5, gift: int = 5):
+    async def hunt_battle(self, ctx, nick: IsMyNick, link, side: Side, dmg_or_hits_per_bh: Dmg = 1,
+                          weapon_quality: int = 0, food: int = 5, gift: int = 5, start_time: int = 0):
         """Hunting BH at a specific battle.
         (Good for practice battle / leagues / civil war)
 
@@ -528,14 +529,13 @@ class War(Cog):
             if seconds_till_round_end < 20:
                 await sleep(30)
                 continue
-            seconds_till_hit = randint(10, seconds_till_round_end - 10)
+            seconds_till_hit = uniform(10, seconds_till_round_end - 10) if start_time < 10 else (seconds_till_round_end - uniform(start_time-5, start_time+5))
             await ctx.send(f"**{nick}** {seconds_till_hit} seconds from now (at T {timedelta(seconds=seconds_till_round_end-seconds_till_hit)}),"
                            f" I will hit {dmg} {hits_or_dmg} at <{link}> for the {side} side.\n"
                            f"If you want to cancel it, type `.hold hunt_battle {nick}`")
             await sleep(seconds_till_hit)
             tree = await self.bot.get_content(link, return_tree=True)
-            side_dmg = int(str(tree.xpath(f'//*[@id="{side}Score"]/text()')[0]).replace(",", "").strip())
-            if side_dmg != 0 and dmg_or_hits_per_bh == 1:
+            if dmg_or_hits_per_bh == 1 and int(str(tree.xpath(f'//*[@id="{side}Score"]/text()')[0]).replace(",", "").strip()) != 0 and dmg_or_hits_per_bh == 1:
                 await ctx.send(f"**{nick}** someone else already fought in this round <{link}>")
                 await sleep(seconds_till_round_end - seconds_till_hit + 15)
                 continue
