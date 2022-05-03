@@ -4,7 +4,7 @@ from base64 import b64encode
 from datetime import datetime
 from io import BytesIO
 from os import environ
-from random import choice, randint
+from random import choice, randint, uniform
 import textwrap
 from typing import Optional
 from contextlib import redirect_stdout
@@ -227,8 +227,7 @@ class Mix(Cog):
                         await self.bot.get_content(URL + 'friends.html?action=PROPOSE&id=1')
                     elif num == 41:
                         for _ in range(10):
-                            ID = randint(1, 100)
-                            payload = {"action": "NEW", "key": f"Article {ID}", "submit": "Publish",
+                            payload = {"action": "NEW", "key": f"Article {randint(1, 100)}", "submit": "Publish",
                                        "body": choice(["Mission", "Hi", "Hello there", "hello", "Discord?"])}
                             comment = await self.bot.get_content(URL + "comment.html", data=payload)
                             if "MESSAGE_POST_OK" in comment:
@@ -279,7 +278,7 @@ class Mix(Cog):
                         # if food & gift limits >= 10 it won't work.
                     else:
                         await ctx.send(f"**{nick}** ERROR: I don't know how to finish this mission ({num}).")
-                    await sleep(randint(1, 7))
+                    await sleep(uniform(1, 5))
                     c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE", data={"submit": "Collect"})
                     if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
                         c = await self.bot.get_content(URL + "betaMissions.html?action=COMPLETE", ata={"submit": "Collect"})
@@ -496,8 +495,6 @@ class Mix(Cog):
         server = ctx.channel.name
         if server in self.bot.cookies:
             del self.bot.cookies[server]
-        if not self.bot.cookies:
-            self.bot.cookies["not"] = "empty"
         await ctx.send(f"**{nick}:** done")
 
     @command(hidden=True)

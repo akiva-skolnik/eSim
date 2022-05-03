@@ -1,6 +1,6 @@
 from asyncio import sleep
 from datetime import datetime, time, timedelta
-from random import randint
+from random import randint, uniform
 from typing import Optional
 
 from discord import Embed
@@ -87,7 +87,7 @@ class Eco(Cog):
                     bought_amount += payload['ammount']
                     if bought_amount >= amount:
                         break
-                    await sleep(randint(0, 2))
+                    await sleep(uniform(0, 2))
                     # sleeping for a random time between 0 and 2 seconds. feel free to change it
                     
                 except Exception as error:
@@ -228,6 +228,7 @@ class Eco(Cog):
             await ctx.send(f"**{nick}** <{url}>")
 
         else:
+            await ctx.send(f"**{nick}** On it!")
             max_q_to_merge = int(ids_or_quality.lower().replace("q", ""))  # max_q_to_merge - including
             results = list()
             error = False
@@ -245,13 +246,13 @@ class Eco(Cog):
                 for i in range(1, max_q_to_merge + 1):
                     for z in range(len(DICT.get(i, [])) // 3):
                         if self.bot.should_break(ctx):
-                            return
+                            error = True
+                            break
                         EQ1, EQ2, EQ3 = DICT[i][z * 3:z * 3 + 3]
-                        payload = {'action': "MERGE", f'itemId[{EQ1}]': EQ1, f'itemId[{EQ2}]': EQ2,
-                                   f'itemId[{EQ3}]': EQ3}
+                        payload = {'action': "MERGE", f'itemId[{EQ1}]': EQ1, f'itemId[{EQ2}]': EQ2, f'itemId[{EQ3}]': EQ3}
                         url = await self.bot.get_content(URL + "equipmentAction.html", data=payload)
                         results.append(f"<{url}>")
-                        await sleep(1)
+                        await sleep(uniform(0, 2))
                         if url == "http://www.google.com/":
                             # e-sim error
                             await sleep(5)
@@ -261,19 +262,13 @@ class Eco(Cog):
                             error = True
                             break
                     if results:
-                        try:
-                            await ctx.send(f"**{nick}**\n" + "\n".join(results))
-                        except:
-                            pass
+                        await ctx.send(f"**{nick}**\n" + "\n".join(results)[:1950])
                         results.clear()
                     if error:
                         break
                 if error:
                     break
-            try:
-                await ctx.send(f"**{nick}**\n" + "\n".join(results))
-            except:
-                pass
+            await ctx.send(f"**{nick}**\n" + "\n".join(results)[:1950])
 
         await ctx.invoke(self.bot.get_command("eqs"), nick=nick)
 
@@ -318,8 +313,8 @@ class Eco(Cog):
                     except:
                         MM = 0.1
                     payload = {"id": IDs[i - 2].value, "rate": round(float(MM) - 0.0001, 4), "submit": "Edit"}
-                    url = await self.bot.get_content(URL + "monetaryMarket.html?action=change", data=payload)
-                    await ctx.send(f"**{nick}** <{url}>")
+                    await self.bot.get_content(URL + "monetaryMarket.html?action=change", data=payload)
+                    await ctx.send(f"**{nick}** edited {CC} for {payload['rate']}")
             except:
                 break
 

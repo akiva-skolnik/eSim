@@ -36,11 +36,11 @@ class War(Cog):
                     break
                 data["value"] = "Berserk" if Health >= 50 else ""
                 tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
-                await sleep(randint(1, 2))
+                await sleep(uniform(0, 2))
             except Exception as error:
                 await ctx.send(
                     f"**{utils.my_nick(server)}** ```{''.join(format_exception(type(error), error, error.__traceback__))}```")
-                await sleep(randint(2, 5))
+                await sleep(uniform(2, 5))
 
     @command()
     async def auto_fight(self, ctx, nick: IsMyNick, restores: int = 100, battle_id: Id = 0,
@@ -293,6 +293,7 @@ class War(Cog):
                         Health = 0
                         continue
                     elif "Round is closed" in tree.text_content():
+                        output += f"\nRound is over."
                         break
                     else:
                         res = tree.xpath('//div//div/text()')
@@ -329,7 +330,7 @@ class War(Cog):
                 if server not in self.bot.should_break_dict:
                     self.bot.should_break_dict[server] = {}
                 self.bot.should_break_dict[server][Command] = True
-                await sleep(randint(1, 10))
+                await sleep(uniform(1, 10))
                 await ctx.send(f"**{nick}** done.")
 
     @command()
@@ -588,7 +589,7 @@ class War(Cog):
                     damage_done += 5
                 else:
                     damage_done += int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
-                await sleep(randint(0, 2))
+                await sleep(uniform(0, 2))
 
             await ctx.send(f"**{nick}** done {damage_done:,} {hits_or_dmg} at <{link}>")
             await sleep(seconds_till_round_end - seconds_till_hit + 15)
@@ -869,10 +870,10 @@ class War(Cog):
                 break
             payload = {'action': "PUT_OFF" if ctx.invoked_with.lower() == "unwear" else "EQUIP", 'itemId': ID}
             url = await self.bot.get_content(f"{URL}equipmentAction.html", data=payload)
-            await sleep(randint(1, 2))
+            await sleep(uniform(1, 2))
             if url == "http://www.google.com/":
                 # e-sim error
-                await sleep(randint(2, 5))
+                await sleep(uniform(2, 5))
             results.append(f"ID {ID} - <{url}>")
         await ctx.send(f"**{nick}**\n" + "\n".join(results))
 

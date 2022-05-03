@@ -33,10 +33,10 @@ async def on_ready():
 
 
 async def create_session():
-    return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": os.environ["headers"]})
+    return ClientSession(timeout=ClientTimeout(total=500), headers={"User-Agent": os.environ["headers"]})
 
 
-bot.VERSION = "28/04/2022"
+bot.VERSION = "03/05/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.cookies = {}
 bot.should_break_dict = {}
@@ -101,8 +101,11 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
     link = link.split("#")[0].replace("http://", "https://")
     server = link.split("https://", 1)[1].split(".e-sim.org", 1)[0]
     nick = utils.my_nick(server)
-    if not bot.cookies:
-        bot.cookies = await utils.find_one(server, "cookies", nick)
+    if server not in bot.cookies:
+        cookies = await utils.find_one(server, "cookies", nick)
+        if server in cookies:  # for previous versions
+            cookies = cookies[server]
+        bot.cookies[server] = cookies
     URL = f"https://{server}.e-sim.org/"
     notLoggedIn = False
     tree = None
@@ -121,10 +124,11 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
         payload = {'login': nick, 'password': os.environ.get(server+"_pw", os.environ['pw']), "submit": "Login"}
         async with bot.session.get(URL, ssl=True) as _:
             async with bot.session.post(URL + "login.html", data=payload, ssl=True) as r:
+                print(r.url)
                 if "index.html?act=login" not in str(r.url):
                     raise RuntimeError(f"{nick} - Failed to login {r.url}")
-                bot.cookies.update({server: {cookie.key: cookie.value for cookie in bot.session.cookie_jar}})
-        await utils.replace_one(server, "cookies", nick, bot.cookies)
+                bot.cookies[server] = {cookie.key: cookie.value for cookie in bot.session.cookie_jar}
+        await utils.replace_one(server, "cookies", nick, bot.cookies[server])
         tree = await inner_get_content(link, data, return_tree, return_type)
     if tree is None:
         tree = await inner_get_content(link, data, return_tree, return_type)

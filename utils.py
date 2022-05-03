@@ -4,7 +4,6 @@ from asyncio import sleep
 from datetime import datetime
 from random import randint
 
-
 client = None
 
 
@@ -15,9 +14,10 @@ def initiate_db():
             from motor.motor_asyncio import AsyncIOMotorClient
             client = AsyncIOMotorClient(os.environ['database_url'])
         except:
-            import pip
-            pip.main(['install', "dnspython"])
-            pip.main(['install', "motor"])
+            import subprocess
+            import sys
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "dnspython"])
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "motor"])
             from motor.motor_asyncio import AsyncIOMotorClient
             client = AsyncIOMotorClient(os.environ['database_url'])
     else:
