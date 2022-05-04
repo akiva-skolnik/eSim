@@ -66,7 +66,7 @@ async def inner_get_content(link, data=None, return_tree=False, return_type=""):
                     continue
 
                 if any(t in str(respond.url) for t in ("notLoggedIn", "error")):
-                    raise RuntimeError(f"You are not logged in, type `.login {utils.my_nick(server)}`")
+                    raise RuntimeError("notLoggedIn")
 
                 if respond.status == 200:
                     if return_type == "json":
@@ -83,6 +83,9 @@ async def inner_get_content(link, data=None, return_tree=False, return_type=""):
                             tree = fromstring(await respond.text(encoding='utf-8'))
                         except:
                             tree = fromstring(await respond.text(encoding='utf-8'))[1:]
+                        logged = tree.xpath('//*[@id="command"]')
+                        if any("login.html" in x.action for x in logged):
+                            raise RuntimeError("notLoggedIn")
                         if isinstance(return_tree, str):
                             return tree, str(respond.url)
                         return tree if return_tree else str(respond.url)
@@ -106,7 +109,7 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
     try:
         tree = await inner_get_content(link, data, return_tree, return_type)
     except RuntimeError as e:
-        if "You are not logged in" not in str(e):
+        if "notLoggedIn" != str(e):
             raise e
         else:
             notLoggedIn = True
