@@ -12,6 +12,7 @@ from io import StringIO
 import traceback
 
 from aiohttp import ClientSession
+from discord import File
 from discord.ext.commands import Cog, command, is_owner
 from pytz import timezone
 
@@ -429,25 +430,61 @@ class Mix(Cog):
             await ctx.send(f"**{nick}** candidate {your_candidate} was not found")
 
     @command()
-    async def law(self, ctx, law: Id, your_vote, *, nick: IsMyNick):
-        """Voting a law"""
+    async def law(self, ctx, laws, your_vote, *, nick: IsMyNick):
+        """Voting law(s).
+        `ids` MUST be separated by a comma, and without spaces (or with spaces, but within quotes)
+        Examples:
+            .law 1,2,3   yes   my nick
+            .law https://alpha.e-sim.org/law.html?id=1   yes   my nick
+        """
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         if your_vote.lower() not in ("yes", "no"):
             return await ctx.send(f"**{nick}** ERROR: Parameter 'vote' can be 'yes' or 'no' only! (not {your_vote})")
-        link = f"{URL}law.html?id={law}"
+        for law in laws.split(","):
+            law = law.strip()
+            link = f"{URL}law.html?id={law}" if law.isdigit() else law
 
-        payload = {'action': f"vote{your_vote.capitalize()}", "submit": f"Vote {your_vote.upper()}"}
-        await self.bot.get_content(link)
-        url = await self.bot.get_content(link, data=payload)
+            payload = {'action': f"vote{your_vote.capitalize()}", "submit": f"Vote {your_vote.upper()}"}
+            await self.bot.get_content(link)
+            url = await self.bot.get_content(link, data=payload)
+            await ctx.send(f"**{nick}** <{url}>")
+
+    @command(aliases=["president"])
+    async def revoke(self, ctx, citizen, *, nick: IsMyNick):
+        """Proposing a revoke/elect president law.
+        `ids` MUST be separated by a comma, and without spaces (or with spaces, but within quotes)
+        Examples:
+            .revoke  Admin  my nick
+            .president "Admin News"   my nick
+        """
+        URL = f"https://{ctx.channel.name}.e-sim.org/"
+        if ctx.invoked_with.lower() == "revoke":
+            payload = {"revokeLogin": citizen, "action": "REVOKE_CITIZENSHIP", "submit": "Revoke citizenship"}
+        else:
+            api_citizen = await self.bot.get_content(f"{URL}apiCitizenByName.html?name={citizen.lower()}")
+            payload = {"candidate": api_citizen["login"], "action": "ELECT_PRESIDENT", "submit": "Propose president"}
+        await self.bot.get_content(URL + "countryLaws.html")
+        url = await self.bot.get_content(URL + "countryLaws.html", data=payload)
+        await ctx.send(f"**{nick}** <{url}>")
+
+    @command()
+    async def impeach(self, ctx, *, nick: IsMyNick):
+        """Propose impeach"""
+        URL = f"https://{ctx.channel.name}.e-sim.org/"
+        payload = {"action": "IMPEACHMENT", "submit": "Propose impeachment"}
+        await self.bot.get_content(URL + "countryLaws.html")
+        url = await self.bot.get_content(URL + "countryLaws.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(hidden=True)
     async def click(self, ctx, nick: IsMyNick, link, *, data="{}"):
         """Clicks on a given link.
         Examples:
-        .click "my nick" https://secura.e-sim.org/partyStatistics.html   {"action": "LEAVE", "submit": "Leave party"}
         .click "my nick" https://secura.e-sim.org/friends.html?action=PROPOSE&id=1
+        .click "my nick" https://secura.e-sim.org/partyStatistics.html   {"action": "LEAVE", "submit": "Leave party"}
+        .click "my nick" https://secura.e-sim.org/countryLaws.html   {"action": "PROPOSE_DISMISS_MOF", "dismissMofLogin": "Admin", "submit": "Propose to dismiss Minister of Finance"}
+        .click "my nick" https://secura.e-sim.org/countryLaws.html {"action": "DONATE_MONEY_TO_COUNTRY_TREASURE", "currencyId": 0, "sum": 0.01, "reason": "xd", "submit": "Donate"}
         """
         url = await self.bot.get_content(link, data=json.loads(data.replace("'", '"')) or None)
         await ctx.send(f"**{nick}** <{url}>")
@@ -468,6 +505,13 @@ class Mix(Cog):
         }
 
         env.update(globals())
+
+        # remove ```py\n```
+        if code.startswith('```') and code.endswith('```'):
+            code = '\n'.join(code.split('\n')[1:-1])
+        else:  # remove `foo`
+            code = code.strip('` \n')
+
         to_compile = f'async def func():\n{textwrap.indent(code, "  ")}'
         stdout = StringIO()
         try:
@@ -483,12 +527,13 @@ class Mix(Cog):
             await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
         else:
             value = stdout.getvalue()
-
-            if ret is None:
-                if value:
-                    await ctx.send(f'```py\n{value}\n```')
-            else:
-                await ctx.send(f'```py\n{value}{ret}\n```')
+            try:
+                await ctx.send(f'```py\n{value}{ret or ""}\n```')
+            except:
+                io_output = StringIO(newline='')
+                io_output.write(value + (ret or ""))
+                io_output.seek(0)
+                await ctx.send(file=File(fp=io_output, filename="output.txt"))
 
     @command(hidden=True)
     async def login(self, ctx, *, nick: IsMyNick):

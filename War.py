@@ -24,23 +24,18 @@ class War(Cog):
         tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}', return_tree=True)
         fight_url, data = await self.get_fight_data(URL, tree, wep, side)
         for _ in range(1, 20):
-            try:
-                Health = tree.xpath("//*[@id='healthUpdate']/text()") or tree.xpath('//*[@id="actualHealth"]/text()')
-                if Health:
-                    Health = float(Health[0].split()[0])
-                else:
-                    tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}', return_tree=True)
-                    Health = float(tree.xpath('//*[@id="actualHealth"]')[0].text)
+            Health = tree.xpath("//*[@id='healthUpdate']/text()") or tree.xpath('//*[@id="actualHealth"]/text()')
+            if Health:
+                Health = float(Health[0].split()[0])
+            else:
+                tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}', return_tree=True)
+                Health = float(tree.xpath('//*[@id="actualHealth"]')[0].text)
 
-                if Health == 0:
-                    break
-                data["value"] = "Berserk" if Health >= 50 else ""
-                tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
-                await sleep(uniform(0, 2))
-            except Exception as error:
-                await ctx.send(
-                    f"**{utils.my_nick(server)}** ```{''.join(format_exception(type(error), error, error.__traceback__))}```")
-                await sleep(uniform(2, 5))
+            if Health == 0:
+                break
+            data["value"] = "Berserk" if Health >= 50 else ""
+            tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
+            await sleep(uniform(0, 2))
 
     @command()
     async def auto_fight(self, ctx, nick: IsMyNick, restores: int = 100, battle_id: Id = 0,
