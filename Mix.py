@@ -463,7 +463,7 @@ class Mix(Cog):
             payload = {"revokeLogin": citizen, "action": "REVOKE_CITIZENSHIP", "submit": "Revoke citizenship"}
         else:
             api_citizen = await self.bot.get_content(f"{URL}apiCitizenByName.html?name={citizen.lower()}")
-            payload = {"candidate": api_citizen["login"], "action": "ELECT_PRESIDENT", "submit": "Propose president"}
+            payload = {"candidate": api_citizen["id"], "action": "ELECT_PRESIDENT", "submit": "Propose president"}
         await self.bot.get_content(URL + "countryLaws.html")
         url = await self.bot.get_content(URL + "countryLaws.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
