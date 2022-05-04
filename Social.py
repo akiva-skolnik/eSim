@@ -117,10 +117,9 @@ class Social(Cog):
         if ctx.invoked_with.lower() == "citizenship":
             payload = {'action': "APPLY", 'countryId': country_or_mu_id, "message": choice(messages), "submit": "Apply for citizenship"}
             link = "citizenshipApplicationAction.html"
-            if 0:
-                await self.bot.get_content(URL + "countryLaws.html")
-                await self.bot.get_content(URL + "countryLaws.html", data={"action": "LEAVE_CONGRESS", "submit": "Leave congress"})
-                await self.bot.get_content(URL + "partyStatistics.html", data={"action": "LEAVE", "submit": "Leave party"})
+            await self.bot.get_content(URL + "countryLaws.html")
+            await self.bot.get_content(URL + "countryLaws.html", data={"action": "LEAVE_CONGRESS", "submit": "Leave congress"})
+            await self.bot.get_content(URL + "partyStatistics.html", data={"action": "LEAVE", "submit": "Leave party"})
             tree = await self.bot.get_content(URL + "pendingCitizenshipApplications.html", return_tree=True)
             ID = tree.xpath("//*[@id='mobileYourApplication']//div//div[2]//form//input[2]/@value")
             if ID:
