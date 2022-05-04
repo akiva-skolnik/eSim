@@ -140,6 +140,25 @@ async def location(bot, nick, server):
             )['currentLocationRegionId']
 
 
+async def get_bonus_region(bot, URL: str, side: str, api_battles: dict) -> int:
+    if api_battles['type'] == "ATTACK":
+        if side == "attacker":
+            neighboursId = [z['neighbours'] for z in await bot.get_content(
+                f"{URL}apiRegions.html") if z["id"] == api_battles['regionId']][0]
+            api_map = await bot.get_content(f'{URL}apiMap.html')
+            aBonus = [i for z in api_map for i in neighboursId if
+                      i == z['regionId'] and z['occupantId'] == api_battles['attackerId']]
+            if not aBonus:
+                aBonus = [z['regionId'] for z in api_map if z['occupantId'] == api_battles['attackerId']]
+            return aBonus[0]
+        else:
+            return api_battles['regionId']
+    elif api_battles['type'] == "RESISTANCE":
+        return api_battles['regionId']
+    else:
+        return 0
+
+
 def get_parameter(parameter_string) -> (float, str):
     all_parameters = {"avoid": "Chance to avoid damage",
                       "max": "Increased maximum damage",

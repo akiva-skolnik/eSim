@@ -58,21 +58,10 @@ class War(Cog):
         await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.hold auto_fight {nick}`")
 
         if specific_battle and 1 <= ticket_quality <= 5:
-            api = await self.bot.get_content(f"{URL}apiBattles.html?battleId={battle_id}")
-            if api['type'] == "ATTACK":
-                if side == "attacker":
-                    try:
-                        neighboursId = [region['neighbours'] for region in await self.bot.get_content(
-                            f'{URL}apiRegions.html') if region["id"] == api['regionId']][0]
-                        aBonus = [i for region in await self.bot.get_content(f'{URL}apiMap.html') for i in neighboursId
-                                  if i == region['regionId'] and region['occupantId'] == api['attackerId']]
-                    except:
-                        aBonus = [api['attackerId'] * 6]
-                    await ctx.invoke(self.bot.get_command("fly"), aBonus[0], ticket_quality, nick=nick)
-                elif side == "defender":
-                    await ctx.invoke(self.bot.get_command("fly"), api['regionId'], ticket_quality, nick=nick)
-            elif api['type'] == "RESISTANCE":
-                await ctx.invoke(self.bot.get_command("fly"), api['regionId'], ticket_quality, nick=nick)
+            api_battles = await self.bot.get_content(f"{URL}apiBattles.html?battleId={battle_id}")
+            bonus_region = await utils.get_bonus_region(self.bot, URL, side, api_battles)
+            if bonus_region:
+                await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick)
 
         while restores > 0 and not self.bot.should_break(ctx):
             restores -= 1
@@ -224,20 +213,9 @@ class War(Cog):
             return await ctx.send(f"ERROR: There are 0 Q{weapon_quality} in storage")
 
         if 1 <= ticket_quality <= 5:
-            if api['type'] == "ATTACK":
-                if side == "attacker":
-                    try:
-                        neighboursId = [region['neighbours'] for region in await self.bot.get_content(
-                            f'{URL}apiRegions.html') if region["id"] == api['regionId']][0]
-                        aBonus = [i for region in await self.bot.get_content(f'{URL}apiMap.html') for i in neighboursId if
-                                  i == region['regionId'] and region['occupantId'] == api['attackerId']]
-                    except:
-                        aBonus = [api['attackerId'] * 6]
-                    await ctx.invoke(self.bot.get_command("fly"), aBonus[0], ticket_quality, nick=nick)
-                elif side == "defender":
-                    await ctx.invoke(self.bot.get_command("fly"), api['regionId'], ticket_quality, nick=nick)
-            elif api['type'] == "RESISTANCE":
-                await ctx.invoke(self.bot.get_command("fly"), api['regionId'], ticket_quality, nick=nick)
+            bonus_region = await utils.get_bonus_region(self.bot, URL, side, api)
+            if bonus_region:
+                await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick)
         output = f"**{nick}** Limits: {food_limit}/{gift_limit}. Storage: {food_storage}/{gift_storage}/{wep} Q{weapon_quality} weps.\n" \
                  f"If you want me to stop, type `.hold fight {nick}`"
         msg = await ctx.send(output)
@@ -535,7 +513,7 @@ class War(Cog):
                            f"If you want to cancel it, type `.hold hunt_battle {nick}`")
             await sleep(seconds_till_hit)
             tree = await self.bot.get_content(link, return_tree=True)
-            if dmg_or_hits_per_bh == 1 and int(str(tree.xpath(f'//*[@id="{side}Score"]/text()')[0]).replace(",", "").strip()) != 0 and dmg_or_hits_per_bh == 1:
+            if int(str(tree.xpath(f'//*[@id="{side}Score"]/text()')[0]).replace(",", "").strip()) != 0 and dmg_or_hits_per_bh == 1:
                 await ctx.send(f"**{nick}** someone else already fought in this round <{link}>")
                 await sleep(seconds_till_round_end - seconds_till_hit + 15)
                 continue
@@ -814,23 +792,10 @@ class War(Cog):
         URL = f"https://{server}.e-sim.org/"
 
         r = await self.bot.get_content(battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
-        if r['type'] == "ATTACK":
-            if side == "attacker":
-                try:
-                    neighboursId = [z['neighbours'] for z in await self.bot.get_content(
-                        f"{URL}apiRegions.html") if z["id"] == r['regionId']][0]
-                    aBonus = [i for z in await self.bot.get_content(f'{URL}apiMap.html') for i in neighboursId if
-                              i == z['regionId'] and z['occupantId'] == r['attackerId']]
-                except:
-                    aBonus = r['attackerId']
-                try:
-                    await ctx.invoke(self.bot.get_command("fly"), aBonus, ticket_quality, nick=nick)
-                except:
-                    return await ctx.send("**{nick}** ERROR: I couldn't find the bonus region")
-            elif side == "defender":
-                await ctx.invoke(self.bot.get_command("fly"), r['regionId'], ticket_quality, nick=nick)
-        elif r['type'] == "RESISTANCE":
-            await ctx.invoke(self.bot.get_command("fly"), r['regionId'], ticket_quality, nick=nick)
+        if 1 <= ticket_quality <= 5:
+            bonus_region = await utils.get_bonus_region(self.bot, URL, side, r)
+            if bonus_region:
+                await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick)
 
         while 8 not in (r['defenderScore'], r['attackerScore']):
             r = await self.bot.get_content(battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
