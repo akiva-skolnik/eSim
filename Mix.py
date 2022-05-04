@@ -492,9 +492,8 @@ class Mix(Cog):
 
     @command(hidden=True)
     async def login(self, ctx, *, nick: IsMyNick):
-        server = ctx.channel.name
-        if server in self.bot.cookies:
-            del self.bot.cookies[server]
+        await self.bot.session.close()
+        self.bot.session = await self.bot.create_session()
         await ctx.send(f"**{nick}:** done")
 
     @command(hidden=True)

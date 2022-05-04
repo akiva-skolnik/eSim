@@ -38,7 +38,6 @@ async def create_session():
 
 bot.VERSION = "04/05/2022"
 bot.session = bot.loop.run_until_complete(create_session())
-bot.cookies = {}
 bot.should_break_dict = {}
 
 
@@ -60,8 +59,8 @@ async def inner_get_content(link, data=None, return_tree=False, return_type=""):
         bot.session = await create_session()
     for _ in range(5):
         try:
-            async with bot.session.get(link, cookies=bot.cookies.get(server), ssl=True) if method == "get" else \
-                    bot.session.post(link, cookies=bot.cookies.get(server), data=data, ssl=True) as respond:
+            async with bot.session.get(link, ssl=True) if method == "get" else \
+                    bot.session.post(link, data=data, ssl=True) as respond:
                 if "google.com" in str(respond.url) or respond.status == 403:
                     await sleep(5)
                     continue
@@ -101,23 +100,17 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
     link = link.split("#")[0].replace("http://", "https://")
     server = link.split("https://", 1)[1].split(".e-sim.org", 1)[0]
     nick = utils.my_nick(server)
-    if server not in bot.cookies:
-        cookies = await utils.find_one(server, "cookies", nick)
-        if server in cookies:  # for previous versions
-            cookies = cookies[server]
-        bot.cookies[server] = cookies
     URL = f"https://{server}.e-sim.org/"
     notLoggedIn = False
     tree = None
-    if server in bot.cookies or "api" in link:
-        try:
-            tree = await inner_get_content(link, data, return_tree, return_type)
-        except RuntimeError as e:
-            if "You are not logged in" not in str(e):
-                raise e
-            else:
-                notLoggedIn = True
-    if notLoggedIn or server not in bot.cookies:
+    try:
+        tree = await inner_get_content(link, data, return_tree, return_type)
+    except RuntimeError as e:
+        if "You are not logged in" not in str(e):
+            raise e
+        else:
+            notLoggedIn = True
+    if notLoggedIn:
         await bot.session.close()
         bot.session = await create_session()
 
@@ -127,8 +120,6 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
                 print(r.url)
                 if "index.html?act=login" not in str(r.url):
                     raise RuntimeError(f"{nick} - Failed to login {r.url}")
-                bot.cookies[server] = {cookie.key: cookie.value for cookie in bot.session.cookie_jar}
-        await utils.replace_one(server, "cookies", nick, bot.cookies[server])
         tree = await inner_get_content(link, data, return_tree, return_type)
     if tree is None:
         tree = await inner_get_content(link, data, return_tree, return_type)
@@ -165,6 +156,7 @@ async def on_command_error(ctx, error):
 
 bot.get_content = get_content
 bot.should_break = should_break
+bot.create_session = create_session
 if os.environ["TOKEN"] != "PASTE YOUR TOKEN HERE":
     bot.run(os.environ["TOKEN"])
 else:
