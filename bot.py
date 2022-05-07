@@ -8,6 +8,8 @@ from discord.ext import commands
 from discord.ext.commands import Bot, errors
 from lxml.html import fromstring
 
+from Eco import auto_work_func
+
 bot = Bot(command_prefix=".", case_insensitive=True)
 
 if "config.json" in os.listdir():
@@ -22,21 +24,26 @@ for extension in ("Eco", "Mix", "Social", "War", "Info"):
     bot.load_extension(extension)
 
 
-@bot.event
-async def on_ready():
+async def start():
+    await bot.wait_until_ready()
     print('Logged in as')
     print(bot.user.name)
     # you should change the following line in all your accounts (except for 1) to `"help": ""` https://github.com/e-sim-python/eSim/blob/main/config.json#L9
     # this way the bot will send only one help commands.
     if not await utils.is_helper():
         bot.remove_command("help")
+    for server, DICT in (await utils.find_one("auto", "work", os.environ['nick'])).items():
+        channel = bot.get_channel(int(DICT["channel_id"]))
+        message = await channel.fetch_message(int(DICT["message_id"]))
+        ctx = await bot.get_context(message)
+        bot.loop.create_task(auto_work_func(bot, ctx, DICT["work_sessions"], DICT["nick"]))
 
 
 async def create_session():
-    return ClientSession(timeout=ClientTimeout(total=500), headers={"User-Agent": os.environ["headers"]})
+    return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": os.environ["headers"]})
 
 
-bot.VERSION = "04/05/2022"
+bot.VERSION = "07/05/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.should_break_dict = {}
 
@@ -54,7 +61,6 @@ async def inner_get_content(link, data=None, return_tree=False, return_type=""):
     method = "get" if data is None else "post"
     if not return_type:
         return_type = "json" if "api" in link else "html"
-    server = link.split("#")[0].replace("http://", "https://").split("https://")[1].split(".e-sim.org")[0]
     if bot.session.closed:
         bot.session = await create_session()
     for _ in range(5):
@@ -161,6 +167,7 @@ bot.get_content = get_content
 bot.should_break = should_break
 bot.create_session = create_session
 if os.environ["TOKEN"] != "PASTE YOUR TOKEN HERE":
+    bot.loop.create_task(start())  # startup function
     bot.run(os.environ["TOKEN"])
 else:
     print("ERROR: please follow the instructions here: https://github.com/e-sim-python/eSim#setup")

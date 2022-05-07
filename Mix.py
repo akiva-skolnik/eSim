@@ -425,7 +425,7 @@ class Mix(Cog):
         if payload:
             tree = await self.bot.get_content(URL + link, data=payload, return_tree=True)
             msg = tree.xpath('//*[@id="esim-layout"]//div[1]/text()')
-            await ctx.send(f"**{nick}** {' '.join(msg)}")
+            await ctx.send(f"**{nick}** {' '.join(msg) or 'done'}")
         else:
             await ctx.send(f"**{nick}** candidate {your_candidate} was not found")
 

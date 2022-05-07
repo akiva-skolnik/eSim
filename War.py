@@ -3,8 +3,8 @@ from asyncio import sleep
 from datetime import datetime, timedelta
 from random import randint, uniform
 from time import time
-from traceback import format_exception
 from typing import Optional
+import os
 
 from discord.ext.commands import Cog, command
 from pytz import timezone
@@ -296,6 +296,7 @@ class War(Cog):
     @command(hidden=True)
     async def hold(self, ctx, Command, *, nicks):
         server = ctx.channel.name
+        Command = Command.lower()
         for nick in [x.strip() for x in nicks.split(",") if x.strip()]:
             if nick.lower() == "all":
                 nick = utils.my_nick(server)
@@ -303,6 +304,11 @@ class War(Cog):
                 if server not in self.bot.should_break_dict:
                     self.bot.should_break_dict[server] = {}
                 self.bot.should_break_dict[server][Command] = True
+                if Command == "auto_work":
+                    data = await utils.find_one("auto", "work", os.environ['nick'])
+                    if server in data:
+                        del data[server]
+                    await utils.replace_one("auto", "work", os.environ['nick'], data)
                 await sleep(uniform(1, 10))
                 await ctx.send(f"**{nick}** done.")
 
@@ -602,15 +608,15 @@ class War(Cog):
                 except:
                     break
 
-            storage = []
+            storage = {}
             if Type in ("all", "wep") and weps >= 15:
-                storage.append(1)
+                storage["Q1 wep"] = 1
 
             if Type in ("all", "food") and food >= 10:
-                storage.append(2)
+                storage["Q3 food"] = 2
 
             if Type in ("all", "gift") and gift >= 5:
-                storage.append(3)
+                storage["Q3 gift"] = 3
             return storage
 
         storage = get_storage(tree, Type)
@@ -622,7 +628,8 @@ class War(Cog):
             storage = get_storage(tree, Type)
         if not storage:
             return await ctx.send(f"**{nick}** ERROR: Cannot motivate")
-
+        for k in storage.keys():
+            await ctx.send(f"**{nick}** WARNING: There is not enough {k} in storage")
         newCitizens_tree = await self.bot.get_content(URL + 'newCitizens.html?countryId=0', return_tree=True)
         citizenId = int(newCitizens_tree.xpath("//tr[2]//td[1]/a/@href")[0].split("=")[1])
         checking = list()
@@ -640,7 +647,7 @@ class War(Cog):
                     return await ctx.send(f"**{nick}** Checked all new players")
                 checking.append(f"Checking <{URL}profile.html?id={citizenId}>")
                 if tree.xpath('//*[@id="motivateCitizenButton"]'):
-                    for num in storage:
+                    for num in storage.values():
                         payload = {'type': num, "submit": "Motivate", "id": citizenId}
                         tree, url = await self.bot.get_content(f"{URL}motivateCitizen.html?id={citizenId}", data=payload, return_tree="both")
                         if "&actionStatus=SUCCESFULLY_MOTIVATED" in url:

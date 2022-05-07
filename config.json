@@ -5,5 +5,5 @@
   "server": "NICK ON SPECIFIC SERVER (optional)",
   "server_pw": "PASSWORD ON SPECIFIC SERVER (optional)",
   "headers": "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:84.0) Gecko/20100101 Firefox/84.0",
-  "help": "ignore"
+  "help": "ignore this line"
 }
