@@ -113,11 +113,8 @@ class Info(Cog):
     @command()
     async def limits(self, ctx, *, nick: IsMyNick):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(URL, return_tree=True)
-        try:
-            gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
-        except IndexError:
-            return await ctx.send(f"**{nick}** you are not logged in! Please type `.login {nick}` and try again")
+        tree = await self.bot.get_content(URL + "home.html", return_tree=True)
+        gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
         food_storage = tree.xpath('//*[@id="foodQ5"]/text()')[0]
         gift_storage = tree.xpath('//*[@id="giftQ5"]/text()')[0]
         food_limit = tree.xpath('//*[@id="foodLimit2"]')[0].text

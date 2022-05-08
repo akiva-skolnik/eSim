@@ -58,7 +58,7 @@ class Social(Cog):
         """Reading all new msgs and notifications + accept friend requests"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
 
-        tree = await self.bot.get_content(URL, return_tree=True)
+        tree = await self.bot.get_content(URL + "home.html", return_tree=True)
         msgs = int(str(tree.xpath("//*[@id='inboxMessagesMission']/b")[0].text))
         alerts = int(str(tree.xpath('//*[@id="numero1"]/a/b')[0].text))
         if alerts:

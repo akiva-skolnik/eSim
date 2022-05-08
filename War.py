@@ -70,7 +70,7 @@ class War(Cog):
                     f"**{nick}** WARNING: I can't fight in any battle right now, but I will check again after the next restore")
                 await utils.random_sleep(restores)
                 continue
-            tree = await self.bot.get_content(URL, return_tree=True)
+            tree = await self.bot.get_content(URL + "home.html", return_tree=True)
             check = tree.xpath('//*[@id="taskButtonWork"]//@href')  # checking if you can work
             if check and randint(1, 4) == 2:  # Don't work as soon as you can (suspicious)
                 current_loc = await utils.location(self.bot, nick, server)
@@ -653,7 +653,7 @@ class War(Cog):
         if not storage:
             return await ctx.send(f"**{nick}** ERROR: Cannot motivate")
         for k in storage.keys():
-            await ctx.send(f"**{nick}** WARNING: There is not enough {k} in storage")
+            await ctx.send(f"**{nick}** WARNING: There are not enough {k}s in storage")
         newCitizens_tree = await self.bot.get_content(URL + 'newCitizens.html?countryId=0', return_tree=True)
         citizenId = int(newCitizens_tree.xpath("//tr[2]//td[1]/a/@href")[0].split("=")[1])
         checking = list()
@@ -780,7 +780,7 @@ class War(Cog):
     async def supply(self, ctx, amount: int, quality: Optional[Quality], product: Product, *, nick: IsMyNick):
         """Taking a specific product from MU storage."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(URL, return_tree=True)
+        tree = await self.bot.get_content(URL + "home.html", return_tree=True)
         my_id = str(tree.xpath('//*[@id="userName"]/@href')[0]).split("=")[1]
         payload = {'product': f"{quality or 5}-{product}", 'quantity': amount,
                    "reason": " ", "citizen1": my_id, "submit": "Donate"}

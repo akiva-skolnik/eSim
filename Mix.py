@@ -103,7 +103,7 @@ class Mix(Cog):
             if self.bot.should_break(ctx):
                 break
             try:
-                tree = await self.bot.get_content(URL, return_tree=True)
+                tree = await self.bot.get_content(URL + "home.html", return_tree=True)
                 my_id = str(tree.xpath('//*[@id="userName"]/@href')[0]).split("=")[1]
                 try:
                     num = int(str(tree.xpath('//*[@id="inProgressPanel"]/div[1]/div/strong')[0].text).split("#")[1])
