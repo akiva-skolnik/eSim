@@ -574,9 +574,9 @@ class War(Cog):
             await sleep(seconds_till_round_end - seconds_till_hit + 15)
 
     @command()
-    async def auto_motivate(self, ctx, *, nick):
+    async def auto_motivate(self, ctx, *, nick: IsMyNick):
         """Motivates at random times throughout every day"""
-        data = await utils.find_one("auto", "work", os.environ['nick'])
+        data = await utils.find_one("auto", "motivate", os.environ['nick'])
         data_copy = data.copy()
         data[ctx.channel.name] = {"channel_id": str(ctx.channel.id), "message_id": str(ctx.message.id), "nick": nick}
         if data != data_copy:
@@ -598,26 +598,17 @@ class War(Cog):
             await sleep((midnight - now).seconds + 20)
 
     @command()
-    async def motivate(self, ctx, *, nick):
+    async def motivate(self, ctx, *, nick: IsMyNick):
         """
         Send motivates.
         * checking first 200 new citizens only.
         * If you do not have Q3 food / Q3 gift / Q1 weps when it starts - it will try to take some from your MU storage.
-
-        If you want to send motivates with a specific type only, write in this format:
-        .motivate My Nick, wep
         """
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        if "," in nick:
-            nick, Type = nick.split(",")
-            Type = Type.strip()
-        else:
-            Type = "all"
-        await IsMyNick().convert(ctx, nick.strip())
 
         tree = await self.bot.get_content(URL + 'storage.html?storageType=PRODUCT', return_tree=True)
 
-        def get_storage(tree, Type):
+        def get_storage(tree):
             food = int(tree.xpath('//*[@id="foodQ3"]/text()')[0])
             gift = int(tree.xpath('//*[@id="giftQ3"]/text()')[0])
             weps = 0
@@ -633,29 +624,29 @@ class War(Cog):
                     break
 
             storage = {}
-            if Type in ("all", "wep") and weps >= 15:
+            if weps >= 15:
                 storage["Q1 wep"] = 1
 
-            if Type in ("all", "food") and food >= 10:
+            if food >= 10:
                 storage["Q3 food"] = 2
 
-            if Type in ("all", "gift") and gift >= 5:
+            if gift >= 5:
                 storage["Q3 gift"] = 3
             return storage
 
-        storage = get_storage(tree, Type)
+        storage = get_storage(tree)
         if not storage:
             await ctx.invoke(self.bot.get_command("supply"), 15, "1", "WEAPON", nick=nick)
             await ctx.invoke(self.bot.get_command("supply"), 10, "3", "FOOD", nick=nick)
             await ctx.invoke(self.bot.get_command("supply"), 5, "3", "GIFT", nick=nick)
             tree = await self.bot.get_content(URL + 'storage.html?storageType=PRODUCT', return_tree=True)
-            storage = get_storage(tree, Type)
+            storage = get_storage(tree)
         if not storage:
             return await ctx.send(f"**{nick}** ERROR: Cannot motivate")
         for k in storage.keys():
             await ctx.send(f"**{nick}** WARNING: There are not enough {k}s in storage")
-        newCitizens_tree = await self.bot.get_content(URL + 'newCitizens.html?countryId=0', return_tree=True)
-        citizenId = int(newCitizens_tree.xpath("//tr[2]//td[1]/a/@href")[0].split("=")[1])
+        new_citizens_tree = await self.bot.get_content(URL + 'newCitizens.html?countryId=0', return_tree=True)
+        citizenId = int(new_citizens_tree.xpath("//tr[2]//td[1]/a/@href")[0].split("=")[1])
         checking = list()
         sent_count = 0
         while not self.bot.should_break(ctx):
