@@ -304,7 +304,7 @@ class War(Cog):
                 if server not in self.bot.should_break_dict:
                     self.bot.should_break_dict[server] = {}
                 self.bot.should_break_dict[server][Command] = True
-                if "auto_" in Command and "fight" not in command:  # auto_motivate and auto_work
+                if "auto_" in Command and "fight" not in Command:  # auto_motivate and auto_work
                     data = await utils.find_one("auto", Command.split("_")[1], os.environ['nick'])
                     if server in data:
                         del data[server]
