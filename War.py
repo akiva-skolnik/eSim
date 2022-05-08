@@ -1,8 +1,8 @@
 import re
 from asyncio import sleep
-from datetime import datetime, timedelta
+from datetime import datetime, time as dt_time, timedelta
 from random import randint, uniform
-from time import time
+import time
 from typing import Optional
 import os
 
@@ -19,7 +19,7 @@ class War(Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def dump_health(self, ctx, server, battle_id, side, wep):
+    async def dump_health(self, server, battle_id, side, wep):
         URL = f"https://{server}.e-sim.org/"
         tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}', return_tree=True)
         fight_url, data = await self.get_fight_data(URL, tree, wep, side)
@@ -88,13 +88,13 @@ class War(Cog):
             fight_ability = tree.xpath("//*[@id='newFightView']//div[3]//div[3]//div//text()[1]")
             if any("You can't fight in this battle from your current location." in s for s in fight_ability):
                 return await ctx.send(f"**{nick}** ERROR: You can't fight in this battle from your current location.")
-            await self.dump_health(ctx, server, battle_id, side, wep)
+            await self.dump_health(server, battle_id, side, wep)
             if food:
                 await self.bot.get_content(f"{URL}eat.html", data={'quality': food})
             if gift:
                 await self.bot.get_content(f"{URL}gift.html", data={'quality': gift})
             if food or gift:
-                await self.dump_health(ctx, server, battle_id, side, wep)
+                await self.dump_health(server, battle_id, side, wep)
             await utils.random_sleep(restores)
 
     @command()
@@ -219,8 +219,8 @@ class War(Cog):
         fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
         hits_or_dmg = "hits" if dmg < 1000 else "dmg"
         round_ends = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
-        start = time()
-        while not self.bot.should_break(ctx) and damage_done < dmg and (time() - start < round_ends):
+        start = time.time()
+        while not self.bot.should_break(ctx) and damage_done < dmg and (time.time() - start < round_ends):
             if weapon_quality > 0 and ((dmg >= 5 and wep < 5) or (dmg < 5 and wep == 0)):
                 await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}\nERROR: no Q{weapon_quality} weps in storage")
                 break
@@ -573,7 +573,31 @@ class War(Cog):
             await ctx.send(f"**{nick}** done {damage_done:,} {hits_or_dmg} at <{link}>")
             await sleep(seconds_till_round_end - seconds_till_hit + 15)
 
-    @command(aliases=["motivates"])
+    @command()
+    async def auto_motivate(self, ctx, *, nick):
+        """Motivates at random times throughout every day"""
+        data = await utils.find_one("auto", "work", os.environ['nick'])
+        data_copy = data.copy()
+        data[ctx.channel.name] = {"channel_id": str(ctx.channel.id), "message_id": str(ctx.message.id), "nick": nick}
+        if data != data_copy:
+            await utils.replace_one("auto", "motivate", os.environ['nick'], data)
+            await ctx.send(f"**{nick}** Alright.")
+
+        while not self.bot.should_break(ctx):  # for every day:
+            tz = timezone('Europe/Berlin')
+            now = datetime.now(tz)
+            midnight = tz.localize(datetime.combine(now + timedelta(days=1), dt_time(0, 0, 0, 0)))
+            sec_til_midnight = (midnight - now).seconds
+            await sleep(uniform(0, sec_til_midnight - 600))
+            await ctx.invoke(self.bot.get_command("motivate"), nick=nick)
+
+            # sleep till midnight
+            tz = timezone('Europe/Berlin')
+            now = datetime.now(tz)
+            midnight = tz.localize(datetime.combine(now + timedelta(days=1), dt_time(0, 0, 0, 0)))
+            await sleep((midnight - now).seconds + 20)
+
+    @command()
     async def motivate(self, ctx, *, nick):
         """
         Send motivates.
@@ -805,8 +829,8 @@ class War(Cog):
             await ctx.send(f"**{nick}** Sleeping for {time_till_round_end} seconds :zzz:")
             await sleep(time_till_round_end - start_time)
             await ctx.send(f"**{nick}** <{battle_link}&round={r['currentRound']}>")
-            start = time()
-            while not self.bot.should_break(ctx) and time() - start < start_time:
+            start = time.time()
+            while not self.bot.should_break(ctx) and time.time() - start < start_time:
                 tree = await self.bot.get_content(battle_link, return_tree=True)
                 if side == "attacker":
                     my_side = int(str(tree.xpath('//*[@id="attackerScore"]/text()')[0]).replace(",", "").strip())

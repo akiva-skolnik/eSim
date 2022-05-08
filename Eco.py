@@ -398,13 +398,37 @@ class Eco(Cog):
 
     @command()
     async def auto_work(self, ctx, work_sessions: Optional[int] = 1, *, nick: IsMyNick):
-        """work at random times throughout the day"""
+        """Works at random times throughout every day"""
         data = await utils.find_one("auto", "work", os.environ['nick'])
+        data_copy = data.copy()
         data[ctx.channel.name] = {"channel_id": str(ctx.channel.id), "message_id": str(ctx.message.id),
                                   "work_sessions": work_sessions, "nick": nick}
-        await utils.replace_one("auto", "work", os.environ['nick'], data)
+        if data != data_copy:
+            await utils.replace_one("auto", "work", os.environ['nick'], data)
+            await ctx.send(f"**{nick}** Alright.")
 
-        await auto_work_func(self.bot, ctx, work_sessions, nick)
+        sec_between_works = (24 * 60 * 60) // work_sessions
+        while not self.bot.should_break(ctx):  # for every day:
+            tz = timezone('Europe/Berlin')
+            now = datetime.now(tz)
+            midnight = tz.localize(datetime.combine(now + timedelta(days=1), time(0, 0, 0, 0)))
+            sec_til_midnight = (midnight - now).seconds
+            x = uniform(0, min(sec_til_midnight, sec_between_works - 2000))
+            await sleep(x)
+            await ctx.invoke(self.bot.get_command("work"), nick=nick)
+            i = work_sessions - 2
+
+            while x + sec_between_works < sec_til_midnight and not self.bot.should_break(ctx):
+                x = uniform(x + sec_between_works + 20, sec_til_midnight - i * sec_between_works - i * 60)
+                await sleep(x)
+                await ctx.invoke(self.bot.get_command("work"), nick=nick)
+                i -= 1
+
+            # sleep till midnight
+            tz = timezone('Europe/Berlin')
+            now = datetime.now(tz)
+            midnight = tz.localize(datetime.combine(now + timedelta(days=1), time(0, 0, 0, 0)))
+            await sleep((midnight - now).seconds + 20)
 
     @command()
     async def send_contracts(self, ctx, contract_id: Id, contract_name, *, nick: IsMyNick):
@@ -482,31 +506,6 @@ async def _received(bot, URL, blacklist, contract_name):
         except:
             break
     return blacklist
-
-
-async def auto_work_func(bot, ctx, work_sessions, nick):
-    sec_between_works = (24 * 60 * 60) // work_sessions
-    while not bot.should_break(ctx):  # for every day:
-        tz = timezone('Europe/Berlin')
-        now = datetime.now(tz)
-        midnight = tz.localize(datetime.combine(now + timedelta(days=1), time(0, 0, 0, 0)))
-        sec_til_midnight = (midnight - now).seconds
-        x = uniform(0, min(sec_til_midnight, sec_between_works - 2000))
-        await sleep(x)
-        await ctx.invoke(bot.get_command("work"), nick=nick)
-        i = work_sessions - 2
-
-        while x + sec_between_works < sec_til_midnight and not bot.should_break(ctx):
-            x = uniform(x + sec_between_works + 20, sec_til_midnight - i * sec_between_works - i * 60)
-            await sleep(x)
-            await ctx.invoke(bot.get_command("work"), nick=nick)
-            i -= 1
-
-        # sleep till midnight
-        tz = timezone('Europe/Berlin')
-        now = datetime.now(tz)
-        midnight = tz.localize(datetime.combine(now + timedelta(days=1), time(0, 0, 0, 0)))
-        await sleep((midnight - now).seconds + 20)
 
 
 def setup(bot):

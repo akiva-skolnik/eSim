@@ -8,8 +8,6 @@ from discord.ext import commands
 from discord.ext.commands import Bot, errors
 from lxml.html import fromstring
 
-from Eco import auto_work_func
-
 bot = Bot(command_prefix=".", case_insensitive=True)
 
 if "config.json" in os.listdir():
@@ -20,6 +18,14 @@ if "config.json" in os.listdir():
 
 import utils
 
+
+async def create_session():
+    return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": os.environ["headers"]})
+
+bot.VERSION = "08/05/2022"
+bot.session = bot.loop.run_until_complete(create_session())
+bot.should_break_dict = {}
+
 for extension in ("Eco", "Mix", "Social", "War", "Info"):
     bot.load_extension(extension)
 
@@ -28,24 +34,23 @@ async def start():
     await bot.wait_until_ready()
     print('Logged in as')
     print(bot.user.name)
+
     # you should change the following line in all your accounts (except for 1) to `"help": ""` https://github.com/e-sim-python/eSim/blob/main/config.json#L9
     # this way the bot will send only one help commands.
     if not await utils.is_helper():
         bot.remove_command("help")
+
     for server, DICT in (await utils.find_one("auto", "work", os.environ['nick'])).items():
         channel = bot.get_channel(int(DICT["channel_id"]))
         message = await channel.fetch_message(int(DICT["message_id"]))
         ctx = await bot.get_context(message)
-        bot.loop.create_task(auto_work_func(bot, ctx, DICT["work_sessions"], DICT["nick"]))
+        bot.loop.create_task(ctx.invoke(bot.get_command("auto_work"), DICT["work_sessions"], nick=DICT["nick"]))
 
-
-async def create_session():
-    return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": os.environ["headers"]})
-
-
-bot.VERSION = "07/05/2022"
-bot.session = bot.loop.run_until_complete(create_session())
-bot.should_break_dict = {}
+    for server, DICT in (await utils.find_one("auto", "motivate", os.environ['nick'])).items():
+        channel = bot.get_channel(int(DICT["channel_id"]))
+        message = await channel.fetch_message(int(DICT["message_id"]))
+        ctx = await bot.get_context(message)
+        bot.loop.create_task(ctx.invoke(bot.get_command("auto_motivate"), nick=DICT["nick"]))
 
 
 def should_break(ctx):
@@ -165,7 +170,6 @@ async def on_command_error(ctx, error):
 
 bot.get_content = get_content
 bot.should_break = should_break
-bot.create_session = create_session
 if os.environ["TOKEN"] != "PASTE YOUR TOKEN HERE":
     bot.loop.create_task(start())  # startup function
     bot.run(os.environ["TOKEN"])
