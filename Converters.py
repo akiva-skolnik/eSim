@@ -1,6 +1,9 @@
+from aiohttp import ClientSession
 from discord.ext.commands import BadArgument, Converter, errors
 
 import utils
+
+session = ClientSession()
 
 
 class IsMyNick(Converter):
@@ -76,6 +79,14 @@ class Product(Converter):
 
             **Product list:**
             {", ".join(products).title()}""")
+
+
+class Country(Converter):
+    async def convert(self, ctx, country: str) -> int:
+        if not country.isdigit():
+            api = await session.get(f"https://{ctx.channel.name}.e-sim.org/apiCountries.html")
+            country = next(x['id'] for x in await api.json(content_type=None) if x["name"].lower() == country.strip().lower())
+        return country
 
 
 class Dmg(Converter):

@@ -771,12 +771,15 @@ class War(Cog):
     async def supply(self, ctx, amount: int, quality: Optional[Quality], product: Product, *, nick: IsMyNick):
         """Taking a specific product from MU storage."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(URL + "home.html", return_tree=True)
+        tree = await self.bot.get_content(URL + "militaryUnitStorage.html", return_tree=True)
         my_id = str(tree.xpath('//*[@id="userName"]/@href')[0]).split("=")[1]
         payload = {'product': f"{quality or 5}-{product}", 'quantity': amount,
                    "reason": " ", "citizen1": my_id, "submit": "Donate"}
         url = await self.bot.get_content(URL + "militaryUnitStorage.html", data=payload)
-        await ctx.send(f"**{nick}** <{url}>")
+        if "index" in url:
+            await ctx.send(f"**{nick}** You are not in any military unit.")
+        else:
+            await ctx.send(f"**{nick}** <{url}>")
 
     @command(aliases=["gift"])
     async def food(self, ctx, quality: Optional[int] = 5, *, nick: IsMyNick):

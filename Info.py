@@ -8,7 +8,7 @@ from lxml.html import fromstring
 from pytz import timezone
 
 import utils
-from Converters import IsMyNick
+from Converters import Country, IsMyNick
 
 
 class Info(Cog):
@@ -124,13 +124,11 @@ class Info(Cog):
 
     @command()
     @check(utils.is_helper)
-    async def regions(self, ctx, country):
+    async def regions(self, ctx, country: Country):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         api_regions = await self.bot.get_content(URL + "apiRegions.html")
-        api_countries = await self.bot.get_content(URL + "apiCountries.html")
-        country_id = next(x['id'] for x in api_countries if x["name"].lower() == country.lower())
-        regions = [region for region in api_regions if region["homeCountry"] == country_id]
-        embed = Embed(title=f"Core Regions {country}")
+        regions = [region for region in api_regions if region["homeCountry"] == country]
+        embed = Embed(title="Core Regions")
         embed.add_field(name="Region", value="\n".join(f"[{region['name']}]({URL}region.html?id={region['id']})" +
                                                        (" (capital)" if region["capital"] else "") for region in regions))
         embed.add_field(name="Resource", value="\n".join(f"{region['rawRichness'].title()} {region.get('resource', '').title()}" for region in regions))

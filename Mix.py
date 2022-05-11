@@ -2,13 +2,12 @@ import json
 from asyncio import sleep
 from base64 import b64encode
 from datetime import datetime
-from io import BytesIO
+from io import BytesIO, StringIO
 from os import environ
 from random import choice, randint, uniform
 import textwrap
 from typing import Optional
 from contextlib import redirect_stdout
-from io import StringIO
 import traceback
 
 from aiohttp import ClientSession
@@ -17,7 +16,7 @@ from discord.ext.commands import Cog, command, is_owner
 from pytz import timezone
 
 import utils
-from Converters import Id, IsMyNick, Quality
+from Converters import Country, Id, IsMyNick, Quality
 
 
 class Mix(Cog):
@@ -354,7 +353,7 @@ class Mix(Cog):
             utils.initiate_db()
 
     @command()
-    async def register(self, ctx, lan, country_id: int, *, nick: IsMyNick):
+    async def register(self, ctx, lan, country: Country, *, nick: IsMyNick):
         """User registration.
         If you want to register with a different nick or with another password, see .help config"""
         server = ctx.channel.name
@@ -364,7 +363,7 @@ class Mix(Cog):
             async with session.get(URL, ssl=True) as _:
                 async with session.get(URL + "index.html?advancedRegistration=true&lan=" + lan.replace(f"{URL}lan.", ""), ssl=True) as _:
                     payload = {"login": nick, "password": environ.get(server+"_pw", environ['pw']), "mail": "",
-                               "countryId": country_id, "checkHuman": "Human"}
+                               "countryId": country, "checkHuman": "Human"}
                     async with session.post(URL + "registration.html", data=payload, ssl=True) as registration:
                         if "profile" not in str(registration.url) and URL + "index.html" not in str(registration.url):
                             await ctx.send(f"**{nick}** ERROR: Could not register")
@@ -425,7 +424,7 @@ class Mix(Cog):
         if payload:
             tree = await self.bot.get_content(URL + link, data=payload, return_tree=True)
             msg = tree.xpath('//*[@id="esim-layout"]//div[1]/text()')
-            await ctx.send(f"**{nick}** {' '.join(msg) or 'done'}")
+            await ctx.send(f"**{nick}** {' '.join(msg).strip() or 'done'}")
         else:
             await ctx.send(f"**{nick}** candidate {your_candidate} was not found")
 

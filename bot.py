@@ -1,28 +1,20 @@
 from asyncio import sleep
-from json import load
 import os
 from traceback import format_exception
 
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession
 from discord.ext import commands
 from discord.ext.commands import Bot, errors
 from lxml.html import fromstring
-
-bot = Bot(command_prefix=".", case_insensitive=True)
-
-if "config.json" in os.listdir():
-    with open("config.json", 'r') as file:
-        for k, v in load(file).items():
-            if k not in os.environ:
-                os.environ[k] = v
 
 import utils
 
 
 async def create_session():
-    return ClientSession(timeout=ClientTimeout(total=100), headers={"User-Agent": os.environ["headers"]})
+    return ClientSession(headers={"User-Agent": os.environ["headers"]})
 
-bot.VERSION = "08/05/2022"
+bot = Bot(command_prefix=".", case_insensitive=True)
+bot.VERSION = "11/05/2022"
 bot.session = bot.loop.run_until_complete(create_session())
 bot.should_break_dict = {}
 
@@ -174,6 +166,4 @@ if os.environ["TOKEN"] != "PASTE YOUR TOKEN HERE":
     bot.loop.create_task(start())  # startup function
     bot.run(os.environ["TOKEN"])
 else:
-    print("ERROR: please follow the instructions here: https://github.com/e-sim-python/eSim#setup")
-
-# todo: formatting output (also with profile link in title)
+    print("ERROR: please follow those instructions: https://github.com/e-sim-python/eSim#setup")

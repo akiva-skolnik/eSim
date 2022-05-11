@@ -9,7 +9,7 @@ from discord.ext.commands import Cog, command
 from pytz import timezone
 
 import utils
-from Converters import Bool, Id, IsMyNick, Product, Quality
+from Converters import Bool, Country, Id, IsMyNick, Product, Quality
 
 
 class Eco(Cog):
@@ -58,14 +58,14 @@ class Eco(Cog):
             await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def cc(self, ctx, country_id: int, max_price: float, amount: float, *, nick: IsMyNick):
+    async def cc(self, ctx, country: Country, max_price: float, amount: float, *, nick: IsMyNick):
         """Buying specific amount of coins, up to a pre-determined price.
         (It can help if there are many small offers, like NPC)"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         bought_amount = 0
 
         for Index in range(10):  # 10 pages
-            tree = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country_id}", return_tree=True)
+            tree = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country}", return_tree=True)
             prices = tree.xpath("//td[3]//b/text()")
             IDs = [ID.value for ID in tree.xpath("//td[4]//form[1]//input[@value][2]")][:len(prices)]
             amounts = tree.xpath('//td[2]//b/text()')[:len(prices)]
@@ -80,7 +80,7 @@ class Eco(Cog):
                     
                     payload = {'action': "buy", 'id': ID, 'ammount': round(min(offer_amount, amount - bought_amount), 2),
                                'stockCompanyId': '', 'submit': 'Buy'}
-                    url = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country_id}", data=payload)
+                    url = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country}", data=payload)
                     if "MM_POST_OK_BUY" not in str(url):
                         await ctx.send(f"ERROR: <{url}>")
                         break
@@ -190,18 +190,28 @@ class Eco(Cog):
         """Leaving current job and applying to the given company_id or to the best offer at the local market."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         if company_id != 0:
+            api_citizen = await self.bot.get_content(f"{URL}apiCitizenByName.html?name={nick.lower()}")
             tree = await self.bot.get_content(f"{URL}company.html?id={company_id}", return_tree=True)
-            try:
-                job_id = tree.xpath('//tr[2]//td[4]//input[1]')[0].value
-            except:
-                return await ctx.send(f"**{nick}** ERROR: There are no job offers in this company.")
+            job_ids = tree.xpath('//td[4]//input[1]')
+            skills = [int(x) for x in tree.xpath('//td[1]/text()') if x.isdigit()]
+            job_id = None
+            for job_id, skill in zip(job_ids, skills):
+                if api_citizen["economySkill"] >= skill:
+                    break
+            if job_id is not None:
+                job_id = job_id.value
+            else:
+                return await ctx.send(f"**{nick}** ERROR: There are no job offers in <{URL}company.html?id={company_id}> for your skill.")
         else:
             tree = await self.bot.get_content(URL + "jobMarket.html", return_tree=True)
             job_id = tree.xpath("//tr[2]//td[6]//input[1]")[0].value
+
         url = await self.bot.get_content(URL + "jobMarket.html", data={"id": job_id, "submit": "Apply"})
         if "APPLY_FOR_JOB_ALREADY_HAVE_JOB" in url:
             await self.bot.get_content(URL + "work.html", data={'action': "leave", "submit": "Leave job"})
             url = await self.bot.get_content(URL + "jobMarket.html", data={"id": job_id, "submit": "Apply"})
+            if "APPLY_FOR_JOB_ALREADY_HAVE_JOB" in url:
+                return await ctx.send(f"**{nick}** ERROR: Couldn't apply for a new job. Perhaps you should wait 6 hours.")
         await ctx.send(f"**{nick}** <{url}>")
         await ctx.invoke(self.bot.get_command("work"), nick=nick)
 
@@ -320,11 +330,11 @@ class Eco(Cog):
                 break
 
     @command()
-    async def sell(self, ctx, quantity: int, quality: Optional[Quality], product: Product, price: float, country_id, *, nick: IsMyNick):
+    async def sell(self, ctx, quantity: int, quality: Optional[Quality], product: Product, price: float, country: Country, *, nick: IsMyNick):
         """Sell products at market."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         payload = {'storageType': 'PRODUCT', 'action': 'POST_OFFER', 'product': f'{quality or 5}-{product}',
-                   'countryId': country_id, 'quantity': quantity, 'price': price}
+                   'countryId': country, 'quantity': quantity, 'price': price}
         url = await self.bot.get_content(URL + "storage.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 

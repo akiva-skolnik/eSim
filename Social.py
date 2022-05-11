@@ -1,12 +1,13 @@
 from asyncio import sleep
 from json import loads
 from random import choice
+from typing import Union
 
 from discord import Embed
 from discord.ext.commands import Cog, command
 
 import Eco
-from Converters import Id, IsMyNick
+from Converters import Country, Id, IsMyNick
 
 
 class Social(Cog):
@@ -105,7 +106,7 @@ class Social(Cog):
             await ctx.send(f"**{nick}:** There are no new alerts or messages!")
 
     @command(aliases=["MU"])
-    async def citizenship(self, ctx, country_or_mu_id: int, *, nick: IsMyNick):
+    async def citizenship(self, ctx, country_or_mu: Union[Country, Id], *, nick: IsMyNick):
         """Send application to a MU / country."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         messages = ["The application will be reviewed by congress members",
@@ -115,7 +116,7 @@ class Social(Cog):
                     ]
 
         if ctx.invoked_with.lower() == "citizenship":
-            payload = {'action': "APPLY", 'countryId': country_or_mu_id, "message": choice(messages), "submit": "Apply for citizenship"}
+            payload = {'action': "APPLY", 'countryId': country_or_mu, "message": choice(messages), "submit": "Apply for citizenship"}
             link = "citizenshipApplicationAction.html"
             await self.bot.get_content(URL + "countryLaws.html")
             await self.bot.get_content(URL + "countryLaws.html", data={"action": "LEAVE_CONGRESS", "submit": "Leave congress"})
@@ -125,7 +126,7 @@ class Social(Cog):
             if ID:
                 await self.bot.get_content(URL + "citizenshipApplicationAction.html", data={"action": "CANCEL", "applicationId": ID[0], "submit": "Cancel"})
         else:
-            payload = {'action': "SEND_APPLICATION", 'id': country_or_mu_id, "message": choice(messages), "submit": "Send application"}
+            payload = {'action': "SEND_APPLICATION", 'id': country_or_mu, "message": choice(messages), "submit": "Send application"}
             link = "militaryUnitsActions.html"
             await self.bot.get_content(URL + link, data={"action": "CANCEL_APPLICATION", "submit": "Cancel application"})
             await self.bot.get_content(URL + link, data={"action": "LEAVE_MILITARY_UNIT", "submit": "Leave military unit"})
