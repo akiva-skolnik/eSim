@@ -17,9 +17,10 @@ class Info(Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @command(hidden=True)
+    @command(aliases=["version"], hidden=True)
     async def ping(self, ctx, *, nicks):
-        """Shows who is connected to host"""
+        """Shows the code version of the given nick(s).
+        Can also use: .ping all"""
         server = ctx.channel.name
         for nick in [x.strip() for x in nicks.split(",") if x.strip()]:
             if nick.lower() == "all":
@@ -52,7 +53,7 @@ class Info(Cog):
 
     @command(aliases=["inventory"])
     async def inv(self, ctx, *, nick: IsMyNick):
-        """Shows all of your in-game inventory."""
+        """Shows your inventory."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         storage_tree = await self.bot.get_content(f"{URL}storage.html?storageType=PRODUCT", return_tree=True)
         special_tree = await self.bot.get_content(f"{URL}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
@@ -81,7 +82,7 @@ class Info(Cog):
 
     @command()
     async def muinv(self, ctx, *, nick: IsMyNick):
-        """Shows all of your in-game Military Unit inventory."""
+        """Shows your military unit inventory."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(f"{URL}militaryUnitStorage.html", return_tree=True)
         products = dict()
@@ -125,6 +126,7 @@ class Info(Cog):
     @command()
     @check(utils.is_helper)
     async def regions(self, ctx, country: Country):
+        """Lists the core regions of the given country"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         api_regions = await self.bot.get_content(URL + "apiRegions.html")
         regions = [region for region in api_regions if region["homeCountry"] == country]
@@ -138,6 +140,7 @@ class Info(Cog):
     @command()
     @check(utils.is_helper)
     async def country(self, ctx, country):
+        """Provides some info about the given country."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         api_countries = await self.bot.get_content(URL + "apiCountries.html")
         country = next(x for x in api_countries if x["name"].lower() == country.lower())
@@ -156,6 +159,7 @@ class Info(Cog):
     @command()
     @check(utils.is_helper)
     async def auctions(self, ctx):
+        """Lists some details about the first upcoming 10 auctions"""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(URL + "auctions.html", return_tree=True)
         col1 = list()
@@ -206,7 +210,7 @@ class Info(Cog):
     async def info(self, ctx, *, nick: IsMyNick):
         """Shows some info about a given user.
         .info- will give you a brief info about all users connected to MongoDB
-        (if you did not set it via config.json, the info is only about you)"""
+        (if you did not set it via config.json or config command, the info is only about you)"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         tree = await self.bot.get_content(URL + "storage.html?storageType=PRODUCT", return_tree=True)

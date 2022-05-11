@@ -620,6 +620,7 @@ class War(Cog):
                         item[0] = item[0].replace("  ", "")
                     if item[0] == "Q1 Weapon":
                         weps = int(item[1])
+                        break
                 except:
                     break
 

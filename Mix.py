@@ -355,7 +355,7 @@ class Mix(Cog):
     @command()
     async def register(self, ctx, lan, country: Country, *, nick: IsMyNick):
         """User registration.
-        If you want to register with a different nick or with another password, see .help config"""
+        If you want to register with a different nick or password, see .help config"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
         headers = {"User-Agent": "Dalvik/2.1.0 (Linux; U; Android 5.1.1; AFTM Build/LVY48F) CTV"}
