@@ -39,7 +39,7 @@ class War(Cog):
 
     @command()
     async def auto_fight(self, ctx, nick: IsMyNick, restores: int = 100, battle_id: Id = 0,
-                         side: Side = "attacker", wep: int = 0, food: int = 5, gift: int = 0, ticket_quality: int = 5,
+                         side: Side = "attacker", wep: Quality = 0, food: Quality = 5, gift: Quality = 0, ticket_quality: Quality = 5,
                          chance_to_skip_restore: int = 15):
         """Dumping health at a random time every restore
 
@@ -177,8 +177,8 @@ class War(Cog):
         return f"{URL}{fight_page_id}", data
 
     @command()
-    async def fight(self, ctx, nick: IsMyNick, link: Id, side: Side, weapon_quality: int = 5,
-                    dmg_or_hits: Dmg = 200, ticket_quality: int = 5, consume_first="food"):
+    async def fight(self, ctx, nick: IsMyNick, link: Id, side: Side, weapon_quality: Quality = 5,
+                    dmg_or_hits: Dmg = 200, ticket_quality: Quality = 5, consume_first="food"):
         """
         Dumping limits at a specific battle.
 
@@ -313,8 +313,8 @@ class War(Cog):
                 await ctx.send(f"**{nick}** done.")
 
     @command()
-    async def hunt(self, ctx, nick: IsMyNick, max_dmg_for_bh: Dmg = 1, weapon_quality: int = 5, start_time: int = 30,
-                   ticket_quality: int = 5):
+    async def hunt(self, ctx, nick: IsMyNick, max_dmg_for_bh: Dmg = 1, weapon_quality: Quality = 5, start_time: int = 30,
+                   ticket_quality: Quality = 5):
         """Auto hunt BHs (attack and RWs)
         If `nick` contains more than 1 word - it must be within quotes."""
         dead_servers = ["primera", "secura", "suna"]
@@ -489,7 +489,7 @@ class War(Cog):
 
     @command()
     async def hunt_battle(self, ctx, nick: IsMyNick, link, side: Side, dmg_or_hits_per_bh: Dmg = 1,
-                          weapon_quality: int = 0, food: int = 5, gift: int = 5, start_time: int = 0):
+                          weapon_quality: Quality = 0, food: Quality = 5, gift: Quality = 5, start_time: int = 0):
         """Hunting BH at a specific battle.
         (Good for practice battle / leagues / civil war)
 
@@ -509,7 +509,7 @@ class War(Cog):
                 await sleep(30)
                 continue
             seconds_till_hit = uniform(10, seconds_till_round_end - 10) if start_time < 10 else (seconds_till_round_end - uniform(start_time-5, start_time+5))
-            await ctx.send(f"**{nick}** {seconds_till_hit} seconds from now (at T {timedelta(seconds=seconds_till_round_end-seconds_till_hit)}),"
+            await ctx.send(f"**{nick}** {round(seconds_till_hit)} seconds from now (at T {timedelta(seconds=round(seconds_till_round_end-seconds_till_hit))}),"
                            f" I will hit {dmg} {hits_or_dmg} at <{link}> for the {side} side.\n"
                            f"If you want to cancel it, type `.hold hunt_battle {nick}`")
             await sleep(seconds_till_hit)
@@ -644,8 +644,9 @@ class War(Cog):
             storage = get_storage(tree)
         if not storage:
             return await ctx.send(f"**{nick}** ERROR: Cannot motivate")
-        for k in storage.keys():
-            await ctx.send(f"**{nick}** WARNING: There are not enough {k}s in storage")
+        for k in ("Q1 wep", "Q3 food", "Q3 gift"):
+            if k not in storage:
+                await ctx.send(f"**{nick}** WARNING: There are not enough {k}s in storage")
         new_citizens_tree = await self.bot.get_content(URL + 'newCitizens.html?countryId=0', return_tree=True)
         citizenId = int(new_citizens_tree.xpath("//tr[2]//td[1]/a/@href")[0].split("=")[1])
         checking = list()
@@ -791,8 +792,8 @@ class War(Cog):
 
     @command()
     async def watch(self, ctx, nick: IsMyNick, link: Id, side: Side, start_time: int = 60,
-                    keep_wall: Dmg = 3000000, let_overkill: Dmg = 10000000, weapon_quality: int = 5,
-                    ticket_quality: int = 5, consume_first="food"):
+                    keep_wall: Dmg = 3000000, let_overkill: Dmg = 10000000, weapon_quality: Quality = 5,
+                    ticket_quality: Quality = 5, consume_first="food"):
         """
         Fight at the last minutes of every round in a given battle.
 

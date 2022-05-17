@@ -1,5 +1,6 @@
 from asyncio import sleep
 import os
+import json
 from traceback import format_exception
 
 from aiohttp import ClientSession
@@ -13,8 +14,17 @@ import utils
 async def create_session():
     return ClientSession(headers={"User-Agent": os.environ["headers"]})
 
+config_file = "config.json"
+if config_file in os.listdir():
+    with open(config_file, 'r') as file:
+        for k, v in json.load(file).items():
+            if k not in os.environ:
+                os.environ[k] = v
+
+utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True)
-bot.VERSION = "11/05/2022"
+bot.VERSION = "18/05/2022"
+bot.config_file = config_file
 bot.session = bot.loop.run_until_complete(create_session())
 bot.should_break_dict = {}
 
@@ -147,11 +157,13 @@ async def on_command_error(ctx, error):
         return await ctx.send("ERROR: you can't use this command in a private message!")
     if isinstance(error, (commands.CommandNotFound, errors.CheckFailure)):
         return
-    if isinstance(error, (errors.MissingRequiredArgument, errors.BadArgument)) and not await utils.is_helper():
+    if isinstance(error, (errors.MissingRequiredArgument, errors.BadArgument)):
+        if await utils.is_helper():
+            await ctx.reply(f"```{''.join(format_exception(type(error), error, error.__traceback__))}```"[:1950])
         return
     last_msg = str(list(await ctx.channel.history(limit=1).flatten())[0].content)
     nick = utils.my_nick(ctx.channel.name)
-    error_msg = f"**{nick}** ```{''.join(format_exception(type(error), error, error.__traceback__))}```"[:2000]
+    error_msg = f"**{nick}** ```{''.join(format_exception(type(error), error, error.__traceback__))}```"[:1950]
     if error_msg != last_msg:
         # Don't send from all users.
         try:

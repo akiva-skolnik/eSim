@@ -12,7 +12,6 @@ If you appreciate my hard word, please consider [buying me a coffee](https://www
 1. [Introduction](https://github.com/e-sim-python/eSim#introduction)
 2. [Installation](https://github.com/e-sim-python/eSim#installation)
 3. [Setup](https://github.com/e-sim-python/eSim#setup)
-4. [Troubleshooting](https://github.com/e-sim-python/eSim#troubleshooting)
 
 ## Introduction
 **This version is the right way, without workaround tricks to implement this library.**  
@@ -46,9 +45,5 @@ Optional: Create an account at https://www.mongodb.com/ and get a URL with your 
    It's also recommended adding the IP `0.0.0.0/0` at the "Network Access" tab.   
    - add `"database_url": "YOUR DATABASE URL",` at [config.json](https://github.com/e-sim-python/eSim/blob/main/config.json)
 
-
-## Troubleshooting:
-First thing: write `.limits <nick>` and see if you get an error.  
-If yes, type `.login <nick>` (it is caused when you log in using your browser too)
 
 # Good luck & have fun!

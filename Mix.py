@@ -334,20 +334,19 @@ class Mix(Cog):
             .config alpha_pw 1234  my_nick
             .config help ""  my_nick
         """
-        filename = "config.json"
-        with open(filename, "r") as file:
+        with open(self.bot.config_file, "r") as file:
             big_dict = json.load(file)
         if not value and key in big_dict:
             del big_dict[key]
             del environ[key]
-            await ctx.send(f"I have deleted the `{key}` key from {nick}'s config.json file")
+            await ctx.send(f"I have deleted the `{key}` key from {nick}'s {self.bot.config_file} file")
             if key == "help":
                 self.bot.remove_command("help")
         else:
             big_dict[key] = value
             environ[key] = value
-            await ctx.send(f"I have added the following pair to {nick}'s config.json file: `{key} = {value}`")
-        with open(filename, "w") as file:
+            await ctx.send(f"I have added the following pair to {nick}'s {self.bot.config_file} file: `{key} = {value}`")
+        with open(self.bot.config_file, "w") as file:
             json.dump(big_dict, file)
         if key == "database_url":
             utils.initiate_db()

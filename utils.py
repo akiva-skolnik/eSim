@@ -4,12 +4,6 @@ import json
 import os
 from random import randint
 
-if "config.json" in os.listdir():
-    with open("config.json", 'r') as file:
-        for k, v in json.load(file).items():
-            if k not in os.environ:
-                os.environ[k] = v
-
 client = None
 
 
@@ -28,9 +22,6 @@ def initiate_db():
             client = AsyncIOMotorClient(os.environ['database_url'])
     else:
         client = None
-
-
-initiate_db()
 
 
 async def find(server: str, collection: str) -> list:
