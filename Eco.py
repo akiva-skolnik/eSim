@@ -128,7 +128,9 @@ class Eco(Cog):
 
             mm_needed = min(stock, amount - products_bought) * cost - mm_got
             mm_bought = 0
-            while mm_bought < mm_needed and not self.bot.should_break(ctx):
+            while mm_bought < mm_needed:
+                if self.bot.should_break(ctx):
+                    return
                 tree1 = await self.bot.get_content(URL + "monetaryMarket.html", return_tree=True)
                 try:
                     ID = tree1.xpath("//tr[2]//td[4]//form[1]//input[@value][2]")[0].value
@@ -146,8 +148,7 @@ class Eco(Cog):
                 await ctx.send(f"**{nick}** Bought {payload['ammount']} coins at {price} each.")
                 mm_bought += cc_quantity
             mm_got += mm_bought
-
-            quantity = min(stock, amount, mm_got // cost)
+            quantity = min(stock, amount, round(mm_got / cost))
             payload = {'action': "buy", 'id': product_id, 'quantity': quantity, "submit": "Buy"}
             url = await self.bot.get_content(URL + "productMarket.html", data=payload)
             await ctx.send(f"**{nick}** Quantity: {quantity}. Price: {cost} {mm_type} each. <{url}>")
@@ -423,12 +424,14 @@ class Eco(Cog):
             now = datetime.now(tz)
             midnight = tz.localize(datetime.combine(now + timedelta(days=1), time(0, 0, 0, 0)))
             sec_til_midnight = (midnight - now).seconds
-            x = uniform(0, min(sec_til_midnight, sec_between_works - 2000))
+            x = uniform(0, min(sec_til_midnight-30, sec_between_works - 2000))
             await sleep(x)
             await ctx.invoke(self.bot.get_command("work"), nick=nick)
             i = work_sessions - 2
 
-            while x + sec_between_works < sec_til_midnight and not self.bot.should_break(ctx):
+            while x + sec_between_works < sec_til_midnight:
+                if self.bot.should_break(ctx):
+                    return
                 x = uniform(x + sec_between_works + 20, sec_til_midnight - i * sec_between_works - i * 60)
                 await sleep(x)
                 await ctx.invoke(self.bot.get_command("work"), nick=nick)

@@ -38,6 +38,7 @@ async def find(server: str, collection: str) -> list:
 
 
 async def find_one(server: str, collection: str, ID: str) -> dict:
+    ID = ID.replace('"', "").replace("'", "")
     if client is not None:
         database = client[server][collection]
         return await database.find_one({"_id": ID.lower()}, {"_id": 0}) or {}
@@ -51,6 +52,7 @@ async def find_one(server: str, collection: str, ID: str) -> dict:
 
 
 async def replace_one(server: str, collection: str, ID: str, data: dict) -> None:
+    ID = ID.replace('"', "").replace("'", "")
     if client is not None:
         database = client[server][collection]
         await database.replace_one({'_id': ID.lower()}, data, True)

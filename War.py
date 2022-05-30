@@ -87,6 +87,10 @@ class War(Cog):
             tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}', return_tree=True)
             fight_ability = tree.xpath("//*[@id='newFightView']//div[3]//div[3]//div//text()[1]")
             if any("You can't fight in this battle from your current location." in s for s in fight_ability):
+                if specific_battle and 1 <= ticket_quality <= 5:
+                    bonus_region = await utils.get_bonus_region(self.bot, URL, side, api_battles)
+                    if bonus_region:
+                        await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick)
                 return await ctx.send(f"**{nick}** ERROR: You can't fight in this battle from your current location.")
             await self.dump_health(server, battle_id, side, wep)
             if food:
@@ -113,10 +117,14 @@ class War(Cog):
     @command(aliases=["buff-"])
     async def buff(self, ctx, buffs_names, *, nick: IsMyNick):
         """Buy and use buffs.
-        type `.buff-` if you don't want to buy the buff.
+
         The buff names should be formal (can be found via F12), but here are some shortcuts:
         VAC = EXTRA_VACATIONS, SPA = EXTRA_SPA, SEWER = SEWER_GUIDE, STR = STEROIDS, PD_10 = PAIN_DEALER_10_H
-        More examples: BANDAGE_SIZE_C and CAMOUFLAGE_II"""
+        More examples: BANDAGE_SIZE_C and CAMOUFLAGE_II
+
+        * type `.buff-` if you don't want to buy the buff.
+
+        Example: .buff  str,tank  my nick"""
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
 
@@ -177,7 +185,7 @@ class War(Cog):
         return f"{URL}{fight_page_id}", data
 
     @command()
-    async def fight(self, ctx, nick: IsMyNick, link: Id, side: Side, weapon_quality: Quality = 5,
+    async def fight(self, ctx, nick: IsMyNick, battle: Id, side: Side, weapon_quality: Quality = 5,
                     dmg_or_hits: Dmg = 200, ticket_quality: Quality = 5, consume_first="food"):
         """
         Dumping limits at a specific battle.
@@ -192,7 +200,7 @@ class War(Cog):
             return await ctx.send(f"**{nick}** `consume_first` parameter must be food, gift, or none (not {consume_first})")
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
-        link = f"{URL}battle.html?id={link}"
+        link = f"{URL}battle.html?id={battle}"
         dmg = dmg_or_hits
         api = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
         tree = await self.bot.get_content(link, return_tree=True)
@@ -220,8 +228,9 @@ class War(Cog):
         hits_or_dmg = "hits" if dmg < 1000 else "dmg"
         round_ends = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
         start = time.time()
+        error = False
         while not self.bot.should_break(ctx) and damage_done < dmg and (time.time() - start < round_ends):
-            if weapon_quality > 0 and ((dmg >= 5 and wep < 5) or (dmg < 5 and wep == 0)):
+            if weapon_quality > 0 and ((dmg >= 5 > wep) or (dmg < 5 and wep == 0)):
                 await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}\nERROR: no Q{weapon_quality} weps in storage")
                 break
             if (Health < 50 and dmg >= 5) or (Health == 0 and dmg < 5):
@@ -256,42 +265,41 @@ class War(Cog):
                     await self.bot.get_content(f"{URL}{use}.html", data={'quality': 5})
                     Health += 50
 
-            try:
-                tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
-                if not tree.xpath("//*[@id='healthUpdate']/text()"):
-                    if "Slow down a bit!" in tree.text_content():
-                        await sleep(1)
-                        continue
-                    elif "No health left" in tree.text_content():
-                        Health = 0
-                        continue
-                    elif "Round is closed" in tree.text_content():
-                        output += f"\nRound is over."
-                        break
-                    else:
-                        res = tree.xpath('//div//div/text()')
-                        await ctx.send(f"**{nick}** ERROR: {' '.join(res).strip()}")
-                        break
-                if weapon_quality:
-                    wep -= 5 if dmg >= 5 else 1
-                Health = float(tree.xpath("//*[@id='healthUpdate']")[0].text.split()[0])
-                if dmg < 5:
-                    damage_done += 1
-                elif dmg < 1000:
-                    damage_done += 5
+            tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
+            if not tree.xpath("//*[@id='healthUpdate']/text()"):
+                if "Slow down a bit!" in tree.text_content():
+                    await sleep(1)
+                    continue
+                elif "No health left" in tree.text_content():
+                    Health = 0
+                    continue
+                elif "Round is closed" in tree.text_content():
+                    output += f"\nRound is over."
+                    break
                 else:
-                    damage_done += int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
-                update += 1
-                await sleep(uniform(0.3, 0.55))
-            except Exception as error:
-                await ctx.send(f"**{nick}** ERROR: {error}")
-                await sleep(2)
+                    error = True
+                    res = tree.xpath('//div//div/text()')
+                    await ctx.send(f"**{nick}** ERROR: {' '.join(res).strip()}")
+                    break
+            if weapon_quality:
+                wep -= 5 if dmg >= 5 else 1
+            Health = float(tree.xpath("//*[@id='healthUpdate']")[0].text.split()[0])
+            if dmg < 5:
+                damage_done += 1
+            elif dmg < 1000:
+                damage_done += 5
+            else:
+                damage_done += int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
+            update += 1
+            await sleep(uniform(0.3, 0.55))
+
             if update % 4 == 0:
                 # dmg update every 4 berserks.
                 output += f"\n{hits_or_dmg.title()} done so far: {damage_done:,}"
                 await msg.edit(content=output)
         await msg.edit(content=output)
         await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
+        return error
 
     @command(hidden=True)
     async def hold(self, ctx, Command, *, nicks):
@@ -300,6 +308,7 @@ class War(Cog):
         for nick in [x.strip() for x in nicks.split(",") if x.strip()]:
             if nick.lower() == "all":
                 nick = utils.my_nick(server)
+                await sleep(uniform(1, 10))
             if nick.lower() == utils.my_nick(server).lower():
                 if server not in self.bot.should_break_dict:
                     self.bot.should_break_dict[server] = {}
@@ -309,7 +318,7 @@ class War(Cog):
                     if server in data:
                         del data[server]
                         await utils.replace_one("auto", Command.split("_")[1], os.environ['nick'], data)
-                await sleep(uniform(1, 10))
+
                 await ctx.send(f"**{nick}** done.")
 
     @command()
@@ -337,27 +346,25 @@ class War(Cog):
                 apiBattles = await self.bot.get_content(f'{URL}apiBattles.html?battleId={battle_id}')
                 if apiBattles['frozen']:
                     continue
-                time_to_sleep = apiBattles["hoursRemaining"] * 3600 + apiBattles["minutesRemaining"] * 60 + apiBattles[
+                t = apiBattles["hoursRemaining"] * 3600 + apiBattles["minutesRemaining"] * 60 + apiBattles[
                     "secondsRemaining"]
-                await ctx.send(f"**{nick}** Seconds till next battle: {time_to_sleep}")
-                try:
-                    await sleep(time_to_sleep - start_time)
-                except:
-                    pass
-                apiFights = await self.bot.get_content(
+                await ctx.send(f"**{nick}** Seconds till next battle: {t}")
+                if t > start_time:
+                    await sleep(t - start_time)
+                api_fights = await self.bot.get_content(
                     f'{URL}apiFights.html?battleId={battle_id}&roundId={apiBattles["currentRound"]}')
                 defender, attacker = {}, {}
-                for hit in apiFights:
+                for hit in api_fights:
                     side = defender if hit['defenderSide'] else attacker
                     if hit['citizenId'] in side:
                         side[hit['citizenId']] += hit['damage']
                     else:
                         side[hit['citizenId']] = hit['damage']
 
-                neighboursId = [region['neighbours'] for region in apiRegions if region["id"] == apiBattles['regionId']]
-                if not neighboursId:
+                neighbours_id = [region['neighbours'] for region in apiRegions if region["id"] == apiBattles['regionId']]
+                if not neighbours_id:
                     continue  # Not an attack / RW.
-                aBonus = [neighbour for region in apiMap for neighbour in neighboursId[0] if
+                aBonus = [neighbour for region in apiMap for neighbour in neighbours_id[0] if
                           neighbour == region['regionId'] and region['occupantId'] == apiBattles['attackerId']]
 
                 async def fight(side, damage_done):
@@ -450,14 +457,8 @@ class War(Cog):
                         if damage_done > side_dmg:
                             c = await check(side.title(), damage_done, should_continue)
 
-                try:
-                    aDMG = sorted(attacker.items(), key=lambda x: x[1], reverse=True)[0][1]
-                except:
-                    aDMG = 0
-                try:
-                    dDMG = sorted(defender.items(), key=lambda x: x[1], reverse=True)[0][1]
-                except:
-                    dDMG = 0
+                aDMG = sorted(attacker.items(), key=lambda x: x[1], reverse=True)[0][1] if attacker else 0
+                dDMG = sorted(defender.items(), key=lambda x: x[1], reverse=True)[0][1] if defender else 0
                 if aDMG < max_dmg_for_bh or dDMG < max_dmg_for_bh:
                     if self.bot.should_break(ctx):
                         return
@@ -486,6 +487,7 @@ class War(Cog):
                             await hunting("defender", dDMG, aDMG < max_dmg_for_bh)
                     else:
                         continue
+            await sleep(30)
 
     @command()
     async def hunt_battle(self, ctx, nick: IsMyNick, link, side: Side, dmg_or_hits_per_bh: Dmg = 1,
@@ -525,7 +527,7 @@ class War(Cog):
             damage_done = 0
             fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
 
-            while damage_done < dmg and not self.bot.should_break(ctx):
+            while damage_done < dmg and not self.bot.should_break(ctx, False):
                 Health = tree.xpath('//*[@id="actualHealth"]/text()') or tree.xpath("//*[@id='healthUpdate']/text()")
                 if Health:
                     Health = float(Health[0].split()[0])
@@ -571,7 +573,8 @@ class War(Cog):
                 await sleep(uniform(0, 2))
 
             await ctx.send(f"**{nick}** done {damage_done:,} {hits_or_dmg} at <{link}>")
-            await sleep(seconds_till_round_end - seconds_till_hit + 15)
+            if not self.bot.should_break(ctx, False):
+                await sleep(seconds_till_round_end - seconds_till_hit + 15)
 
     @command()
     async def auto_motivate(self, ctx, *, nick: IsMyNick):
@@ -791,7 +794,7 @@ class War(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def watch(self, ctx, nick: IsMyNick, link: Id, side: Side, start_time: int = 60,
+    async def watch(self, ctx, nick: IsMyNick, battle: Id, side: Side, start_time: int = 60,
                     keep_wall: Dmg = 3000000, let_overkill: Dmg = 10000000, weapon_quality: Quality = 5,
                     ticket_quality: Quality = 5, consume_first="food"):
         """
@@ -809,39 +812,37 @@ class War(Cog):
         * It will auto fly to bonus region (with Q5 ticket)
         * If `nick` contains more than 1 word - it must be within quotes.
         """
-        server = ctx.channel.name
-        battle_link = f"https://{server}.e-sim.org/battle.html?id={link}"
-        URL = f"https://{server}.e-sim.org/"
-
-        r = await self.bot.get_content(battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
-        if 1 <= ticket_quality <= 5:
-            bonus_region = await utils.get_bonus_region(self.bot, URL, side, r)
-            if bonus_region:
-                await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick)
-
-        while 8 not in (r['defenderScore'], r['attackerScore']):
+        URL = f"https://{ctx.channel.name}.e-sim.org/"
+        api_citizen = await self.bot.get_content(f'{URL}apiCitizenByName.html?name={nick.lower()}')
+        battle_link = f"{URL}battle.html?id={battle}"
+        while not self.bot.should_break(ctx):
             r = await self.bot.get_content(battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
+            if 8 in (r['defenderScore'], r['attackerScore']):
+                break
             time_till_round_end = r["hoursRemaining"] * 3600 + r["minutesRemaining"] * 60 + r["secondsRemaining"]
-            await ctx.send(f"**{nick}** Sleeping for {time_till_round_end} seconds :zzz:")
+            await ctx.send(f"**{nick}** Sleeping for {time_till_round_end - start_time} seconds :zzz:")
             await sleep(time_till_round_end - start_time)
-            await ctx.send(f"**{nick}** <{battle_link}&round={r['currentRound']}>")
+            await ctx.send(f"**{nick}** T{round(start_time / 60, 1)} at <{battle_link}&round={r['currentRound']}>")
             start = time.time()
-            while not self.bot.should_break(ctx) and time.time() - start < start_time:
-                tree = await self.bot.get_content(battle_link, return_tree=True)
-                if side == "attacker":
-                    my_side = int(str(tree.xpath('//*[@id="attackerScore"]/text()')[0]).replace(",", "").strip())
-                    enemy_side = int(str(tree.xpath('//*[@id="defenderScore"]/text()')[0]).replace(",", "").strip())
-                else:
-                    my_side = int(str(tree.xpath('//*[@id="defenderScore"]/text()')[0]).replace(",", "").strip())
-                    enemy_side = int(str(tree.xpath('//*[@id="attackerScore"]/text()')[0]).replace(",", "").strip())
-                if enemy_side - my_side > let_overkill:
-                    await sleep(5)
-                    continue
-                if my_side - enemy_side > keep_wall:
-                    await sleep(5)
-                    continue
-                await ctx.invoke(self.bot.get_command("fight"), nick, link, side, weapon_quality,
-                                 abs(my_side - enemy_side) + keep_wall, ticket_quality, consume_first)
+            tree = await self.bot.get_content(battle_link, return_tree=True)
+            hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
+            while time.time() - start < start_time:
+                if self.bot.should_break(ctx):
+                    return
+                battle_score = await self.bot.get_content(
+                    f'{URL}battleScore.html?id={hidden_id}&at={api_citizen["id"]}&ci={api_citizen["citizenshipId"]}&premium=1',
+                    return_type="json")
+                if battle_score["remainingTimeInSeconds"] <= 0:
+                    break
+                my_side = int(battle_score[f"{side}Score"].replace(",", ""))
+                enemy_side = int(battle_score[("defender" if side == "attacker" else "attacker") + "Score"].replace(",", ""))
+                if enemy_side - my_side < let_overkill and my_side - enemy_side < keep_wall:
+                    error = await ctx.invoke(self.bot.get_command("fight"), nick, battle, side, weapon_quality,
+                                             abs(my_side - enemy_side) + keep_wall, ticket_quality, consume_first)
+                    if error:
+                        return
+                await sleep(uniform(2, 5))
+            await sleep(30)
 
     @command(aliases=["unwear"])
     async def wear(self, ctx, ids, *, nick: IsMyNick):

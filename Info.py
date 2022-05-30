@@ -196,7 +196,7 @@ class Info(Cog):
     async def info_(self, ctx):
         values = await utils.find(ctx.channel.name, "info")
         if values:
-            values.sort(key=lambda x: x['Buffed at'])
+            values.sort(key=lambda x: x.get('Buffed at', "-"))
             embed = Embed()
             embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
             embed.add_field(name="Worked At", value="\n".join([row.get("Worked at", "-") for row in values]))

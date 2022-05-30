@@ -432,8 +432,8 @@ class Mix(Cog):
         """Voting law(s).
         `ids` MUST be separated by a comma, and without spaces (or with spaces, but within quotes)
         Examples:
-            .law 1,2,3   yes   my nick
-            .law https://alpha.e-sim.org/law.html?id=1   yes   my nick
+            .law 1,2,3   yes   my nick      (voting the laws with ids 1, 2, and 3)
+            .law https://alpha.e-sim.org/law.html?id=1   no   my nick
         """
         server = ctx.channel.name
         URL = f"https://{server}.e-sim.org/"
@@ -481,8 +481,16 @@ class Mix(Cog):
         Examples:
         .click "my nick" https://secura.e-sim.org/friends.html?action=PROPOSE&id=1
         .click "my nick" https://secura.e-sim.org/partyStatistics.html   {"action": "LEAVE", "submit": "Leave party"}
+        .click "my nick" https://secura.e-sim.org/myParty.html {"name": "the party name",  "description": "optional description", "action": "CREATE_PARTY", "submit": "Create party"}
         .click "my nick" https://secura.e-sim.org/countryLaws.html   {"action": "PROPOSE_DISMISS_MOF", "dismissMofLogin": "Admin", "submit": "Propose to dismiss Minister of Finance"}
         .click "my nick" https://secura.e-sim.org/countryLaws.html {"action": "DONATE_MONEY_TO_COUNTRY_TREASURE", "currencyId": 0, "sum": 0.01, "reason": "xd", "submit": "Donate"}
+        .click "my nick" https://secura.e-sim.org/companies.html {"name": "best company", "resource": "IRON", "submit": "Create company"}
+        .click "my nick" https://secura.e-sim.org/company.html {"action": "UPGRADE",  "id": "1", "upgradeCompanybutton": "Upgrade company"}
+        .click "my nick" https://secura.e-sim.org/company.html?id=1 {"action": "POST_JOB_OFFER"}
+        .click "my nick" https://secura.e-sim.org/work.html {"action": "leave", "submit": "Leave job"}
+        .click "my nick" http://secura.e-sim.org/civilWar.html?id=1 {"action": "CAST_SUPPORT", "side": "Loyalists"}
+        .click "my nick" https://secura.e-sim.org/countryLaws.html { "coalitionId": "1", "action": "JOIN_COALITION", "submit": "Join coalition"}
+
         """
         url = await self.bot.get_content(link, data=json.loads(data.replace("'", '"')) or None)
         await ctx.send(f"**{nick}** <{url}>")

@@ -23,7 +23,7 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True)
-bot.VERSION = "18/05/2022"
+bot.VERSION = "30/05/2022"
 bot.config_file = config_file
 bot.session = bot.loop.run_until_complete(create_session())
 bot.should_break_dict = {}
@@ -55,11 +55,11 @@ async def start():
         bot.loop.create_task(ctx.invoke(bot.get_command("auto_motivate"), nick=DICT["nick"]))
 
 
-def should_break(ctx):
+def should_break(ctx, initiate=True):
     server = ctx.channel.name
     cmd = str(ctx.command)
     res = bot.should_break_dict.get(server, {}).get(cmd)
-    if res:
+    if res and initiate:
         bot.should_break_dict[server][cmd] = False
     return res
 
