@@ -23,7 +23,7 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True)
-bot.VERSION = "30/05/2022"
+bot.VERSION = "26/06/2022"
 bot.config_file = config_file
 bot.session = bot.loop.run_until_complete(create_session())
 bot.should_break_dict = {}

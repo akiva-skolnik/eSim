@@ -507,7 +507,7 @@ class Mix(Cog):
             'channel': ctx.channel,
             'author': ctx.author,
             'guild': ctx.guild,
-            'message': ctx.message,
+            'message': ctx.message
         }
 
         env.update(globals())
@@ -534,7 +534,11 @@ class Mix(Cog):
         else:
             value = stdout.getvalue()
             try:
-                await ctx.send(f'```py\n{value}{ret or ""}\n```')
+                if ret is None:
+                    if value:
+                        await ctx.send(f'```py\n{value}\n```')
+                else:
+                    await ctx.send(f'```py\n{value}{ret}\n```')
             except:
                 io_output = StringIO(newline='')
                 io_output.write(value + (ret or ""))

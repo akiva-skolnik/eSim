@@ -8,7 +8,8 @@ session = ClientSession()
 
 class IsMyNick(Converter):
     async def convert(self, ctx, nick: str) -> str:
-        if nick.replace('"', "").strip().lower() == utils.my_nick(ctx.channel.name).lower():
+        nick = nick.replace('"', "").replace("'", "").strip().strip()
+        if nick.lower() == utils.my_nick(ctx.channel.name).lower():
             return nick
         else:
             raise errors.CheckFailure

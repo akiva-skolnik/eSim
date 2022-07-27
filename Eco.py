@@ -58,45 +58,47 @@ class Eco(Cog):
             await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def cc(self, ctx, country: Country, max_price: float, amount: float, *, nick: IsMyNick):
+    async def cc(self, ctx, countries, max_price: float, amount: float, *, nick: IsMyNick):
         """Buying specific amount of coins, up to a pre-determined price.
         (It can help if there are many small offers, like NPC)"""
+        countries = [await Country().convert(ctx, country.strip()) for country in countries.split(",")]
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        bought_amount = 0
+        for country in countries:
+            bought_amount = 0
+            for Index in range(10):  # 10 pages
+                tree = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country}", return_tree=True)
+                prices = tree.xpath("//td[3]//b/text()")
+                IDs = [ID.value for ID in tree.xpath("//td[4]//form[1]//input[@value][2]")][:len(prices)]
+                amounts = tree.xpath('//td[2]//b/text()')[:len(prices)]
+                for ID, offer_amount, price in zip(IDs, amounts, prices):
+                    if self.bot.should_break(ctx):
+                        return
+                    try:
+                        offer_amount, price = float(offer_amount), float(price)
+                        if price > max_price:
+                            await ctx.send(f"**{nick}** The price is too high ({price}).")
+                            break
 
-        for Index in range(10):  # 10 pages
-            tree = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country}", return_tree=True)
-            prices = tree.xpath("//td[3]//b/text()")
-            IDs = [ID.value for ID in tree.xpath("//td[4]//form[1]//input[@value][2]")][:len(prices)]
-            amounts = tree.xpath('//td[2]//b/text()')[:len(prices)]
-            for ID, offer_amount, price in zip(IDs, amounts, prices):
-                if self.bot.should_break(ctx):
-                    return
-                try:
-                    offer_amount, price = float(offer_amount), float(price)
-                    if price > max_price:
-                        await ctx.send(f"**{nick}** The price is too high ({price}).")
-                        break
-                    
-                    payload = {'action': "buy", 'id': ID, 'ammount': round(min(offer_amount, amount - bought_amount), 2),
-                               'stockCompanyId': '', 'submit': 'Buy'}
-                    url = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country}", data=payload)
-                    if "MM_POST_OK_BUY" not in str(url):
-                        await ctx.send(f"ERROR: <{url}>")
-                        break
-                    await ctx.send(f"**{nick}** Bought {payload['ammount']} coins at {price} each.")
-                    bought_amount += payload['ammount']
-                    if bought_amount >= amount:
-                        break
-                    await sleep(uniform(0, 2))
-                    # sleeping for a random time between 0 and 2 seconds. feel free to change it
-                    
-                except Exception as error:
-                    await ctx.send(f"**{nick}** ERROR {error}")
-                    await sleep(5)
-            if IDs and ID != IDs[-1]:
-                break
-        await ctx.send(f"**{nick}** bought total {round(bought_amount, 2)} coins.")
+                        payload = {'action': "buy", 'id': ID, 'ammount': round(min(offer_amount, amount - bought_amount), 2),
+                                   'stockCompanyId': '', 'submit': 'Buy'}
+                        url = await self.bot.get_content(f"{URL}monetaryMarket.html?buyerCurrencyId={country}", data=payload)
+                        if "MM_POST_OK_BUY" not in str(url):
+                            await ctx.send(f"ERROR: <{url}>")
+                            break
+                        await ctx.send(f"**{nick}** Bought {payload['ammount']} coins at {price} each.")
+                        bought_amount += payload['ammount']
+                        if bought_amount >= amount:
+                            break
+                        await sleep(uniform(0, 2))
+                        # sleeping for a random time between 0 and 2 seconds. feel free to change it
+
+                    except Exception as error:
+                        await ctx.send(f"**{nick}** ERROR {error}")
+                        await sleep(5)
+                if IDs and ID != IDs[-1]:
+                    break
+            await ctx.send(f"**{nick}** bought total {round(bought_amount, 2)} coins.")
+            await sleep(uniform(0, 4))
 
     @command()
     async def buy(self, ctx, amount: int, quality: Optional[Quality], product: Product, *, nick: IsMyNick):
@@ -390,11 +392,10 @@ class Eco(Cog):
                 try:
                     region = tree.xpath(
                         '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a/@href')[0].split("=")[1]
-                    payload = {'countryId': int(region) // 6 + 1, 'regionId': region, 'ticketQuality': 5}
-                    await self.bot.get_content(URL + "travel.html", data=payload)
-                    Tree = await self.bot.get_content(URL + "work/ajax", data={"action": "work"}, return_tree=True)
                 except:
                     return await ctx.send(f"**{nick}** ERROR: I couldn't find in which region your work is. If you don't have a job, see `.help job`")
+                await ctx.invoke(self.bot.get_command("fly"), region, 5, nick=nick)
+                Tree = await self.bot.get_content(URL + "work/ajax", data={"action": "work"}, return_tree=True)
 
             if not Tree.xpath('//*[@id="taskButtonWork"]//@href'):
                 data = await utils.find_one(server, "info", nick)
@@ -426,7 +427,8 @@ class Eco(Cog):
             sec_til_midnight = (midnight - now).seconds
             x = uniform(0, min(sec_til_midnight-30, sec_between_works - 2000))
             await sleep(x)
-            await ctx.invoke(self.bot.get_command("work"), nick=nick)
+            if not self.bot.should_break(ctx):
+                await ctx.invoke(self.bot.get_command("work"), nick=nick)
             i = work_sessions - 2
 
             while x + sec_between_works < sec_til_midnight:
