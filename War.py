@@ -854,7 +854,7 @@ class War(Cog):
                 enemy_side = int(battle_score[("defender" if side == "attacker" else "attacker") + "Score"].replace(",", ""))
                 if enemy_side - my_side < let_overkill and my_side - enemy_side < wall:
                     error = await ctx.invoke(self.bot.get_command("fight"), nick, battle, side, weapon_quality,
-                                             abs(my_side - enemy_side) + wall, ticket_quality, consume_first)
+                                             enemy_side - my_side + wall, ticket_quality, consume_first)
                     if error:
                         return
                 await sleep(uniform(2, 5))
