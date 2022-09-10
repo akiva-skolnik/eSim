@@ -7,6 +7,7 @@ from discord import Embed
 from discord.ext.commands import Cog, command
 
 import Eco
+import utils
 from Converters import Country, Id, IsMyNick
 
 
@@ -71,21 +72,24 @@ class Social(Cog):
                     try:
                         alert = tree.xpath(f'//tr[{tr}]//td[2]')[0].text_content().strip()
                         alert_date = tree.xpath(f'//tr[{tr}]//td[3]')[0].text_content().strip()
-                        links = [x for x in tree.xpath(f"//tr[{tr}]//td[2]/a[2]/@href")]
-                        if "has requested to add you as a friend" in alert:
-                            await self.bot.get_content(URL + str(links[0]))
-                        elif "has offered you to sign" in alert:
-                            alert = alert.replace("contract", f'[contract]({URL}{links[0]})').replace(
-                                "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!",
-                                f"\ntype `.contract {links[0].split('=')[1]} {nick}` to accept it.")
-                        elif len(links) > 1:
-                            link = [x for x in links if "profile" not in x]
-                            if link:
-                                alert = f'[{alert}]({URL}{link[0]})'
-                            else:
+                        try:
+                            links = [x for x in tree.xpath(f"//tr[{tr}]//td[2]/a[2]/@href")]
+                            if "has requested to add you as a friend" in alert:
+                                await self.bot.get_content(URL + str(links[0]))
+                            elif "has offered you to sign" in alert:
+                                alert = alert.replace("contract", f'[contract]({URL}{links[0]})').replace(
+                                    "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!",
+                                    f"\ntype `.contract {links[0].split('=')[1]} {nick}` to accept it.")
+                            elif len(links) > 1:
+                                link = [x for x in links if "profile" not in x]
+                                if link:
+                                    alert = f'[{alert}]({URL}{link[0]})'
+                                else:
+                                    alert = f'[{alert}]({URL}{links[0]})'
+                            elif links:
                                 alert = f'[{alert}]({URL}{links[0]})'
-                        elif links:
-                            alert = f'[{alert}]({URL}{links[0]})'
+                        except:
+                            pass
                         reminding_alerts -= 1
                         embed.add_field(name=alert_date, value=alert, inline=False)
                     except:
@@ -197,21 +201,20 @@ class Social(Cog):
 
         else:
             tree = await self.bot.get_content(URL + 'citizenStatistics.html?statisticType=DAMAGE&countryId=0', return_tree=True)
-            last = tree.xpath("//ul[@id='pagination-digg']//li[last()-1]//@href")
-            last = last[0].split("page=")[1]
+            last = utils.get_ids_from_path(tree, "//ul[@id='pagination-digg']//li[last()-1]/")[0]
             for page in range(1, int(last) + 1):
                 if page != 1:
                     tree = await self.bot.get_content(
                         URL + 'citizenStatistics.html?statisticType=DAMAGE&countryId=0&page=' + str(page), return_tree=True)
                 friends = tree.xpath("//td/a/text()")
-                links = tree.xpath("//td/a/@href")
+                links = tree.xpath("//td/a/@onclick")
                 for friend, link in zip(friends, links):
                     if self.bot.should_break(ctx):
                         return
                     friend = friend.strip()
                     if friend not in blacklist:
                         try:
-                            url = f"{URL}friends.html?action=PROPOSE&id={link.split('=')[1]}"
+                            url = f"{URL}friends.html?action=PROPOSE&id={utils.get_id(link)}"
                             send = await self.bot.get_content(url)
                             if send == url:
                                 return await ctx.send(f"**{nick}** ERROR: you are not logged in, see `.help login`")

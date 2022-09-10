@@ -23,7 +23,7 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True)
-bot.VERSION = "26/06/2022"
+bot.VERSION = "10/09/2022"
 bot.config_file = config_file
 bot.session = bot.loop.run_until_complete(create_session())
 bot.should_break_dict = {}
@@ -46,7 +46,7 @@ async def start():
         channel = bot.get_channel(int(DICT["channel_id"]))
         message = await channel.fetch_message(int(DICT["message_id"]))
         ctx = await bot.get_context(message)
-        bot.loop.create_task(ctx.invoke(bot.get_command("auto_work"), DICT["work_sessions"], nick=DICT["nick"]))
+        bot.loop.create_task(ctx.invoke(bot.get_command("auto_work"), DICT["work_sessions"], DICT["chance_to_skip_work"], nick=DICT["nick"]))
 
     for server, DICT in (await utils.find_one("auto", "motivate", os.environ['nick'])).items():
         channel = bot.get_channel(int(DICT["channel_id"]))

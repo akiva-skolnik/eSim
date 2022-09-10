@@ -1,10 +1,8 @@
 
-# E-sim python *improved* library
+# E-sim python library
 
 [![Flag Counter](https://s01.flagcounter.com/mini/5j6R/bg_FFFFFF/txt_000000/border_CCCCCC/flags_0/)](https://info.flagcounter.com/5j6R)
 
-**(This is a better and up-to-date version of https://github.com/e-sim-python/scripts, is designed mainly for a group / VPS, 
-but it's also good for those who wants to play e-sim using discord)**
 
 If you appreciate my hard word, please consider [buying me a coffee](https://www.buymeacoffee.com/eSimPython). Thanks :)
 
@@ -14,10 +12,16 @@ If you appreciate my hard word, please consider [buying me a coffee](https://www
 3. [Setup](https://github.com/e-sim-python/eSim#setup)
 
 ## Introduction
-**This version is the right way, without workaround tricks to implement this library.**  
-(which made in the first place to allow multiple usage cases)  
-#### This implement should drastically reduce the number of bugs.
+Those open-source scripts allow you to play e-sim using discord commands.  
+This way you can create a group of close partners / VPS bots and control many accounts simultaneously.  
+  
+`.help `
 
+![demo](https://img001.prntscr.com/file/img001/c-2JiXkqTPCeWzH4iliMqQ.jpeg)  
+![demo](https://img001.prntscr.com/file/img001/D7uhlwo-QXGBbmpdl71gNQ.jpeg)  
+
+`.help auto_fight`  
+![demo](https://img001.prntscr.com/file/img001/NVo-7jMmQmGsGa018yKZ6w.jpeg)
 
 ## Installation:
 1. Download and Install [python 3.6+](https://www.python.org/downloads/) and [add to path](http://prntscr.com/uwvy5z). 

@@ -43,6 +43,8 @@ class Info(Cog):
             ids = [ID for ID in original_ids]
             # Eq id instead of link
         length = 20
+        if not ids:
+            return await ctx.send(f"**{nick}** no eqs in storage.")
         embed = Embed(title=nick)
         embed.add_field(name="ID", value="\n".join(ids[:length]))
         embed.add_field(name="Item", value="\n".join(items[:length]))
@@ -55,14 +57,12 @@ class Info(Cog):
     async def inv(self, ctx, *, nick: IsMyNick):
         """Shows your inventory."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
-        storage_tree = await self.bot.get_content(f"{URL}storage.html?storageType=PRODUCT", return_tree=True)
-        special_tree = await self.bot.get_content(f"{URL}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
+
         special = {}
         products = {}
-        for item in special_tree.xpath('//div[@class="specialItemInventory"]'):
-            if item.xpath('span/text()'):
-                special[item.xpath('b/text()')[0]] = item.xpath('span/text()')[0]
+        coins = {}
 
+        storage_tree = await self.bot.get_content(f"{URL}storage.html?storageType=PRODUCT", return_tree=True)
         for item in storage_tree.xpath("//div[@class='storage']"):
             name = item.xpath("div[2]/img/@src")[0].replace("//cdn.e-sim.org//img/productIcons/", "").replace(
                 "Rewards/", "").replace(".png", "")
@@ -73,11 +73,24 @@ class Info(Cog):
                     "//cdn.e-sim.org//img/productIcons/", "").replace(".png", "")
             products[f"{quality.title()} {name}"] = item.xpath("div[1]/text()")[0].strip()
 
+        storage_tree = await self.bot.get_content(URL + "storage.html?storageType=MONEY", return_tree=True)
+        for i in range(1, 30):
+            try:
+                CC = storage_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/text()')[-1].strip()
+                value = storage_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/b/text()')[0]
+                coins[CC] = value
+            except:
+                break
+
+        special_tree = await self.bot.get_content(f"{URL}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
+        for item in special_tree.xpath('//div[@class="specialItemInventory"]'):
+            if item.xpath('span/text()'):
+                special[item.xpath('b/text()')[0]] = item.xpath('span/text()')[0]
+
         embed = Embed(title=nick, description=storage_tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0] + " Gold")
-        if products:
-            embed.add_field(name="**Storage:**", value="\n".join(f"**{k}**: {v}" for k, v in products.items()))
-        if special:
-            embed.add_field(name="**Special Items:**", value="\n".join(f"**{k}**: {v}" for k, v in special.items()))
+        for name, data in zip(("Products", "Coins", "Special Items"), (products, coins, special)):
+            if data:
+                embed.add_field(name=f"**{name}:**", value="\n".join(f"**{k}**: {v}" for k, v in data.items()))
         await ctx.send(embed=embed)
 
     @command()
@@ -116,12 +129,10 @@ class Info(Cog):
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(URL + "home.html", return_tree=True)
         gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
-        food_storage = tree.xpath('//*[@id="foodQ5"]/text()')[0]
-        gift_storage = tree.xpath('//*[@id="giftQ5"]/text()')[0]
-        food_limit = tree.xpath('//*[@id="foodLimit2"]')[0].text
-        gift_limit = tree.xpath('//*[@id="giftLimit2"]')[0].text
-        await ctx.send(
-            f"**{nick}** Limits: {food_limit}/{gift_limit}, storage: {food_storage}/{gift_storage}, {gold} Gold.")
+        food_storage, gift_storage = utils.get_storage(tree)
+        food_limit, gift_limit = utils.get_limits(tree)
+        await ctx.send(f"**{nick}** Limits: {food_limit}/{gift_limit}, "
+                       f"storage: {food_storage}/{gift_storage}, {gold} Gold.")
 
     @command()
     @check(utils.is_helper)
@@ -180,11 +191,11 @@ class Info(Cog):
                 parameters = f"{item} " + ", ".join(par_val[1] for par_val in (utils.get_parameter(p) for p in parameters[5:]))
 
             price = tree.xpath(f'//tr[{tr}]//td[4]/b/text()')[0]
-            link = tree.xpath(f'//tr[{tr}]//td[5]/a/@href')[0]
+            link = utils.get_ids_from_path(tree, f'//tr[{tr}]//td[5]/a')[0]
             time = tree.xpath(f'//tr[{tr}]//td[6]/span/text()')[0]
             col1.append(f"{seller} : {buyer}"[:30])
             col2.append(parameters[:30])
-            col3.append(f"{float(price):,}g : [{time}]({URL + link})")
+            col3.append(f"{float(price):,}g : [{time}]({URL}auction.html?id={link})")
         embed = Embed(title="First 10 auctions")
         embed.add_field(name="Seller : Buyer", value="\n".join(col1))
         embed.add_field(name="Item", value="\n".join(col2))
@@ -298,9 +309,9 @@ class Info(Cog):
                     "weapon upgrade", "WU").replace("  ", " ").title().strip()
             except IndexError:
                 continue
-            eq_link = tree.xpath("//a/@href")[0]
+            eq_id = utils.get_ids_from_path(tree, "//a")[0]
             parameters = [utils.get_parameter(p) for p in tree.xpath('//p/text()') if p.replace("Merged by", "").strip()]
-            eqs.append(f"**[{Type}]({URL+eq_link}):** " + ", ".join(f"{p[0]} {p[1]}" for p in parameters))
+            eqs.append(f"**[{Type}]({URL}showEquipment.html?id={eq_id}):** " + ", ".join(f"{p[0]} {p[1]}" for p in parameters))
 
         if api['militaryUnitId']:
             mu = await self.bot.get_content(f"{URL}apiMilitaryUnitById.html?id={api['militaryUnitId']}")
@@ -335,7 +346,7 @@ class Info(Cog):
             company_type = tree.xpath("//div[1]/div/div[1]/div/div[3]/b/span/@title")[0]
             company_quality = tree.xpath("//div[1]/div/div[1]/div/div[3]/b/text()[2]")[0].strip()
             company_name = tree.xpath('//a[@style="font-weight: bold;clear:both;"]/text()')[0]
-            region_id = [a.split("=")[1] for a in tree.xpath("//div[1]/div/div[1]/div/div[4]/b/a/@href")][0]
+            region_id = [a for a in utils.get_ids_from_path(tree, "//div[1]/div/div[1]/div/div[4]/b/a")][0]
             region, country = utils.get_region_and_country_names(api_regions, api_countries, int(region_id))
             embed.add_field(name=f"Works in a {company_quality} {company_type} company",
                             value=f"[{company_name}]({comp_link}) ([{region}]({URL}region.html?id={region_id}), {country})")

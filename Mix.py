@@ -36,7 +36,7 @@ class Mix(Cog):
             return await self.bot.get_content(URL + "partyStatistics.html", data={"action": "LEAVE", "submit": "Leave party"})
         if party == 0:
             tree = await self.bot.get_content(URL + "partyStatistics.html?statisticType=MEMBERS", return_tree=True)
-            party = str(tree.xpath('//*[@id="esim-layout"]//table//tr[2]//td[3]//@href')[0]).split("=")[1]
+            party = utils.get_ids_from_path(tree, '//*[@id="esim-layout"]//table//tr[2]//td[3]/')[0]
         party_payload = {"action": "JOIN", "id": party, "submit": "Join"}
         url = await self.bot.get_content(URL + "partyStatistics.html", data=party_payload)
         await ctx.send(f"**{nick}** <{url}>")
@@ -103,7 +103,7 @@ class Mix(Cog):
                 break
             try:
                 tree = await self.bot.get_content(URL + "home.html", return_tree=True)
-                my_id = str(tree.xpath('//*[@id="userName"]/@href')[0]).split("=")[1]
+                my_id = utils.get_id(tree.xpath('//*[@id="userName"]/@onclick')[0])
                 try:
                     num = int(str(tree.xpath('//*[@id="inProgressPanel"]/div[1]/div/strong')[0].text).split("#")[1])
                 except:
@@ -235,7 +235,7 @@ class Mix(Cog):
                     elif num == 42:
                         try:
                             tree = await self.bot.get_content(URL + "partyStatistics.html?statisticType=MEMBERS", return_tree=True)
-                            ID = str(tree.xpath('//*[@id="esim-layout"]//table//tr[2]//td[3]//@href')[0]).split("=")[1]
+                            ID = utils.get_ids_from_path(tree, '//*[@id="esim-layout"]//table//tr[2]//td[3]/')[0]
                             payload1 = {"action": "JOIN", "id": ID, "submit": "Join"}
                             b = await self.bot.get_content(URL + "partyStatistics.html", data=payload1)
                             await ctx.send(f"**{nick}** <{b}>")

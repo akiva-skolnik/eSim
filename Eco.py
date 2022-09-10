@@ -1,6 +1,6 @@
 from asyncio import sleep
 from datetime import datetime, time, timedelta
-from random import uniform
+from random import randint, uniform
 from typing import Optional
 import os
 
@@ -26,10 +26,10 @@ class Eco(Cog):
         if contract_id == 0:
             tree = await self.bot.get_content(f"{URL}contracts.html", return_tree=True)
             text = [x.text_content().strip().replace("\n", " ").replace("\t", "") for x in tree.xpath('//*[@id="esim-layout"]//div[2]//ul//li')[:5]]
-            links = tree.xpath('//*[@id="esim-layout"]//div[2]//ul//li//a/@href')[::2][:5]
+            links = utils.get_ids_from_path(tree, '//*[@id="esim-layout"]//div[2]//ul//li//a')[::2][:5]
             if links:
                 embed = Embed(title=nick)
-                embed.add_field(name="Contracts (first 5)", value="\n".join(f"[{t}]({URL+link})" for t, link in zip(text, links)))
+                embed.add_field(name="Contracts (first 5)", value="\n".join(f"[{t}]({URL}profile.html?id={link})" for t, link in zip(text, links)))
                 await ctx.send(embed=embed)
             else:
                 await ctx.send(f"**{nick}** no pending contracts")
@@ -189,12 +189,14 @@ class Eco(Cog):
             await ctx.send(f"**{nick}** ERROR: you can donate eq or gold only, not {type}")
 
     @command()
-    async def job(self, ctx, company_id: Optional[int] = 0, *, nick: IsMyNick):
+    async def job(self, ctx, company_id: Optional[int] = 0, ticket_quality: Optional[Quality] = 5,  *, nick: IsMyNick):
         """Leaving current job and applying to the given company_id or to the best offer at the local market."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         if company_id != 0:
             api_citizen = await self.bot.get_content(f"{URL}apiCitizenByName.html?name={nick.lower()}")
             tree = await self.bot.get_content(f"{URL}company.html?id={company_id}", return_tree=True)
+            region = utils.get_ids_from_path(tree, '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a')[0]
+            await ctx.invoke(self.bot.get_command("fly"), region, ticket_quality, nick=nick)
             job_ids = tree.xpath('//td[4]//input[1]')
             skills = [int(x) for x in tree.xpath('//td[1]/text()') if x.isdigit()]
             job_id = None
@@ -390,8 +392,8 @@ class Eco(Cog):
                 Tree = await self.bot.get_content(URL + "work/ajax", data={"action": "work"}, return_tree=True)
             else:
                 try:
-                    region = tree.xpath(
-                        '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a/@href')[0].split("=")[1]
+                    region = utils.get_ids_from_path(
+                        tree, '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a')[0]
                 except:
                     return await ctx.send(f"**{nick}** ERROR: I couldn't find in which region your work is. If you don't have a job, see `.help job`")
                 await ctx.invoke(self.bot.get_command("fly"), region, 5, nick=nick)
@@ -409,15 +411,17 @@ class Eco(Cog):
         await ctx.invoke(self.bot.get_command("read"), nick=nick)
 
     @command()
-    async def auto_work(self, ctx, work_sessions: Optional[int] = 1, *, nick: IsMyNick):
+    async def auto_work(self, ctx, work_sessions: Optional[int] = 1, chance_to_skip_work: Optional[int] = 7, *, nick: IsMyNick):
         """Works at random times throughout every day"""
         data = await utils.find_one("auto", "work", os.environ['nick'])
         data_copy = data.copy()
         data[ctx.channel.name] = {"channel_id": str(ctx.channel.id), "message_id": str(ctx.message.id),
-                                  "work_sessions": work_sessions, "nick": nick}
+                                  "work_sessions": work_sessions, "chance_to_skip_work": chance_to_skip_work, "nick": nick}
         if data != data_copy:
             await utils.replace_one("auto", "work", os.environ['nick'], data)
             await ctx.send(f"**{nick}** Alright.")
+        data.clear()
+        data_copy.clear()
 
         sec_between_works = (24 * 60 * 60) // work_sessions
         while not self.bot.should_break(ctx):  # for every day:
@@ -427,7 +431,7 @@ class Eco(Cog):
             sec_til_midnight = (midnight - now).seconds
             x = uniform(0, min(sec_til_midnight-30, sec_between_works - 2000))
             await sleep(x)
-            if not self.bot.should_break(ctx):
+            if not self.bot.should_break(ctx) and randint(1, 100) > chance_to_skip_work:
                 await ctx.invoke(self.bot.get_command("work"), nick=nick)
             i = work_sessions - 2
 
@@ -436,7 +440,8 @@ class Eco(Cog):
                     return
                 x = uniform(x + sec_between_works + 20, sec_til_midnight - i * sec_between_works - i * 60)
                 await sleep(x)
-                await ctx.invoke(self.bot.get_command("work"), nick=nick)
+                if not self.bot.should_break(ctx) and randint(1, 100) > chance_to_skip_work:
+                    await ctx.invoke(self.bot.get_command("work"), nick=nick)
                 i -= 1
 
             # sleep till midnight
@@ -473,8 +478,8 @@ class Eco(Cog):
 
 async def remove_rejected(bot, URL, blacklist, filter="CONTRACTS", text="has rejected your"):
     tree = await bot.get_content(URL+'notifications.html?filter='+filter, return_tree=True)
-    last_page = tree.xpath("//ul[@id='pagination-digg']//li[last()-1]//@href") or ['page=1']
-    last_page = int(last_page[0].split('page=')[1])
+    last_page = utils.get_ids_from_path(tree, "//ul[@id='pagination-digg']//li[last()-1]/") or ['1']
+    last_page = int(last_page[0])
     for page in range(1, int(last_page)+1):
         if page != 1:
             tree = await bot.get_content(f'{URL}notifications.html?filter={filter}&page={page}', return_tree=True)

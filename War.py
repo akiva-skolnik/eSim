@@ -165,7 +165,6 @@ class War(Cog):
     @command(aliases=["travel"])
     async def fly(self, ctx, region_id: Id, ticket_quality: Optional[int] = 5, *, nick: IsMyNick):
         """traveling to a region"""
-        # TODO: test it
         if 1 <= ticket_quality <= 5:
             URL = f"https://{ctx.channel.name}.e-sim.org/"
             tree = await self.bot.get_content(f"{URL}region.html?id={region_id}", return_tree=True)
@@ -216,10 +215,8 @@ class War(Cog):
         api = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
         tree = await self.bot.get_content(link, return_tree=True)
         Health = float(tree.xpath('//*[@id="actualHealth"]')[0].text)
-        food_storage = int((tree.xpath('//*[@id="sfoodQ5"]/text()') or [0])[0])
-        gift_storage = int((tree.xpath('//*[@id="sgiftQ5"]/text()') or [0])[0])
-        food_limit = int(float(tree.xpath('//*[@id="foodLimit2"]')[0].text))
-        gift_limit = int(float(tree.xpath('//*[@id="giftLimit2"]')[0].text))
+        food_storage, gift_storage = utils.get_storage(tree)
+        food_limit, gift_limit = utils.get_limits(tree)
         try:
             wep = weapon_quality if not weapon_quality else int(
                 tree.xpath(f'//*[@id="Q{weapon_quality}WeaponStock"]/text()')[0])
@@ -380,8 +377,7 @@ class War(Cog):
                     tree = await self.bot.get_content(f'{URL}battle.html?id={battle_id}', return_tree=True)
                     Health = float(str(tree.xpath("//*[@id='actualHealth']")[0].text))
                     hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
-                    food = int(tree.xpath('//*[@id="foodLimit2"]')[0].text)
-                    gift = int(tree.xpath('//*[@id="giftLimit2"]')[0].text)
+                    food, gift = utils.get_limits(tree)
                     if Health < 50:
                         use = "eat" if food else "gift"
                         await self.bot.get_content(f"{URL}{use}.html", data={'quality': 5})
@@ -442,7 +438,7 @@ class War(Cog):
                     else:
                         if top1dmg < max_dmg_for_bh and condition:
                             if not should_continue:
-                                food = int(tree.xpath('//*[@id="foodLimit2"]')[0].text)
+                                food, gift = utils.get_limits(tree)
                                 use = "eat" if food else "gift"
                                 await self.bot.get_content(f"{URL}{use}.html", data={'quality': 5})
                                 try:
@@ -529,10 +525,8 @@ class War(Cog):
                 await ctx.send(f"**{nick}** someone else already fought in this round <{link}>")
                 await sleep(seconds_till_round_end - seconds_till_hit + 15)
                 continue
-            food_limit = int(tree.xpath('//*[@id="foodLimit2"]')[0].text)
-            food_storage = int((tree.xpath('//*[@id="sfoodQ5"]/text()') or [0])[0])
-            gift_limit = int(tree.xpath('//*[@id="giftLimit2"]')[0].text)
-            gift_storage = int((tree.xpath('//*[@id="sgiftQ5"]/text()') or [0])[0])
+            food_limit, gift_limit = utils.get_limits(tree)
+            food_storage, gift_storage = utils.get_storage(tree)
             damage_done = 0
             fight_url, data = await self.get_fight_data(URL, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
 
@@ -621,8 +615,7 @@ class War(Cog):
         tree = await self.bot.get_content(URL + 'storage.html?storageType=PRODUCT', return_tree=True)
 
         def get_storage(tree):
-            food = int(tree.xpath('//*[@id="foodQ3"]/text()')[0])
-            gift = int(tree.xpath('//*[@id="giftQ3"]/text()')[0])
+            food, gift = utils.get_storage(tree, 3)
             weps = 0
             for num in range(2, 52):
                 try:
@@ -660,7 +653,7 @@ class War(Cog):
             if k not in storage:
                 await ctx.send(f"**{nick}** WARNING: There are not enough {k}s in storage")
         new_citizens_tree = await self.bot.get_content(URL + 'newCitizens.html?countryId=0', return_tree=True)
-        citizenId = int(new_citizens_tree.xpath("//tr[2]//td[1]/a/@href")[0].split("=")[1])
+        citizen_id = int(utils.get_id(new_citizens_tree.xpath("//tr[2]//td[1]/a/@onclick")[0]))
         checking = list()
         sent_count = 0
         while not self.bot.should_break(ctx):
@@ -668,17 +661,17 @@ class War(Cog):
                 if sent_count == 5:
                     return await ctx.send(
                         f"**{nick}**\n" + "\n".join(checking) + "\n- Successfully motivated 5 players.")
-                tree = await self.bot.get_content(f'{URL}profile.html?id={citizenId}', return_tree=True)
+                tree = await self.bot.get_content(f'{URL}profile.html?id={citizen_id}', return_tree=True)
                 today = int(tree.xpath('//*[@class="sidebar-clock"]/b/text()')[-1].split()[-1])
                 birthday = int(
                     tree.xpath(f'//*[@class="profile-row" and span = "Birthday"]/span/text()')[0].split()[-1])
                 if today - birthday > 3:
                     return await ctx.send(f"**{nick}** Checked all new players")
-                checking.append(f"Checking <{URL}profile.html?id={citizenId}>")
+                checking.append(f"Checking <{URL}profile.html?id={citizen_id}>")
                 if tree.xpath('//*[@id="motivateCitizenButton"]'):
                     for num in storage.values():
-                        payload = {'type': num, "submit": "Motivate", "id": citizenId}
-                        tree, url = await self.bot.get_content(f"{URL}motivateCitizen.html?id={citizenId}", data=payload, return_tree="both")
+                        payload = {'type': num, "submit": "Motivate", "id": citizen_id}
+                        tree, url = await self.bot.get_content(f"{URL}motivateCitizen.html?id={citizen_id}", data=payload, return_tree="both")
                         if "&actionStatus=SUCCESFULLY_MOTIVATED" in url:
                             checking.append(f"<{url}>")
                             sent_count += 1
@@ -687,10 +680,10 @@ class War(Cog):
                             msg = ' '.join(tree.xpath("//div[2]/text()")).strip()
                             if "too many" in msg:
                                 return await ctx.send(f"**{nick}** You have sent too many motivations today!")
-                citizenId -= 1
+                citizen_id -= 1
             except Exception as error:
                 await ctx.send(f"**{nick}** ERROR: {error}")
-            if citizenId % 10 == 0 and checking:
+            if citizen_id % 10 == 0 and checking:
                 await ctx.send(f"**{nick}**\n" + "\n".join(checking))
                 checking.clear()
 
@@ -786,7 +779,7 @@ class War(Cog):
         """Taking a specific product from MU storage."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(URL + "militaryUnitStorage.html", return_tree=True)
-        my_id = str(tree.xpath('//*[@id="userName"]/@href')[0]).split("=")[1]
+        my_id = utils.get_id(tree.xpath('//*[@id="userName"]/@onclick')[0])
         payload = {'product': f"{quality or 5}-{product}", 'quantity': amount,
                    "reason": " ", "citizen1": my_id, "submit": "Donate"}
         url = await self.bot.get_content(URL + "militaryUnitStorage.html", data=payload)
@@ -857,7 +850,7 @@ class War(Cog):
                                              enemy_side - my_side + wall, ticket_quality, consume_first)
                     if error:
                         return
-                await sleep(uniform(2, 5))
+                await sleep(uniform(2, 7))
             await sleep(30)
 
     @command(aliases=["unwear"])
