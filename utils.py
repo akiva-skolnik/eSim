@@ -190,10 +190,13 @@ def my_nick(server):
 
 def get_limits(tree):
     try:
-        food_limit = tree.xpath('//*[@id="foodLimit"]')[0].text
-        gift_limit = tree.xpath('//*[@id="giftLimit"]')[0].text
+        food_limit = tree.xpath('//*[@class="foodLimit"]')[0].text
     except IndexError:
         food_limit = tree.xpath('//*[@id="foodLimit2"]')[0].text
+
+    try:
+        gift_limit = tree.xpath('//*[@class="giftLimit"]')[0].text
+    except IndexError:
         gift_limit = tree.xpath('//*[@id="giftLimit2"]')[0].text
     return int(food_limit), int(gift_limit)
 
@@ -209,7 +212,7 @@ def get_storage(tree, q=5):
 
 
 def get_id(string):
-    return string.split("(")[-1].split(")")[0].split("=")[-1].split("&")[0]
+    return string.split("(")[-1].split(")")[0].split("=")[-1].split("&")[0].strip()
 
 
 def get_ids_from_path(tree, path):
@@ -218,5 +221,5 @@ def get_ids_from_path(tree, path):
     if ids and "#" in ids[0]:
         ids = [get_id(x) for x in tree.xpath(path + "/@onclick")]
     else:
-        ids = [x.split("=")[-1].split("&")[0] for x in ids]
+        ids = [x.split("=")[-1].split("&")[0].strip() for x in ids]
     return ids

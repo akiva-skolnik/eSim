@@ -120,8 +120,8 @@ class War(Cog):
         """Buy and use buffs.
 
         The buff names should be formal (can be found via F12), but here are some shortcuts:
-        VAC = EXTRA_VACATIONS, SPA = EXTRA_SPA, SEWER = SEWER_GUIDE, STR = STEROIDS, PD_10 = PAIN_DEALER_10_H
-        More examples: BANDAGE_SIZE_C and CAMOUFLAGE_II
+        VAC = EXTRA_VACATIONS, SPA = EXTRA_SPA, SEWER = SEWER_GUIDE, STR = STEROIDS, PD 10 = PAIN_DEALER_10_H
+        More examples: BANDAGE_SIZE_C and CAMOUFLAGE_II, MILI_JINXED_ELIXIR, MINI_BLOODY_MESS_ELIXIR
 
         * type `.buff-` if you don't want to buy the buff.
 
@@ -131,7 +131,7 @@ class War(Cog):
 
         results = []
         for buff_name in buffs_names.split(","):
-            buff_name = buff_name.strip().upper()
+            buff_name = buff_name.strip().upper().replace(" ", "_")
             if buff_name == "VAC":
                 buff_name = "EXTRA_VACATIONS"
             elif buff_name == "SPA":
@@ -142,6 +142,9 @@ class War(Cog):
                 buff_name = "STEROIDS"
             elif "PD" in buff_name:
                 buff_name = buff_name.replace("PD", "PAIN_DEALER") + "_H"
+            elif any(x in buff_name for x in ("BLOODY_MESS", "FINESE", "JINXED", "LUCKY")):
+                if not buff_name.endswith("_ELIXIR"):
+                    buff_name += "_ELIXIR"
 
             actions = ("BUY", "USE") if ctx.invoked_with.lower() == "buff" else ("USE", )
             for Index, action in enumerate(actions):
