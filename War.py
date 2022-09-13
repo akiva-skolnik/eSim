@@ -656,7 +656,7 @@ class War(Cog):
             if k not in storage:
                 await ctx.send(f"**{nick}** WARNING: There are not enough {k}s in storage")
         new_citizens_tree = await self.bot.get_content(URL + 'newCitizens.html?countryId=0', return_tree=True)
-        citizen_id = int(utils.get_id(new_citizens_tree.xpath("//tr[2]//td[1]/a/@onclick")[0]))
+        citizen_id = int(utils.get_ids_from_path(new_citizens_tree, "//tr[2]//td[1]/a")[0])
         checking = list()
         sent_count = 0
         while not self.bot.should_break(ctx):
@@ -782,7 +782,7 @@ class War(Cog):
         """Taking a specific product from MU storage."""
         URL = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(URL + "militaryUnitStorage.html", return_tree=True)
-        my_id = utils.get_id(tree.xpath('//*[@id="userName"]/@onclick')[0])
+        my_id = utils.get_ids_from_path(tree, '//*[@id="userName"]')[0]
         payload = {'product': f"{quality or 5}-{product}", 'quantity': amount,
                    "reason": " ", "citizen1": my_id, "submit": "Donate"}
         url = await self.bot.get_content(URL + "militaryUnitStorage.html", data=payload)

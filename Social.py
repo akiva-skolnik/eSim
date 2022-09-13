@@ -207,7 +207,7 @@ class Social(Cog):
                     tree = await self.bot.get_content(
                         URL + 'citizenStatistics.html?statisticType=DAMAGE&countryId=0&page=' + str(page), return_tree=True)
                 friends = tree.xpath("//td/a/text()")
-                links = tree.xpath("//td/a/@onclick")
+                links = utils.get_ids_from_path(tree, "//td/a")
                 for friend, link in zip(friends, links):
                     if self.bot.should_break(ctx):
                         return

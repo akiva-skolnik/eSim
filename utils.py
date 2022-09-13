@@ -212,14 +212,14 @@ def get_storage(tree, q=5):
 
 
 def get_id(string):
-    return string.split("(")[-1].split(")")[0].split("=")[-1].split("&")[0].strip()
+    return "".join(x for x in string.split("=")[-1].split("&")[0] if x.isdigit())
 
 
 def get_ids_from_path(tree, path):
     # temp function
     ids = tree.xpath(path + "/@href")
-    if ids and "#" in ids[0]:
-        ids = [get_id(x) for x in tree.xpath(path + "/@onclick")]
+    if ids and all("#" == x for x in ids):
+        ids = [get_id(x.values()[-1]) for x in tree.xpath(path)]
     else:
         ids = [x.split("=")[-1].split("&")[0].strip() for x in ids]
     return ids
