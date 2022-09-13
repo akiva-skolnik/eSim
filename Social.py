@@ -214,7 +214,7 @@ class Social(Cog):
                     friend = friend.strip()
                     if friend not in blacklist:
                         try:
-                            url = f"{URL}friends.html?action=PROPOSE&id={utils.get_id(link)}"
+                            url = f"{URL}friends.html?action=PROPOSE&id={link}"
                             send = await self.bot.get_content(url)
                             if send == url:
                                 return await ctx.send(f"**{nick}** ERROR: you are not logged in, see `.help login`")
