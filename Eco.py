@@ -69,39 +69,36 @@ class Eco(Cog):
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         for country in countries:
             bought_amount = 0
-            for _ in range(10):  # 10 pages
-                tree = await self.bot.get_content(f"{base_url}monetaryMarket.html?buyerCurrencyId={country}", return_tree=True)
-                prices = tree.xpath("//td[3]//b/text()")
-                ids = [ID.value for ID in tree.xpath("//td[4]//form[1]//input[@value][2]")][:len(prices)]
-                amounts = tree.xpath('//td[2]//b/text()')[:len(prices)]
-                offer_id = None
-                for offer_id, offer_amount, price in zip(ids, amounts, prices):
-                    if self.bot.should_break(ctx):
-                        return
-                    try:
-                        offer_amount, price = float(offer_amount), float(price)
-                        if price > max_price:
-                            await ctx.send(f"**{nick}** The price is too high ({price}).")
-                            break
+            tree = await self.bot.get_content(f"{base_url}monetaryMarket.html?buyerCurrencyId={country}", return_tree=True)
+            prices = tree.xpath("//td[3]//b/text()")
+            ids = tree.xpath("//td[4]//form[1]//input[@value][2]")
+            amounts = tree.xpath('//td[2]//b/text()')
+            for offer_id, offer_amount, price in zip(ids, amounts, prices):
+                if self.bot.should_break(ctx):
+                    return
+                try:
+                    offer_amount, price = float(offer_amount), float(price)
+                    if price > max_price:
+                        await ctx.send(f"**{nick}** The price is too high ({price}).")
+                        break
 
-                        payload = {'action': "buy", 'id': offer_id, 'ammount': round(min(offer_amount, amount - bought_amount), 2),
-                                   'stockCompanyId': '', 'submit': 'Buy'}
-                        url = await self.bot.get_content(f"{base_url}monetaryMarket.html?buyerCurrencyId={country}", data=payload)
-                        if "MM_POST_OK_BUY" not in str(url):
-                            await ctx.send(f"ERROR: <{url}>")
-                            break
-                        await ctx.send(f"**{nick}** Bought {payload['ammount']} coins at {price} each.")
-                        bought_amount += payload['ammount']
-                        if bought_amount >= amount:
-                            break
-                        await sleep(uniform(0, 2))
-                        # sleeping for a random time between 0 and 2 seconds. feel free to change it
+                    payload = {'action': "buy", 'id': offer_id.value, 'ammount': round(min(offer_amount, amount - bought_amount), 2),
+                               'stockCompanyId': '', 'submit': 'Buy'}
+                    url = await self.bot.get_content(f"{base_url}monetaryMarket.html?buyerCurrencyId={country}", data=payload)
+                    if "MM_POST_OK_BUY" not in str(url):
+                        await ctx.send(f"ERROR: <{url}>")
+                        break
+                    await ctx.send(f"**{nick}** Bought {payload['ammount']} coins at {price} each.")
+                    bought_amount += payload['ammount']
+                    if bought_amount >= amount:
+                        break
+                    await sleep(uniform(0, 2))
+                    # sleeping for a random time between 0 and 2 seconds. feel free to change it
 
-                    except Exception as error:
-                        await ctx.send(f"**{nick}** ERROR {error}")
-                        await sleep(5)
-                if offer_id and offer_id != ids[-1]:
-                    break
+                except Exception as exc:
+                    await ctx.send(f"**{nick}** ERROR {exc}")
+                    await sleep(5)
+
             await ctx.send(f"**{nick}** bought total {round(bought_amount, 2)} coins.")
             await sleep(uniform(0, 4))
 
@@ -118,15 +115,22 @@ class Eco(Cog):
         products_bought = 0
         while products_bought < amount and not self.bot.should_break(ctx):
             tree = await self.bot.get_content(f"{base_url}productMarket.html?resource={product}&quality={quality}&countryId={market}", return_tree=True)
+            data = tree.xpath("//*[@class='buy']/button")
             try:
-                product_id = tree.xpath('//*[@id="command"]/input[1]')[0].value
+                (data or tree.xpath('//*[@id="command"]/input[1]'))[0]
             except IndexError:
                 await ctx.send(f"**{nick}** ERROR: there are no Q{quality} {product} in the market.")
                 break
-            stock = int(tree.xpath("//tr[2]//td[3]/text()")[0])
-            cost = float([x.strip() for x in tree.xpath("//tr[2]//td[4]//text()") if x.strip()][0])
+            if data:  # new format
+                offer_id = data[0].attrib['data-id']
+                stock = int(data[0].attrib['data-quantity'])
+                cost = float(data[0].attrib['data-price'])
+            else:
+                offer_id = tree.xpath('//*[@id="command"]/input[1]')[0].value
+                stock = int(tree.xpath("//tr[2]//td[3]/text()")[0])
+                cost = float([x.strip() for x in tree.xpath("//tr[2]//td[4]//text()") if x.strip()][0])
             quantity = min(stock, amount)
-            payload = {'action': "buy", 'id': product_id, 'quantity': quantity, "submit": "Buy"}
+            payload = {'action': "buy", 'id': offer_id, 'quantity': quantity, "submit": "Buy"}
             url = await self.bot.get_content(base_url + "productMarket.html", data=payload)
             await ctx.send(f"**{nick}** Quantity: {quantity}. Price: {cost} each. <{url}>")
             if "POST_PRODUCT_BUY_OK" not in url:

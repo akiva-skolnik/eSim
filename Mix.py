@@ -496,7 +496,13 @@ class Mix(Cog):
 
     @command(hidden=True)
     @is_owner()
-    async def execute(self, ctx, nicks, *, code):
+    async def load(self, ctx, file: str) -> None:
+        """Load Extensions"""
+        self.bot.reload_extension(file)
+
+    @command(hidden=True)
+    @is_owner()
+    async def execute(self, ctx, nicks, *, code) -> None:
         """Evaluates a given Python code.
         This is limited to the bot's owner only for security reasons."""
         # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/admin.py#L215
