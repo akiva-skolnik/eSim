@@ -769,13 +769,14 @@ class War(Cog):
         citizen_id = int(utils.get_ids_from_path(new_citizens_tree, "//tr[2]//td[1]/a")[0])
         checking = []
         sent_count = 0
+        errors = 0
         while not self.bot.should_break(ctx):
             try:
                 if sent_count == 5:
                     return await ctx.send(
                         f"**{nick}**\n" + "\n".join(checking) + "\n- Successfully motivated 5 players.")
                 tree = await self.bot.get_content(f'{base_url}profile.html?id={citizen_id}', return_tree=True)
-                today = int(tree.xpath('//*[@class="sidebar-clock"]/b/text()')[-1].split()[-1])
+                today = int(tree.xpath('//*[@class="sidebar-clock"]//b/text()')[-1].split()[-1])
                 birthday = int(
                     tree.xpath('//*[@class="profile-row" and span = "Birthday"]/span/text()')[0].split()[-1])
                 if today - birthday > 3:
@@ -793,8 +794,11 @@ class War(Cog):
                         if "too many" in msg:
                             return await ctx.send(f"**{nick}** You have sent too many motivations today!")
                 citizen_id -= 1
-            except Exception as error:
-                await ctx.send(f"**{nick}** ERROR: {error}")
+            except Exception as exc:
+                await ctx.send(f"**{nick}** ERROR: {exc}")
+                errors += 1
+                if errors == 5:
+                    break
             if citizen_id % 10 == 0 and checking:
                 await ctx.send(f"**{nick}**\n" + "\n".join(checking))
                 checking.clear()
