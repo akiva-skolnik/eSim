@@ -222,7 +222,7 @@ async def update(ctx, *, nicks):
                 if ".py" not in file_name or file_name == "bot.py":
                     continue
                 async with (await get_session(server)).get(
-                        "https://raw.githubusercontent.com/akiva0003/eSim/main/{file_name}") as r:
+                        f"https://raw.githubusercontent.com/akiva0003/eSim/main/{file_name}") as r:
                     with open(file_name, "w", encoding="utf-8", newline='') as f:
                         f.write(await r.text())
 
