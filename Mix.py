@@ -329,7 +329,7 @@ class Mix(Cog):
     async def config(self, ctx, key, value, *, nick: IsMyNick):
         """Examples:
             .config alpha Admin  my_nick
-            .config alpha_pw 1234  my_nick
+            .config alpha_password 1234  my_nick
             .config help ""  my_nick
         """
         with open(self.bot.config_file, "r", encoding="utf-8") as file:
@@ -359,7 +359,7 @@ class Mix(Cog):
         async with ClientSession(headers=headers) as session:
             async with session.get(base_url, ssl=True) as _:
                 async with session.get(base_url + "index.html?advancedRegistration=true&lan=" + lan.replace(f"{base_url}lan.", ""), ssl=True) as _:
-                    payload = {"login": nick, "password": environ.get(server+"_pw", environ['pw']), "mail": "",
+                    payload = {"login": nick, "password": environ.get(server+"_password", environ['password']), "mail": "",
                                "countryId": country, "checkHuman": "Human"}
                     async with session.post(base_url + "registration.html", data=payload, ssl=True) as registration:
                         if "profile" not in str(registration.url) and base_url + "index.html" not in str(registration.url):

@@ -35,12 +35,13 @@ Here's what you get when you type `.help `:
    Then, press enter and wait for the external packages to get installed on your computer.
 
 ## Setup:
-1. [Get your discord token](https://devsjournal.com/how-to-get-your-discord-token.html)  
-   invite the bot to your server, and name the channels as the e-sim servers (channels names might be #secura, #alpha, etc)
-2. Fill your details on [config.json](https://github.com/akiva0003/eSim/blob/main/config.json)  
+1. [Get your discord token](https://devsjournal.com/how-to-get-your-discord-token.html) (check all intents)  
+   invite the bot to your server, and name the channels as the e-sim servers (channels names might be #secura, #alpha, etc)  
+   Invite link: https://discordapp.com/api/oauth2/authorize?client_id=YOUR_BOT_ID_HERE&permissions=8&scope=bot (replace `YOUR_BOT_ID_HERE`)
+3. Fill your details on [config.json](https://github.com/akiva0003/eSim/blob/main/config.json)  
 Note: if you have a different nick in other servers, add lines to this file as follows: `"server": "your_nick",`  
-   The same goes for different pw: `"server_pw": "123456",`  
-   Example: `"aura": "Admin", "aura_pw": "12345678",`
+   The same goes for different password: `"server_password": "123456",`  
+   Example: `"suna": "Admin", "suna_password": "12345678",`
 3. Run `bot.py`.
 
   

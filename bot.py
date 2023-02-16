@@ -23,7 +23,7 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
-bot.VERSION = "15/02/2023"
+bot.VERSION = "16/02/2023"
 bot.config_file = config_file
 bot.sessions = {}
 bot.should_break_dict = {}
@@ -58,6 +58,7 @@ async def start():
         bot.load_extension(extension)
     print('Logged in as')
     print(bot.user.name)
+    print(f"Invite: https://discordapp.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot")
 
     # you should change the following line in all your accounts (except for 1) to
     # `"help": ""` https://github.com/akiva0003/eSim/blob/main/config.json#L9
@@ -189,7 +190,7 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
     if not_logged_in:
         await close_session(server)
 
-        payload = {'login': nick, 'password': os.environ.get(server + "_pw", os.environ['pw']), "submit": "Login"}
+        payload = {'login': nick, 'password': os.environ.get(server + "_password", os.environ['password']), "submit": "Login"}
         async with (await get_session(server)).get(url, ssl=True) as _:
             async with (await get_session(server)).post(url + "login.html", data=payload, ssl=True) as r:
                 print(r.url)

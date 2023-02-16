@@ -1,0 +1,8 @@
+{
+  "TOKEN": "YOUR_TOKEN_HERE",
+  "nick": "YOUR_NICK",
+  "password": "YOUR_PASSWORD",
+  "suna": "SUNA_NICK (if different than `nick`)",
+  "suna_password": "SUNA_PASSWORD (if different than `nick`)",
+  "headers": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246"
+}
