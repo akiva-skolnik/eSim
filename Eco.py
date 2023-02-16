@@ -356,7 +356,7 @@ class Eco(Cog):
 
     @command(aliases=["w", "work+"])
     async def work(self, ctx, *, nicks):
-        """`work+` -> for premium users"""
+        """`work+` -> for premium users (https://primera.e-sim.org/taskQueue.html)"""
 
         server = ctx.channel.name
         async for nick in utils.get_nicks(server, nicks):

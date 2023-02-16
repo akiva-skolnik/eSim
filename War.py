@@ -228,8 +228,12 @@ class War(Cog):
         """
         Dumping limits at a specific battle.
 
+        Examples: (everything inside [] is optional with default values)
+            .fight "my nick" https://primera.e-sim.org/battle.html?id=1 attacker
+            .fight nick 1 a 5 1kk 5 none 1
+
         * It will auto fly to bonus region.
-        * if dmg_or_hits < 1000 - it's hits, otherwise - dmg.
+        * if dmg_or_hits < 10000 - it's hits, otherwise - dmg.
         * set `consume_first` to `none` if you want to consume `1/1` (fast servers)
         * If `nick` contains more than 1 word - it must be within quotes.
         """
@@ -263,7 +267,7 @@ class War(Cog):
         damage_done = 0
         update = 0
         fight_url, data = await self.get_fight_data(base_url, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
-        hits_or_dmg = "hits" if dmg < 1000 else "dmg"
+        hits_or_dmg = "hits" if dmg <= 10000 else "dmg"
         round_ends = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
         start = time.time()
         while not self.bot.should_break(ctx) and damage_done < dmg and (time.time() - start < round_ends):
@@ -275,9 +279,11 @@ class War(Cog):
                     output += "\nERROR: 0 food and gift in storage"
                     break
                 if food_limit == 0 and gift_limit == 0:
-                    if medkits:
-                        medkits -= 1
+                    if medkits > 0:
                         await ctx.invoke(self.bot.get_command("medkit"), nick=nick)
+                        medkits -= 1
+                        food_limit += 10
+                        gift_limit += 10
                     else:
                         break
                 if food_storage == 0 or gift_storage == 0:
@@ -325,7 +331,7 @@ class War(Cog):
             health = float(tree.xpath("//*[@id='healthUpdate']")[0].text.split()[0])
             if dmg < 5:
                 damage_done += 1
-            elif dmg < 1000:
+            elif dmg <= 10000:
                 damage_done += 5
             else:
                 damage_done += int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
@@ -605,7 +611,7 @@ class War(Cog):
         """Hunting BH at a specific battle.
         (Good for practice battle / leagues / civil war)
 
-        * if dmg_or_hits < 1000 - it's hits, otherwise - dmg.
+        * if dmg_or_hits < 10000 - it's hits, otherwise - dmg.
         If `nick` contains more than 1 word - it must be within quotes."""
 
         data = {"link": link, "side": side, "dmg_or_hits_per_bh": dmg_or_hits_per_bh,
@@ -618,7 +624,7 @@ class War(Cog):
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         dmg = dmg_or_hits_per_bh
-        hits_or_dmg = "hits" if dmg < 1000 else "dmg"
+        hits_or_dmg = "hits" if dmg <= 10000 else "dmg"
         while not self.bot.should_break(ctx):  # For each round
             api = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
             if 8 in (api['defenderScore'], api['attackerScore']):
@@ -682,7 +688,7 @@ class War(Cog):
                     break
                 if dmg < 5:
                     damage_done += 1
-                elif dmg < 1000:
+                elif dmg <= 10000:
                     damage_done += 5
                 else:
                     damage_done += int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
@@ -847,7 +853,7 @@ class War(Cog):
 
     @command()
     async def medkit(self, ctx, *, nick: IsMyNick):
-        """Use medkit"""
+        """Using a medkit"""
         url = await self.bot.get_content(
             f"https://{ctx.channel.name}.e-sim.org/medkit.html", data={})
         await ctx.send(f"**{nick}** <{url}>")
