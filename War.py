@@ -224,7 +224,7 @@ class War(Cog):
 
     @command()
     async def fight(self, ctx, nick: IsMyNick, battle: Id, side: Side, weapon_quality: Quality = 5,
-                    dmg_or_hits: Dmg = 200, ticket_quality: Quality = 5, consume_first="gift"):
+                    dmg_or_hits: Dmg = 200, ticket_quality: Quality = 5, consume_first="gift", medkits: int = 0):
         """
         Dumping limits at a specific battle.
 
@@ -275,7 +275,11 @@ class War(Cog):
                     output += "\nERROR: 0 food and gift in storage"
                     break
                 if food_limit == 0 and gift_limit == 0:
-                    break
+                    if medkits:
+                        medkits -= 1
+                        ctx.invoke(self.bot.get_command("medkit"), nick=nick)
+                    else:
+                        break
                 if food_storage == 0 or gift_storage == 0:
                     output += f"\nWARNING: 0 {'food' if food_storage == 0 else 'gift'} in storage"
 
