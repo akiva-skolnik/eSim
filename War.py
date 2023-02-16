@@ -277,7 +277,7 @@ class War(Cog):
                 if food_limit == 0 and gift_limit == 0:
                     if medkits:
                         medkits -= 1
-                        ctx.invoke(self.bot.get_command("medkit"), nick=nick)
+                        await ctx.invoke(self.bot.get_command("medkit"), nick=nick)
                     else:
                         break
                 if food_storage == 0 or gift_storage == 0:
