@@ -961,18 +961,18 @@ class War(Cog):
             r = await self.bot.get_content(battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
             if 8 in (r['defenderScore'], r['attackerScore']):
                 break
-            time_till_round_end = r["hoursRemaining"] * 3600 + r["minutesRemaining"] * 60 + r["secondsRemaining"]
-            await ctx.send(f"**{nick}** Sleeping for {time_till_round_end - start_time} seconds :zzz:"
-                           f"\nIf you want me to stop, type `.hold watch-{random_id} {nick}`")
-            await sleep(time_till_round_end - start_time)
+            sleep_time = r["hoursRemaining"] * 3600 + r["minutesRemaining"] * 60 + r["secondsRemaining"] - start_time
+            if sleep_time > 0:
+                await ctx.send(f"**{nick}** Sleeping for {sleep_time} seconds :zzz:"
+                               f"\nIf you want me to stop, type `.hold watch-{random_id} {nick}`")
+                await sleep(sleep_time)
             if self.bot.should_break(ctx):
                 break
             await ctx.send(f"**{nick}** T{round(start_time / 60, 1)} at <{battle_link}&round={r['currentRound']}>")
-            start = time.time()
             tree = await self.bot.get_content(battle_link, return_tree=True)
             hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
             error = False
-            while time.time() - start < start_time and not error and not self.bot.should_break(ctx):
+            while not error and not self.bot.should_break(ctx):
                 battle_score = await self.bot.get_content(
                     f'{base_url}battleScore.html?id={hidden_id}&at={api_citizen["id"]}&ci={api_citizen["citizenshipId"]}&premium=1',
                     return_type="json")
@@ -985,8 +985,6 @@ class War(Cog):
                 if enemy_side - my_side < let_overkill and my_side - enemy_side < wall:
                     error, medkits = await ctx.invoke(self.bot.get_command("fight"), nick, battle, side, weapon_quality,
                                                     enemy_side - my_side + wall, ticket_quality, consume_first, medkits)
-                    if error:
-                        break
                 await sleep(uniform(2, 7))
 
             await sleep(30)
