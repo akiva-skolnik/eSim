@@ -224,7 +224,7 @@ class War(Cog):
 
     @command()
     async def fight(self, ctx, nick: IsMyNick, battle: Id, side: Side, weapon_quality: Quality = 5,
-                    dmg_or_hits: Dmg = 200, ticket_quality: Quality = 5, consume_first="gift", medkits: int = 0):
+                    dmg_or_hits: Dmg = 200, ticket_quality: Quality = 5, consume_first="gift", medkits: int = 0) -> (bool, int):
         """
         Dumping limits at a specific battle.
 
@@ -240,7 +240,8 @@ class War(Cog):
 
         consume_first = consume_first.lower()
         if consume_first not in ("food", "gift", "none"):
-            return await ctx.send(f"**{nick}** `consume_first` parameter must be food, gift, or none (not {consume_first})")
+            await ctx.send(f"**{nick}** `consume_first` parameter must be food, gift, or none (not {consume_first})")
+            return True, 0
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         link = f"{base_url}battle.html?id={battle}"
@@ -259,7 +260,8 @@ class War(Cog):
             wep = weapon_quality if not weapon_quality else int(
                 tree.xpath(f'//*[@id="weaponQ{weapon_quality}"]')[0].text)
         except Exception:
-            return await ctx.send(f"ERROR: There are 0 Q{weapon_quality} weapons in storage")
+            await ctx.send(f"ERROR: There are 0 Q{weapon_quality} weapons in storage")
+            return True, 0
 
         output = f"**{nick}** Limits: {food_limit}/{gift_limit}. Storage: {food_storage}/{gift_storage}/{wep} Q{weapon_quality} weps.\n" \
                  f"If you want me to stop, type `.hold fight {nick}`"
@@ -344,7 +346,7 @@ class War(Cog):
                 await msg.edit(content=output)
         await msg.edit(content=output)
         await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
-        return "ERROR" in output
+        return "ERROR" in output, medkits
 
     @command(aliases=["cancel"], hidden=True)
     async def hold(self, ctx, cmd, *, nicks):
@@ -402,7 +404,8 @@ class War(Cog):
         dead_servers = ["primera", "secura", "suna"]
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
-        await ctx.send(f"**{nick}** Starting to hunt at {server}.")
+        await ctx.send(f"**{nick}** Starting to hunt at {server}.\n"
+                       f"If you want me to stop, type `.hold hunt {nick}`")
         api_citizen = await self.bot.get_content(f"{base_url}apiCitizenByName.html?name={str(nick).lower()}")
         api_regions = await self.bot.get_content(base_url + "apiRegions.html")
         while not self.bot.should_break(ctx):
@@ -925,7 +928,7 @@ class War(Cog):
     @command()
     async def watch(self, ctx, nick: IsMyNick, battle: Id, side: Side, start_time: int = 60,
                     keep_wall: Dmg = 3000000, let_overkill: Dmg = 10000000, weapon_quality: Quality = 5,
-                    ticket_quality: Quality = 5, consume_first="gift"):
+                    ticket_quality: Quality = 5, consume_first="gift", medkits: int = 0):
         """
         Fight at the last minutes of every round in a given battle.
 
@@ -946,7 +949,7 @@ class War(Cog):
             return await ctx.send(f"**{nick}** `consume_first` parameter must be food, gift, or none (not {consume_first})")
         data = {"battle": battle, "side": side, "start_time": start_time, "keep_wall": keep_wall,
                 "let_overkill": let_overkill, "weapon_quality": weapon_quality, "ticket_quality": ticket_quality,
-                "consume_first": consume_first}
+                "consume_first": consume_first, "medkits": medkits}
         random_id = randint(1, 9999)
         ctx.command = f"{ctx.command}-{random_id}"
         await utils.save_command(ctx, "auto", "watch", data)
@@ -969,9 +972,7 @@ class War(Cog):
             tree = await self.bot.get_content(battle_link, return_tree=True)
             hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
             error = False
-            while time.time() - start < start_time and not error:
-                if self.bot.should_break(ctx):
-                    break
+            while time.time() - start < start_time and not error and not self.bot.should_break(ctx):
                 battle_score = await self.bot.get_content(
                     f'{base_url}battleScore.html?id={hidden_id}&at={api_citizen["id"]}&ci={api_citizen["citizenshipId"]}&premium=1',
                     return_type="json")
@@ -982,11 +983,12 @@ class War(Cog):
                 my_side = int(battle_score[f"{side}Score"].replace(",", ""))
                 enemy_side = int(battle_score[("defender" if side == "attacker" else "attacker") + "Score"].replace(",", ""))
                 if enemy_side - my_side < let_overkill and my_side - enemy_side < wall:
-                    error = await ctx.invoke(self.bot.get_command("fight"), nick, battle, side, weapon_quality,
-                                             enemy_side - my_side + wall, ticket_quality, consume_first)
+                    error, medkits = await ctx.invoke(self.bot.get_command("fight"), nick, battle, side, weapon_quality,
+                                                    enemy_side - my_side + wall, ticket_quality, consume_first, medkits)
                     if error:
                         break
                 await sleep(uniform(2, 7))
+
             await sleep(30)
 
         await utils.remove_command(ctx, "auto", "watch")

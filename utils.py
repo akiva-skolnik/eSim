@@ -263,7 +263,7 @@ async def remove_command(ctx, server: str, collection: str) -> None:
 
 async def get_nicks(server: str, nicks: str) -> iter:
     """get nicks"""
-    for nick in (x.strip() for x in nicks.split(",") if x.strip()):
+    for nick in (x.strip() for x in nicks.replace('"', "").replace("'", "").split(",") if x.strip()):
         if nick.lower() == "all":
             nick = my_nick(server)
             await sleep(randint(1, 20))

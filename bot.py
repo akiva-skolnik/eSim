@@ -23,7 +23,7 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
-bot.VERSION = "16/02/2023"
+bot.VERSION = "20/02/2023"
 bot.config_file = config_file
 bot.sessions = {}
 bot.should_break_dict = {}
@@ -110,7 +110,7 @@ async def start():
         ctx = await bot.get_context(message)
         bot.loop.create_task(ctx.invoke(
             bot.get_command("watch"), d["nick"], d["battle"], d["side"], d["start_time"], d["keep_wall"],
-            d["let_overkill"], d["weapon_quality"], d["ticket_quality"], d["consume_first"]))
+            d["let_overkill"], d["weapon_quality"], d["ticket_quality"], d["consume_first"], d.get("medkits", 0)))
 
 
 def should_break(ctx):
