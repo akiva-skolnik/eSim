@@ -531,7 +531,7 @@ class War(Cog):
                     condition = (top1_name == nick or
                                  damage_done > max_dmg or
                                  damage_done > top1dmg)
-                    if battle_score["remainingTimeInSeconds"] > start_time:
+                    if battle_score["remainingTimeInSeconds"] <= 0:
                         return False
                     if battle_score['spectatorsOnline'] == 1:
                         return top1dmg <= max_dmg and not condition
