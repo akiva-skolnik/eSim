@@ -533,14 +533,14 @@ class War(Cog):
                     return battle_score["remainingTimeInSeconds"] > 0 and not should_stop
 
 
-                async def hunting(side: str, should_fight_for_other_side: bool, max_dmg: int) -> None:
+                async def hunting(side: str, max_dmg: int) -> None:
                     damage_done = 0
                     hit_more = True
                     while hit_more and damage_done < max_dmg:
                         damage_done = await hit(side, damage_done)
                         if damage_done < 0:  # Done limits or error
                             break
-                        hit_more = await should_continue(side.title(), damage_done, should_fight_for_other_side, max_dmg)
+                        hit_more = await should_continue(side.title(), damage_done, max_dmg)
 
                 async def get_max_dmg(country_id: int) -> int:
                     max_dmg = max_dmg_for_bh
@@ -562,22 +562,22 @@ class War(Cog):
                             if a_dmg < max_a_dmg:
                                 if a_bonus:
                                     await ctx.invoke(self.bot.get_command("fly"), a_bonus[0], ticket_quality, nick=nick)
-                                    await hunting("attacker", a_dmg, d_dmg < max_d_dmg)
+                                    await hunting("attacker", a_dmg)
                                 else:
                                     await ctx.send(f"**{nick}** ERROR: I couldn't find the bonus region")
 
                             if d_dmg < max_d_dmg:
                                 await ctx.invoke(self.bot.get_command("fly"), api_battles['regionId'], ticket_quality,
                                                  nick=nick)
-                                await hunting("defender", d_dmg, False)
+                                await hunting("defender", d_dmg)
 
                         elif api_battles['type'] == "RESISTANCE":
                             await ctx.invoke(self.bot.get_command("fly"), api_battles['regionId'], ticket_quality, nick=nick)
                             if a_dmg < max_a_dmg:
-                                await hunting("attacker", a_dmg, d_dmg < max_d_dmg)
+                                await hunting("attacker", a_dmg)
 
                             if d_dmg < max_d_dmg:
-                                await hunting("defender", d_dmg, False)
+                                await hunting("defender", d_dmg)
                         else:
                             continue
                     except Exception as error:
