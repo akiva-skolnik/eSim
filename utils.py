@@ -81,7 +81,7 @@ def get_region_and_country_names(api_regions: list, api_countries: list, region_
 
 async def is_helper(ctx=None):
     """is helper"""
-    return "ignore" in os.environ.get("help", "")
+    return os.environ.get("help")
 
 
 async def get_battle_id(bot, nick: str, server: str, battle_ids, prioritize_my_country: bool = True) -> str:

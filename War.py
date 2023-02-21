@@ -391,9 +391,10 @@ class War(Cog):
     @command()
     async def hunt(self, ctx, nick: IsMyNick, max_dmg_for_bh: Dmg = 1, weapon_quality: Quality = 5, start_time: int = 60,
                    ticket_quality: Quality = 5, consume_first="none"):
-        """Auto hunt BHs (attack and RWs)
+        """Auto hunt BHs (attack and RWs).
+        - You can set a list of enemies / allies and the bot will hit half / double for them, see `.help enemy`
         If `nick` contains more than 1 word - it must be within quotes.
-        * `consume_first=none` means `1/1` (for fast servers)"""
+        * `consume_first=none` means 1/1 (for fast servers)"""
         consume_first = consume_first.lower()
         if consume_first not in ("food", "gift", "none"):
             return await ctx.send(f"**{nick}** `consume_first` parameter must be food, gift, or none (not {consume_first})")
@@ -416,8 +417,7 @@ class War(Cog):
                     api_battles = await self.bot.get_content(f'{base_url}apiBattles.html?battleId={row["battleId"]}')
                     round_ends = api_battles["hoursRemaining"] * 3600 + api_battles["minutesRemaining"] * 60 + api_battles[
                         "secondsRemaining"]
-                    if round_ends > 10:
-                        battles_time[row["battleId"]] = (round_ends, time.time())
+                    battles_time[row["battleId"]] = (round_ends, time.time())
 
             for battle_id, (round_ends, fetched_at) in battles_time.items():
                 battles_time[battle_id] = int(round_ends - (time.time() - fetched_at))
@@ -426,7 +426,7 @@ class War(Cog):
                 api_battles = await self.bot.get_content(f'{base_url}apiBattles.html?battleId={battle_id}')
                 t = api_battles["hoursRemaining"] * 3600 + api_battles["minutesRemaining"] * 60 + api_battles[
                     "secondsRemaining"]
-                if t > round_ends:
+                if t > round_ends:  # some error
                     break
                 if api_battles['frozen'] or t < 10:
                     continue
@@ -443,8 +443,6 @@ class War(Cog):
                         side[hit_record['citizenId']] = hit_record['damage']
 
                 neighbours_id = [region['neighbours'] for region in api_regions if region["id"] == api_battles['regionId']]
-                if not neighbours_id:
-                    continue  # Not an attack / RW.
                 a_bonus = [neighbour for region in api_map for neighbour in neighbours_id[0] if
                            neighbour == region['regionId'] and region['occupantId'] == api_battles['attackerId']]
 
@@ -515,51 +513,34 @@ class War(Cog):
                         damage_done = -1
                     return damage_done
 
-                async def check(side: str, damage_done: int, should_fight_for_other_side: bool, max_dmg: int) -> bool:
+                async def should_continue(side: str, damage_done: int, max_dmg: int) -> bool:
                     tree = await self.bot.get_content(f'{base_url}battle.html?id={battle_id}', return_tree=True)
                     hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
 
                     try:
-                        top1_name = tree.xpath(f"//*[@id='top{side}1']//div//a[1]/text()")[0].strip()
+                        top1name = tree.xpath(f"//*[@id='top{side}1']//div//a[1]/text()")[0].strip()
                         top1dmg = int(str(tree.xpath(f'//*[@id="top{side}1"]/div/div[2]')[0].text).replace(",", ""))
                     except Exception:
-                        top1_name, top1dmg = "-", 0
+                        top1name, top1dmg = "", 0
                     battle_score = await self.bot.get_content(
                         f'{base_url}battleScore.html?id={hidden_id}&at={api_citizen["id"]}&ci={api_citizen["citizenshipId"]}&premium=1',
                         return_type="json")
-                    # condition - You are top 1 / did more dmg than your limit / refresh problem
-                    condition = (top1_name == nick or
-                                 damage_done > max_dmg or
-                                 damage_done > top1dmg)
-                    if battle_score["remainingTimeInSeconds"] <= 0:
-                        return False
-                    if battle_score['spectatorsOnline'] == 1:
-                        return top1dmg <= max_dmg and not condition
-                    if top1dmg < max_dmg and condition:
-                        if not should_fight_for_other_side:
-                            food, gift = utils.get_limits(tree)
-                            use = "eat" if food else "gift"
-                            await self.bot.get_content(f"{base_url}{use}.html", data={'quality': 5})
-                            random_id = randint(13, 20)
-                            if battle_score["remainingTimeInSeconds"] > random_id:
-                                await sleep(battle_score["remainingTimeInSeconds"] - random_id)
-                            battle_score = await self.bot.get_content(
-                                f'{base_url}battleScore.html?id={hidden_id}&at={api_citizen["id"]}&ci={api_citizen["citizenshipId"]}&premium=1',
-                                return_type="json")
-                            if battle_score[f"{side.lower()}sOnline"]:
-                                await hit(side, damage_done)
-                        return False
-                    return True
+                    # condition - You are top 1 / did more dmg than your limit / overkill / refresh problem
+                    should_stop = (top1name == nick or
+                                   damage_done > max_dmg or
+                                   top1dmg > max_dmg or
+                                   damage_done > top1dmg)
+                    return battle_score["remainingTimeInSeconds"] > 0 and not should_stop
 
-                async def hunting(side: str, side_dmg: int, should_fight_for_other_side: bool, max_dmg: int) -> None:
+
+                async def hunting(side: str, should_fight_for_other_side: bool, max_dmg: int) -> None:
                     damage_done = 0
-                    c = await check(side.title(), damage_done, should_fight_for_other_side, max_dmg)
-                    while c:
+                    hit_more = True
+                    while hit_more and damage_done < max_dmg:
                         damage_done = await hit(side, damage_done)
                         if damage_done < 0:  # Done limits or error
                             break
-                        if damage_done >= side_dmg:
-                            c = await check(side.title(), damage_done, should_fight_for_other_side, max_dmg)
+                        hit_more = await should_continue(side.title(), damage_done, should_fight_for_other_side, max_dmg)
 
                 async def get_max_dmg(country_id: int) -> int:
                     max_dmg = max_dmg_for_bh
@@ -581,22 +562,22 @@ class War(Cog):
                             if a_dmg < max_a_dmg:
                                 if a_bonus:
                                     await ctx.invoke(self.bot.get_command("fly"), a_bonus[0], ticket_quality, nick=nick)
-                                    await hunting("attacker", a_dmg, d_dmg < max_d_dmg, max_a_dmg)
+                                    await hunting("attacker", a_dmg, d_dmg < max_d_dmg)
                                 else:
                                     await ctx.send(f"**{nick}** ERROR: I couldn't find the bonus region")
 
                             if d_dmg < max_d_dmg:
                                 await ctx.invoke(self.bot.get_command("fly"), api_battles['regionId'], ticket_quality,
                                                  nick=nick)
-                                await hunting("defender", d_dmg, False, max_d_dmg)
+                                await hunting("defender", d_dmg, False)
 
                         elif api_battles['type'] == "RESISTANCE":
                             await ctx.invoke(self.bot.get_command("fly"), api_battles['regionId'], ticket_quality, nick=nick)
                             if a_dmg < max_a_dmg:
-                                await hunting("attacker", a_dmg, d_dmg < max_d_dmg, max_a_dmg)
+                                await hunting("attacker", a_dmg, d_dmg < max_d_dmg)
 
                             if d_dmg < max_d_dmg:
-                                await hunting("defender", d_dmg, False, max_d_dmg)
+                                await hunting("defender", d_dmg, False)
                         else:
                             continue
                     except Exception as error:
