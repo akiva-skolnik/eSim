@@ -410,11 +410,11 @@ class War(Cog):
             battles_time = {}
             for battle_filter in ("NORMAL", "RESISTANCE"):
                 link = f'{base_url}battles.html?filter={battle_filter}'
-                tree = await self.bot.get_content(link)
+                tree = await self.bot.get_content(link, return_tree=True)
                 last_page = int((utils.get_ids_from_path(tree, "//ul[@id='pagination-digg']//li[last()-1]/") or ['1'])[0])
                 for page in range(1, last_page+1):
                     if page > 1:
-                        tree = await self.bot.get_content(link + f'&page={page}')
+                        tree = await self.bot.get_content(link + f'&page={page}', return_tree=True)
                     battle_links = tree.xpath('//*[@class="battleHeader"]//a/@href')
                     counters = [i.split(");\n")[0] for i in
                                 tree.xpath('//*[@id="battlesTable"]//div//div//script/text()') for i in
