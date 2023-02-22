@@ -432,8 +432,10 @@ class War(Cog):
                 if api_battles['frozen'] or t < 10:
                     continue
                 if t > start_time:
-                    await ctx.send(f"**{nick}** Seconds till next battle: {t}")
+                    await ctx.send(f"**{nick}** Time until the next fight: {timedelta(seconds=t-start_time)}")
                     await sleep(t - start_time)
+                if self.bot.should_break(ctx):
+                    break
                 defender, attacker = {}, {}
                 for hit_record in await self.bot.get_content(
                         f'{base_url}apiFights.html?battleId={battle_id}&roundId={api_battles["currentRound"]}'):
