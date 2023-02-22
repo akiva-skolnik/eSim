@@ -402,13 +402,10 @@ class War(Cog):
                 "ticket_quality": ticket_quality, "consume_first": consume_first}
         if await utils.save_command(ctx, "auto", "hunt", data):
             return  # Command already running
-        dead_servers = ["primera", "secura", "suna"]
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         await ctx.send(f"**{nick}** Starting to hunt at {server}.\n"
                        f"If you want me to stop, type `.hold hunt {nick}`")
-        api_citizen = await self.bot.get_content(f"{base_url}apiCitizenByName.html?name={str(nick).lower()}")
-        api_regions = await self.bot.get_content(base_url + "apiRegions.html")
         while not self.bot.should_break(ctx):
             battles_time = {}
             api_map = await self.bot.get_content(f'{base_url}apiMap.html')
@@ -442,106 +439,6 @@ class War(Cog):
                     else:
                         side[hit_record['citizenId']] = hit_record['damage']
 
-                neighbours_id = [region['neighbours'] for region in api_regions if region["id"] == api_battles['regionId']]
-                a_bonus = [neighbour for region in api_map for neighbour in neighbours_id[0] if
-                           neighbour == region['regionId'] and region['occupantId'] == api_battles['attackerId']]
-
-                async def hit(side: str, damage_done: int) -> int:
-                    tree = await self.bot.get_content(f'{base_url}battle.html?id={battle_id}', return_tree=True)
-                    health = float(str(tree.xpath("//*[@id='actualHealth']")[0].text))
-                    hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
-                    food_storage, gift_storage = utils.get_storage(tree)
-                    food_limit, gift_limit = utils.get_limits(tree)
-                    if health < 50:
-                        if food_storage == 0 and gift_storage == 0:
-                            await ctx.send(f"**{nick}** ERROR: 0 food and gift in storage")
-                            return -1
-                        if food_limit == 0 and gift_limit == 0:
-                            return -1
-                        if food_storage == 0 or gift_storage == 0:
-                            await ctx.send(f"**{nick}** WARNING: 0 {'food' if food_storage == 0 else 'gift'} in storage")
-
-                        use = None
-                        if consume_first == "gift" or (
-                                consume_first == "none" and gift_limit > food_limit):
-                            if gift_storage > 0 and gift_limit > 0:
-                                use = "gift"
-                                gift_limit -= 1
-                            elif food_storage > 0 and food_limit > 0:
-                                use = "eat"
-                                food_limit -= 1
-                        else:
-                            if food_storage > 0 and food_limit > 0:
-                                use = "eat"
-                                food_limit -= 1
-                            elif gift_storage > 0 and gift_limit > 0:
-                                use = "gift"
-                                gift_limit -= 1
-                        if use:
-                            await self.bot.get_content(f"{base_url}{use}.html", data={'quality': 5})
-                            health += 50
-                    battle_score = await self.bot.get_content(
-                        f'{base_url}battleScore.html?id={hidden_id}&at={api_citizen["id"]}&ci={api_citizen["citizenshipId"]}&premium=1',
-                        return_type="json")
-                    damage = 0
-                    if server in dead_servers:
-                        value = "Berserk" if battle_score["spectatorsOnline"] != 1 and health >= 50 else ""
-                    else:
-                        value = "Berserk"
-                    fight_url, data = await self.get_fight_data(base_url, tree, weapon_quality, side, value)
-                    for _ in range(5):
-                        try:
-                            tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
-                            damage = int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
-                            health = tree.xpath("//*[@id='healthUpdate']/text()") or tree.xpath(
-                                '//*[@id="actualHealth"]/text()')
-                            if health:
-                                health = float(health[0].split()[0])
-                            else:
-                                health = 0
-                            await sleep(0.3)
-                            break
-                        except Exception:
-                            await sleep(2)
-                    try:
-                        damage_done += damage
-                    except Exception:
-                        await ctx.send(f"**{nick}** ERROR: Couldn't hit")
-                        damage_done = -1
-                    if food_limit == 0 and gift_limit == 0 and health == 0:
-                        await ctx.send(f"**{nick}** Done limits")
-                        damage_done = -1
-                    return damage_done
-
-                async def should_continue(side: str, damage_done: int, max_dmg: int) -> bool:
-                    tree = await self.bot.get_content(f'{base_url}battle.html?id={battle_id}', return_tree=True)
-                    hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
-
-                    try:
-                        top1name = tree.xpath(f"//*[@id='top{side}1']//div//a[1]/text()")[0].strip()
-                        top1dmg = int(str(tree.xpath(f'//*[@id="top{side}1"]/div/div[2]')[0].text).replace(",", ""))
-                    except Exception:
-                        top1name, top1dmg = "", 0
-                    battle_score = await self.bot.get_content(
-                        f'{base_url}battleScore.html?id={hidden_id}&at={api_citizen["id"]}&ci={api_citizen["citizenshipId"]}&premium=1',
-                        return_type="json")
-                    # condition - You are top 1 / did more dmg than your limit / overkill / refresh problem
-                    should_stop = (top1name == nick or
-                                   damage_done > max_dmg or
-                                   top1dmg > max_dmg or
-                                   damage_done > top1dmg)
-                    return battle_score["remainingTimeInSeconds"] > 0 and not should_stop
-
-
-                async def hunting(side: str, max_dmg: int) -> None:
-                    damage_done = 0
-                    hit_more = True
-                    while hit_more and damage_done < max_dmg:
-                        damage_done = await hit(side, damage_done)
-                        if damage_done < 0:  # Done limits or error
-                            break
-                        hit_more = await should_continue(side.title(), damage_done, max_dmg)
-
                 async def get_max_dmg(country_id: int) -> int:
                     max_dmg = max_dmg_for_bh
                     if country_id in self.bot.enemies.get(server, []):
@@ -554,34 +451,12 @@ class War(Cog):
                 max_d_dmg = await get_max_dmg(api_battles["defenderId"])
                 a_dmg = sorted(attacker.items(), key=lambda x: x[1], reverse=True)[0][1] if attacker else 0
                 d_dmg = sorted(defender.items(), key=lambda x: x[1], reverse=True)[0][1] if defender else 0
-                if a_dmg < max_a_dmg or d_dmg < max_d_dmg:
-                    await ctx.send(
-                        f"**{nick}** Fighting at: <{base_url}battle.html?id={battle_id}&round={api_battles['currentRound']}>")
-                    try:
-                        if api_battles['type'] == "ATTACK":
-                            if a_dmg < max_a_dmg:
-                                if a_bonus:
-                                    await ctx.invoke(self.bot.get_command("fly"), a_bonus[0], ticket_quality, nick=nick)
-                                    await hunting("attacker", a_dmg)
-                                else:
-                                    await ctx.send(f"**{nick}** ERROR: I couldn't find the bonus region")
-
-                            if d_dmg < max_d_dmg:
-                                await ctx.invoke(self.bot.get_command("fly"), api_battles['regionId'], ticket_quality,
-                                                 nick=nick)
-                                await hunting("defender", d_dmg)
-
-                        elif api_battles['type'] == "RESISTANCE":
-                            await ctx.invoke(self.bot.get_command("fly"), api_battles['regionId'], ticket_quality, nick=nick)
-                            if a_dmg < max_a_dmg:
-                                await hunting("attacker", a_dmg)
-
-                            if d_dmg < max_d_dmg:
-                                await hunting("defender", d_dmg)
-                        else:
-                            continue
-                    except Exception as error:
-                        await ctx.send(f"**{nick}** ERROR: {error}")
+                if a_dmg < max_a_dmg:
+                    await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "attacker",
+                                     weapon_quality, a_dmg, ticket_quality, consume_first, 0)
+                if d_dmg < max_d_dmg:
+                    await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "defender",
+                                     weapon_quality, d_dmg, ticket_quality, consume_first, 0)
 
             await sleep(30)
             d = (await utils.find_one("auto", "hunt", os.environ['nick']))[ctx.channel.name]

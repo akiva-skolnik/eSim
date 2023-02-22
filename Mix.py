@@ -489,7 +489,7 @@ class Mix(Cog):
         .click "my nick" https://secura.e-sim.org/civilWar.html?id=1 {"action": "CAST_SUPPORT", "side": "Loyalists"}
         .click "my nick" https://secura.e-sim.org/countryLaws.html { "coalitionId": "1", "action": "JOIN_COALITION", "submit": "Join coalition"}
         .click "my nick" https://secura.e-sim.org/stockCompanyAction.html {"currencyId": 0, "sum": 1, "id": 1, "reason": "", "action": "DONATE_MONEY", "submit": "Donate"}
-
+        .click "my nick" https://secura.e-sim.org/donateProducts.html?id=0000 {"product": "5-WEAPON", "quantity": 00000, "submit": "Donate"}
         """
         url = await self.bot.get_content(link, data=json.loads(data.replace("'", '"')) or None)
         await ctx.send(f"**{nick}** <{url}>")
