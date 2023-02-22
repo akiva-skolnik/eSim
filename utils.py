@@ -52,6 +52,11 @@ async def find_one(server: str, collection: str, document: str) -> dict:
         return {}
 
 
+async def chunker(seq: list, size: int) -> iter:
+    """list to sub lists"""
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+
 async def replace_one(server: str, collection: str, document: str, data: dict) -> None:
     """replace one document"""
     if client is not None:

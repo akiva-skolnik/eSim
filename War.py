@@ -408,16 +408,19 @@ class War(Cog):
                        f"If you want me to stop, type `.hold hunt {nick}`")
         while not self.bot.should_break(ctx):
             battles_time = {}
-            api_map = await self.bot.get_content(f'{base_url}apiMap.html')
-            for row in api_map:
-                if "battleId" in row:
-                    api_battles = await self.bot.get_content(f'{base_url}apiBattles.html?battleId={row["battleId"]}')
-                    round_ends = api_battles["hoursRemaining"] * 3600 + api_battles["minutesRemaining"] * 60 + api_battles[
-                        "secondsRemaining"]
-                    battles_time[row["battleId"]] = (round_ends, time.time())
-
-            for battle_id, (round_ends, fetched_at) in battles_time.items():
-                battles_time[battle_id] = int(round_ends - (time.time() - fetched_at))
+            for battle_filter in ("NORMAL", "RESISTANCE"):
+                link = f'{base_url}battles.html?filter={battle_filter}'
+                tree = await self.bot.get_content(link)
+                last_page = int((utils.get_ids_from_path(tree, "//ul[@id='pagination-digg']//li[last()-1]/") or ['1'])[0])
+                for page in range(1, last_page+1):
+                    if page > 1:
+                        tree = await self.bot.get_content(link + f'&page={page}')
+                    battle_links = tree.xpath('//*[@class="battleHeader"]//a/@href')
+                    counters = [i.split(");\n")[0] for i in
+                                tree.xpath('//*[@id="battlesTable"]//div//div//script/text()') for i in
+                                i.split("() + ")[1:]]
+                    for round_ends, battle_link in zip(await utils.chunker(counters, 3), battle_links):
+                        battles_time[battle_link.split("=")[-1]] = int(round_ends[0])*3600 + int(round_ends[1])*60 + int(round_ends[2])
 
             for battle_id, round_ends in sorted(battles_time.items(), key=lambda x: x[1]):
                 api_battles = await self.bot.get_content(f'{base_url}apiBattles.html?battleId={battle_id}')
