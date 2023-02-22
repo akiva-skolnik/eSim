@@ -263,8 +263,9 @@ class War(Cog):
             await ctx.send(f"ERROR: There are 0 Q{weapon_quality} weapons in storage")
             return True, 0
 
-        output = f"**{nick}** Limits: {food_limit}/{gift_limit}. Storage: {food_storage}/{gift_storage}/{wep} Q{weapon_quality} weps.\n" \
-                 f"If you want me to stop, type `.hold fight {nick}`"
+        output = f"**{nick}** Fighting at: <{link}&round={api['currentRound']}>\n" \
+                 f"Limits: {food_limit}/{gift_limit}. Storage: {food_storage}/{gift_storage}/{wep} Q{weapon_quality} weps.\n" \
+                 f"If you want me to stop, type `.hold {ctx.command} {nick}`"
         msg = await ctx.send(output)
         damage_done = 0
         update = 0
@@ -456,10 +457,10 @@ class War(Cog):
                 d_dmg = sorted(defender.items(), key=lambda x: x[1], reverse=True)[0][1] if defender else 0
                 if a_dmg < max_a_dmg:
                     await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "attacker",
-                                     weapon_quality, a_dmg, ticket_quality, consume_first, 0)
+                                     weapon_quality, a_dmg+1, ticket_quality, consume_first, 0)
                 if d_dmg < max_d_dmg:
                     await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "defender",
-                                     weapon_quality, d_dmg, ticket_quality, consume_first, 0)
+                                     weapon_quality, d_dmg+1, ticket_quality, consume_first, 0)
 
             await sleep(30)
             d = (await utils.find_one("auto", "hunt", os.environ['nick']))[ctx.channel.name]
