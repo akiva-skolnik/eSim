@@ -263,7 +263,7 @@ class War(Cog):
             await ctx.send(f"ERROR: There are 0 Q{weapon_quality} weapons in storage")
             return True, 0
 
-        output = f"**{nick}** Fighting at: <{link}&round={api['currentRound']}>\n" \
+        output = f"**{nick}** Fighting at: <{link}&round={api['currentRound']}> for the {side}\n" \
                  f"Limits: {food_limit}/{gift_limit}. Storage: {food_storage}/{gift_storage}/{wep} Q{weapon_quality} weps.\n" \
                  f"If you want me to stop, type `.hold {ctx.command} {nick}`"
         msg = await ctx.send(output)
@@ -432,8 +432,9 @@ class War(Cog):
                 if api_battles['frozen'] or t < 10:
                     continue
                 if t > start_time:
-                    await ctx.send(f"**{nick}** Time until the next fight: {timedelta(seconds=t-start_time)}")
-                    await sleep(t - start_time)
+                    till_next = t - start_time + uniform(-5, 5)
+                    await ctx.send(f"**{nick}** Time until <{base_url}battle.html?id={battle_id}&round={api_battles['currentRound']}>: {timedelta(seconds=till_next)}")
+                    await sleep(till_next)
                 if self.bot.should_break(ctx):
                     break
                 defender, attacker = {}, {}
