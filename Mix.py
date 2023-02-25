@@ -553,9 +553,10 @@ class Mix(Cog):
                     await ctx.send(file=File(fp=io_output, filename="output.txt"))
 
     @command(hidden=True)
+    @is_owner()
     async def shutdown(self, ctx, *, nick: IsMyNick):
         """Shutting down specific nick (in case of ban or something)
-        Warning: It shutting down from all servers."""
+        Warning: It's shutting down from all servers."""
         await ctx.send(f"**{nick}** shut down")
         await self.bot.close()
 

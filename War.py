@@ -86,8 +86,7 @@ class War(Cog):
                     await utils.random_sleep(restores)
                     continue
                 tree = await self.bot.get_content(base_url + "home.html", return_tree=True)
-                check = tree.xpath('//*[@id="taskButtonWork"]//@href')  # checking if you can work
-                if check and randint(1, 4) == 2:  # Don't work as soon as you can (suspicious)
+                if tree.xpath('//*[@id="taskButtonWork"]//@href') and randint(1, 4) == 2:  # Don't work as soon as you can (suspicious)
                     current_loc = await utils.location(self.bot, nick, server)
                     await ctx.invoke(self.bot.get_command("work"), nicks=nick)
                     await ctx.invoke(self.bot.get_command("fly"), current_loc, ticket_quality, nick=nick)
@@ -254,13 +253,17 @@ class War(Cog):
 
         tree = await self.bot.get_content(link, return_tree=True)
         health = float(tree.xpath('//*[@id="actualHealth"]')[0].text)
-        food_storage, gift_storage = utils.get_storage(tree)
+        try:
+            food_storage, gift_storage = utils.get_storage(tree)
+        except IndexError:
+            await ctx.send(f"**{nick}** ERROR: You are not logged in. Type `.limits {nick}` and try again.")
+            return True, 0
         food_limit, gift_limit = utils.get_limits(tree)
         try:
             wep = weapon_quality if not weapon_quality else int(
                 tree.xpath(f'//*[@id="weaponQ{weapon_quality}"]')[0].text)
-        except Exception:
-            await ctx.send(f"ERROR: There are 0 Q{weapon_quality} weapons in storage")
+        except IndexError:
+            await ctx.send(f"**{nick}** ERROR: There are 0 Q{weapon_quality} weapons in storage")
             return True, 0
 
         output = f"**{nick}** Fighting at: <{link}&round={api['currentRound']}> for the {side}\n" \
@@ -386,7 +389,7 @@ class War(Cog):
             d[server].remove(country)
             added = False
         await utils.replace_one(ctx.invoked_with.lower().replace("y", "ies"), "list", utils.my_nick(), d)
-        await ctx.send(f"**{nick}** {'added' if added else 'removed'} country {country} from your {ctx.invoked_with} list.")
+        await ctx.send(f"**{nick}** {'added' if added else 'removed'} country {country} to your {ctx.invoked_with} list.")
 
 
     @command()
@@ -433,7 +436,8 @@ class War(Cog):
                     continue
                 if t > start_time:
                     till_next = t - start_time + uniform(-5, 5)
-                    await ctx.send(f"**{nick}** Time until <{base_url}battle.html?id={battle_id}&round={api_battles['currentRound']}>: {timedelta(seconds=till_next)}")
+                    await ctx.send(f"**{nick}** Time until <{base_url}battle.html?id={battle_id}&round="
+                                   f"{api_battles['currentRound']}>: {timedelta(seconds=round(till_next))}")
                     await sleep(till_next)
                 if self.bot.should_break(ctx):
                     break

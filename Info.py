@@ -1,7 +1,5 @@
 """Info.py"""
-from asyncio import sleep
 from datetime import date, datetime, timedelta
-from random import randint
 
 from discord import Embed
 from discord.ext.commands import Cog, check, command
@@ -35,7 +33,7 @@ class Info(Cog):
         tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
         items = tree.xpath('//*[starts-with(@id, "cell")]/b/text()')
         original_ids = [ID.replace('#', '') for ID in tree.xpath('//*[starts-with(@id, "cell")]/a/text()')]
-        parameters = [[utils.get_parameter(p) for p in tree.xpath('//*[@id="cell{ID}"]/text()')[3:]] for ID in original_ids]
+        parameters = [[utils.get_parameter(p) for p in tree.xpath(f'//*[@id="cell{ID}"]/text()')[3:]] for ID in original_ids]
         ids = [f"[{ID}]({base_url}showEquipment.html?id={ID})" for ID in original_ids]
         if sum(len(x) for x in ids) > 1000:
             # Eq id instead of link
@@ -221,7 +219,7 @@ class Info(Cog):
     @command()
     async def info(self, ctx, *, nick: IsMyNick):
         """Shows some info about a given user.
-        .info- will give you a brief info about all users connected to MongoDB
+        `.info-` will give you a brief info about all users connected to MongoDB
         (if you did not set it via config.json or config command, the info is only about you)"""
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"

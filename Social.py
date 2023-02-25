@@ -1,7 +1,7 @@
 """Social.py"""
 from asyncio import sleep
 from json import loads
-from random import choice, randint
+from random import choice
 from typing import Union
 
 from discord import Embed
@@ -22,7 +22,7 @@ class Social(Cog):
     async def comment(self, ctx, action, shout_or_article_link, body, *, nick: IsMyNick):
         """Commenting an article or a shout.
 
-        - `action` parameter can be reply, edit or delete (for edit and delete comment, the link should contain id=<comment_id>)
+        - `action` parameter can be: reply, edit or delete (for edit and delete comment, the link should contain id=<comment_id>)
         - `body` parameter MUST be within quotes.
         - You can find the shout & comment id by clicking F12 on the page where you see the shout."""
 
