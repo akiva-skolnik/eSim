@@ -352,7 +352,7 @@ class War(Cog):
                 await msg.edit(content=output)
         await msg.edit(content=output)
         await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
-        return "ERROR" in output, medkits
+        return "ERROR" in output or damage_done == 0, medkits
 
     @command(aliases=["cancel"], hidden=True)
     async def hold(self, ctx, cmd, *, nicks):
