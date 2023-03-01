@@ -287,6 +287,8 @@ class War(Cog):
                 if food_limit == 0 and gift_limit == 0:
                     if medkits > 0:
                         await ctx.invoke(self.bot.get_command("medkit"), nick=nick)
+                        output = f"**{nick}** Continuing..."
+                        msg = await ctx.send(output)
                         medkits -= 1
                         food_limit += 10
                         gift_limit += 10
@@ -410,7 +412,8 @@ class War(Cog):
         base_url = f"https://{server}.e-sim.org/"
         await ctx.send(f"**{nick}** Starting to hunt at {server}.\n"
                        f"If you want me to stop, type `.hold hunt {nick}`")
-        while not self.bot.should_break(ctx):
+        should_break = False
+        while not should_break:
             battles_time = {}
             for battle_filter in ("NORMAL", "RESISTANCE"):
                 link = f'{base_url}battles.html?filter={battle_filter}'
@@ -440,6 +443,7 @@ class War(Cog):
                                    f"{api_battles['currentRound']}>: {timedelta(seconds=round(till_next))}")
                     await sleep(till_next)
                 if self.bot.should_break(ctx):
+                    should_break = True
                     break
                 defender, attacker = {}, {}
                 for hit_record in await self.bot.get_content(
@@ -527,7 +531,10 @@ class War(Cog):
                 else:
                     tree = await self.bot.get_content(link, return_tree=True)
                     health = float(tree.xpath('//*[@id="actualHealth"]')[0].text)
-                if (dmg < 5 and health < 10) or (dmg >= 5 and health < 50):
+                    if not any([health, food, gift]):
+                        break
+
+                if (dmg < 5 and health == 0) or (dmg >= 5 and health < 50):
                     if (not food or food_storage == 0) and (not gift or gift_storage == 0):
                         return await ctx.send(f"**{nick}** ERROR: food/gift storage error")
                     if (not food or food_limit == 0) and (not gift or gift_limit == 0):
