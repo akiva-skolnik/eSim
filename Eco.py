@@ -1,8 +1,9 @@
 """Eco.py"""
+import csv
 import os
 from asyncio import sleep
 from datetime import datetime, time, timedelta
-from random import randint, uniform
+from random import choice, randint, uniform
 from typing import Optional
 
 from discord import Embed
@@ -99,8 +100,9 @@ class Eco(Cog):
                     await ctx.send(f"**{nick}** ERROR {exc}")
                     await sleep(5)
 
-            await ctx.send(f"**{nick}** bought total {round(bought_amount, 2)} coins.")
-            await sleep(uniform(0, 4))
+            if bought_amount > 0:
+                await ctx.send(f"**{nick}** bought total {round(bought_amount, 2)} coins.")
+                await sleep(uniform(0, 4))
 
     @command()
     async def buy(self, ctx, market: Country, amount: int, quality: Optional[Quality], product: Product, *, nick: IsMyNick):
@@ -144,7 +146,9 @@ class Eco(Cog):
         `donation_type` can be eq or gold.
         if you want to donate eq, write its ids at `data`, separated by adjacent commas.
         if you want to donate gold, write the amount at `data`.
-        if you want to donate product, send contract :)
+        if you want to donate product use:
+         .click nick https://primera.e-sim.org/donateProducts.html?id=0000 {"product": "5-WEAPON", "quantity": 00000, "submit": "Donate"}
+
         """
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
 
