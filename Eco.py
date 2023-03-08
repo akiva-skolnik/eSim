@@ -178,7 +178,8 @@ class Eco(Cog):
             api_citizen = await self.bot.get_content(f"{base_url}apiCitizenByName.html?name={nick.lower()}")
             tree = await self.bot.get_content(f"{base_url}company.html?id={company_id}", return_tree=True)
             region = utils.get_ids_from_path(tree, '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a')[0]
-            await ctx.invoke(self.bot.get_command("fly"), region, ticket_quality, nick=nick)
+            if not await ctx.invoke(self.bot.get_command("fly"), region, ticket_quality, nick=nick):
+                return
             job_ids = tree.xpath('//td[4]//input[1]')
             skills = [int(x) for x in tree.xpath('//td[1]/text()') if x.isdigit()]
             job_id = None
@@ -390,8 +391,8 @@ class Eco(Cog):
                             tree, '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a')[0]
                     except Exception:
                         return await ctx.send(f"**{nick}** ERROR: I couldn't find in which region your work is. If you don't have a job, see `.help job`")
-                    await ctx.invoke(self.bot.get_command("fly"), region, 5, nick=nick)
-                    await self.bot.get_content(base_url + "work/ajax", data={"action": "work"})
+                    if await ctx.invoke(self.bot.get_command("fly"), region, 5, nick=nick):
+                        await self.bot.get_content(base_url + "work/ajax", data={"action": "work"})
                 tree = await self.bot.get_content(base_url + "work.html", return_tree=True)
                 if not tree.xpath('//*[@id="taskButtonWork"]//@href'):
                     data = await utils.find_one(server, "info", nick)

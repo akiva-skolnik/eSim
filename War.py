@@ -70,7 +70,8 @@ class War(Cog):
                 api_battles = await self.bot.get_content(f"{base_url}apiBattles.html?battleId={battle_id}")
                 bonus_region = await utils.get_bonus_region(self.bot, base_url, side, api_battles)
                 if bonus_region:
-                    await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick)
+                    if not await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick):
+                        restores = 0
 
             while restores > 0 and not self.bot.should_break(ctx):
                 restores -= 1
@@ -89,7 +90,8 @@ class War(Cog):
                 if tree.xpath('//*[@id="taskButtonWork"]//@href') and randint(1, 4) == 2:  # Don't work as soon as you can (suspicious)
                     current_loc = await utils.location(self.bot, nick, server)
                     await ctx.invoke(self.bot.get_command("work"), nicks=nick)
-                    await ctx.invoke(self.bot.get_command("fly"), current_loc, ticket_quality, nick=nick)
+                    if not await ctx.invoke(self.bot.get_command("fly"), current_loc, ticket_quality, nick=nick):
+                        break
                 api_battles = await self.bot.get_content(f"{base_url}apiBattles.html?battleId={battle_id}")
                 if 8 in (api_battles['attackerScore'], api_battles['defenderScore']):
                     if specific_battle:
@@ -104,7 +106,8 @@ class War(Cog):
                     if specific_battle and 1 <= ticket_quality <= 5:
                         bonus_region = await utils.get_bonus_region(self.bot, base_url, side, api_battles)
                         if bonus_region:
-                            await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick)
+                            if not await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick):
+                                break
                     await ctx.send(f"**{nick}** ERROR: You can't fight in this battle from your current location.")
                     break
                 await self.dump_health(server, battle_id, side, wep)
@@ -186,23 +189,25 @@ class War(Cog):
         await ctx.send(f"**{nick}**\n" + "\n".join(results))
 
     @command(aliases=["travel"])
-    async def fly(self, ctx, region_id: Id, ticket_quality: Optional[int] = 5, *, nick: IsMyNick):
+    async def fly(self, ctx, region_id: Id, ticket_quality: Optional[int] = 5, *, nick: IsMyNick) -> bool:
         """traveling to a region"""
         if 1 <= ticket_quality <= 5:
             base_url = f"https://{ctx.channel.name}.e-sim.org/"
             tree = await self.bot.get_content(f"{base_url}region.html?id={region_id}", return_tree=True)
             country_id = tree.xpath('//*[@id="countryId"]/@value')
             tickets = tree.xpath('//*[@id="ticketQuality"]//@value')
-            if not country_id:
-                return
+            if not country_id:  # already in the location
+                return True
             if str(ticket_quality) not in tickets:
                 await ctx.send(f"**{nick}** there are 0 Q{ticket_quality} tickets in storage.")
+                return False
             else:
                 payload = {'countryId': country_id[0], 'regionId': region_id, 'ticketQuality': ticket_quality}
                 url = await self.bot.get_content(f"{base_url}travel.html", data=payload)
                 await sleep(uniform(0, 1))
                 await ctx.send(f"**{nick}** <{url}>")
                 return True
+        return ticket_quality == 0  # ticket_quality=0 indicates that there's no need to fly.
 
     @classmethod
     def convert_to_dict(cls, s):
@@ -249,7 +254,8 @@ class War(Cog):
         if 1 <= ticket_quality <= 5:
             bonus_region = await utils.get_bonus_region(self.bot, base_url, side, api)
             if bonus_region:
-                await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick)
+                if not await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick):
+                    return
 
         tree = await self.bot.get_content(link, return_tree=True)
         health = float(tree.xpath('//*[@id="actualHealth"]')[0].text)
@@ -773,7 +779,8 @@ class War(Cog):
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
 
         region_link = f"{base_url}region.html?id={region_id_or_link}"
-        await ctx.invoke(self.bot.get_command("fly"), region_id_or_link, ticket_quality, nick=nick)
+        if not await ctx.invoke(self.bot.get_command("fly"), region_id_or_link, ticket_quality, nick=nick):
+            return
         tree = await self.bot.get_content(region_link, data={"submit": "Start resistance"}, return_tree=True)
         result = tree.xpath("//*[@id='esim-layout']//div[2]/text()")[0]
         await ctx.send(f"**{nick}** {result}")
