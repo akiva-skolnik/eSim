@@ -419,6 +419,7 @@ class War(Cog):
         await ctx.send(f"**{nick}** Starting to hunt at {server}.\n"
                        f"If you want me to stop, type `.hold hunt {nick}`")
         should_break = False
+        all_countries = [x["name"] for x in await self.bot.get_content(base_url + "apiCountries.html")]
         while not should_break:
             battles_time = {}
             for battle_filter in ("NORMAL", "RESISTANCE"):
@@ -429,11 +430,15 @@ class War(Cog):
                     if page > 1:
                         tree = await self.bot.get_content(link + f'&page={page}', return_tree=True)
                     battle_links = tree.xpath('//*[@class="battleHeader"]//a/@href')
+                    sides = tree.xpath('//*[@class="battleHeader"]//em/text()')
                     counters = [i.split(");\n")[0] for i in
                                 tree.xpath('//*[@id="battlesTable"]//div//div//script/text()') for i in
                                 i.split("() + ")[1:]]
-                    for round_ends, battle_link in zip(await utils.chunker(counters, 3), battle_links):
-                        battles_time[battle_link.split("=")[-1]] = int(round_ends[0])*3600 + int(round_ends[1])*60 + int(round_ends[2])
+                    for round_ends, battle_link, sides in zip(await utils.chunker(counters, 3), battle_links, sides):
+                        defender, attacker = sides.split(" vs ")
+                        if attacker in all_countries and defender in all_countries:
+                            battles_time[battle_link.split("=")[-1]] = int(
+                                round_ends[0])*3600 + int(round_ends[1])*60 + int(round_ends[2])
 
             for battle_id, round_ends in sorted(battles_time.items(), key=lambda x: x[1]):
                 api_battles = await self.bot.get_content(f'{base_url}apiBattles.html?battleId={battle_id}')
