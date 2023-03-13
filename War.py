@@ -369,12 +369,13 @@ class War(Cog):
             if server not in self.bot.should_break_dict:
                 self.bot.should_break_dict[server] = {}
             self.bot.should_break_dict[server][cmd] = True
+            original = cmd
             if cmd in ("hunt", "hunt_battle", "watch"):
                 cmd = "auto_" + cmd
             if "auto_" in cmd:
                 data = await utils.find_one("auto", "_".join(cmd.split("_")[1:]), os.environ['nick'])
-                if server in data:
-                    del data[server]
+                if server in data and original in data[server]:
+                    del data[server][original]
                     await utils.replace_one("auto", "_".join(cmd.split("_")[1:]), os.environ['nick'], data)
 
             await ctx.send(f"**{nick}** I have forwarded your instruction. (it might take a while until it actually cancel {cmd})")
@@ -871,7 +872,7 @@ class War(Cog):
                 if enemy_side - my_side < let_overkill and my_side - enemy_side < wall:
                     error, medkits = await ctx.invoke(self.bot.get_command("fight"), nick, battle, side, weapon_quality,
                                                     enemy_side - my_side + wall, ticket_quality, consume_first, medkits)
-                await sleep(uniform(2, 7))
+                await sleep(uniform(6, 13))
 
             await sleep(30)
 
