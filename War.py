@@ -479,11 +479,12 @@ class War(Cog):
                 a_dmg = sorted(attacker.items(), key=lambda x: x[1], reverse=True)[0][1] if attacker else 0
                 d_dmg = sorted(defender.items(), key=lambda x: x[1], reverse=True)[0][1] if defender else 0
                 if a_dmg < max_a_dmg:
-                    await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "attacker",
-                                     weapon_quality, a_dmg+1, ticket_quality, consume_first, 0)
+                    should_break, _ = await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "attacker",
+                                                       weapon_quality, a_dmg+1, ticket_quality, consume_first, 0)
                 if d_dmg < max_d_dmg:
-                    await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "defender",
-                                     weapon_quality, d_dmg+1, ticket_quality, consume_first, 0)
+                    should_break, _ = await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "defender",
+                                                       weapon_quality, d_dmg+1, ticket_quality, consume_first, 0)
+
 
             await sleep(30)
             d = (await utils.find_one("auto", "hunt", os.environ['nick']))[ctx.channel.name]
