@@ -870,7 +870,7 @@ class War(Cog):
                 break
             sleep_time = r["hoursRemaining"] * 3600 + r["minutesRemaining"] * 60 + r["secondsRemaining"] - start_time + uniform(-5, 5)
             if sleep_time > 0:
-                await ctx.send(f"**{nick}** Sleeping for {sleep_time} seconds :zzz:"
+                await ctx.send(f"**{nick}** Sleeping for {round(sleep_time)} seconds :zzz:"
                                f"\nIf you want me to stop, type `.hold watch-{random_id} {nick}`")
                 await sleep(sleep_time)
             if self.bot.should_break(ctx):

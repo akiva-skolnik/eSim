@@ -69,11 +69,11 @@ class Info(Cog):
                     "//cdn.e-sim.org//img/productIcons/", "").replace(".png", "")
             products[f"{quality.title()} {name}"] = item.xpath("div[1]/text()")[0].strip()
 
-        storage_tree = await self.bot.get_content(base_url + "storage.html?storageType=MONEY", return_tree=True)
+        money_tree = await self.bot.get_content(base_url + "storage.html?storageType=MONEY", return_tree=True)
         for i in range(1, 30):
             try:
-                currency = storage_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/text()')[-1].strip()
-                value = storage_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/b/text()')[0]
+                currency = money_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/text()')[-1].strip()
+                value = money_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/b/text()')[0]
                 coins[currency] = value
             except Exception:
                 break
@@ -83,10 +83,10 @@ class Info(Cog):
             if item.xpath('span/text()'):
                 special[item.xpath('b/text()')[0]] = item.xpath('span/text()')[0]
 
-        embed = Embed(title=nick, description=storage_tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0] + " Gold")
+        embed = Embed(title=nick, description=money_tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0] + " Gold")
         for name, data in zip(("Products", "Coins", "Special Items"), (products, coins, special)):
             if data:
-                embed.add_field(name=f"**{name}:**", value="\n".join(f"**{k}**: {v}" for k, v in data.items()))
+                embed.add_field(name=f"**{name}:**", value="\n".join(f"**{k}**: {v}" for k, v in sorted(data.items())))
         await ctx.send(embed=embed)
 
     @command()
@@ -347,7 +347,7 @@ class Info(Cog):
             embed.add_field(name=f"Works in a {company_quality} {company_type} company",
                             value=f"[{company_name}]({comp_link}) ([{region}]({base_url}region.html?id={region_id}), {country})")
         embed.add_field(name="__Storage__", value="\n".join([f'{v:,} {k}' for k, v in storage1.items()]) or "-")
-        embed.add_field(name="__Special Items__", value="\n".join(storage) or "-")
+        embed.add_field(name="__Special Items__", value="\n".join(sorted(storage)) or "-")
         embed.set_footer(text="Code Version: " + self.bot.VERSION)
         await ctx.send(embed=embed)
 
