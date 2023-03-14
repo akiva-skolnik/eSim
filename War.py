@@ -384,6 +384,7 @@ class War(Cog):
     async def enemy(self, ctx, country: Country, *, nick: IsMyNick):
         """Adding an ally/enemy to your list.
         The bot will spend more dmg while hunting for an ally, and less when hunting for enemies side.
+        It will also give a little push to your allies and against your enemies.
         If the country is already in the list, it will be removed."""
         server = ctx.channel.name
 
@@ -393,12 +394,13 @@ class War(Cog):
 
         if country not in d:
             d[server].append(country)
-            added = True
+            await ctx.send(f"**{nick}** added country id {country} to your {ctx.invoked_with} list.\n"
+                           f"Current list: {', '.join(d[server])}")
         else:
             d[server].remove(country)
-            added = False
+            await ctx.send(f"**{nick}** removed country id {country} from your {ctx.invoked_with} list.\n"
+                           f"Current list: {', '.join(d[server])}")
         await utils.replace_one(ctx.invoked_with.lower().replace("y", "ies"), "list", utils.my_nick(), d)
-        await ctx.send(f"**{nick}** {'added' if added else 'removed'} country {country} to your {ctx.invoked_with} list.")
 
 
     @command()
@@ -466,18 +468,30 @@ class War(Cog):
                     else:
                         side[hit_record['citizenId']] = hit_record['damage']
 
-                async def get_max_dmg(country_id: int) -> int:
-                    max_dmg = max_dmg_for_bh
-                    if country_id in self.bot.enemies.get(server, []):
-                        max_dmg //= 2
-                    elif country_id in self.bot.allies.get(server, []):
-                        max_dmg *= 2
-                    return max_dmg
-
-                max_a_dmg = await get_max_dmg(api_battles["attackerId"])
-                max_d_dmg = await get_max_dmg(api_battles["defenderId"])
                 a_dmg = sorted(attacker.items(), key=lambda x: x[1], reverse=True)[0][1] if attacker else 0
                 d_dmg = sorted(defender.items(), key=lambda x: x[1], reverse=True)[0][1] if defender else 0
+
+                enemies, allies = self.bot.enemies.get(server, []), self.bot.allies.get(server, [])
+                max_a_dmg = max_d_dmg = max_dmg_for_bh
+                # give a little push to your ally or against your enemy
+                if api_battles["defenderId"] in enemies or api_battles["attackerId"] in allies:
+                    if api_battles["defenderId"] in enemies:
+                        max_d_dmg //= 2
+                    if api_battles["attackerId"] in allies:
+                        max_a_dmg *= 2
+                    enemy_dmg, ally_dmg = sum(defender.values()), sum(attacker.values())
+                    if 0 <= enemy_dmg - ally_dmg <= max_dmg_for_bh and a_dmg > max_a_dmg:
+                        a_dmg = enemy_dmg - ally_dmg
+
+                elif api_battles["attackerId"] in enemies or api_battles["defenderId"] in allies:
+                    if api_battles["attackerId"] in enemies:
+                        max_a_dmg //= 2
+                    if api_battles["defenderId"] in allies:
+                        max_d_dmg *= 2
+                    enemy_dmg, ally_dmg = sum(attacker.values()), sum(defender.values())
+                    if 0 <= enemy_dmg - ally_dmg <= max_dmg_for_bh and d_dmg > max_d_dmg:
+                        d_dmg = enemy_dmg - ally_dmg
+
                 if a_dmg < max_a_dmg:
                     should_break, _ = await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "attacker",
                                                        weapon_quality, a_dmg+1, ticket_quality, consume_first, 0)
