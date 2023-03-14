@@ -219,7 +219,7 @@ async def update(ctx, *, nicks):
                 "https://api.github.com/repos/akiva0003/eSim/git/trees/main") as main:
             for file in (await main.json())["tree"]:
                 file_name = file["path"]
-                if ".py" not in file_name or file_name == "bot.py":
+                if not file_name.endswith(".py"):
                     continue
                 async with (await get_session(server)).get(
                         f"https://raw.githubusercontent.com/akiva0003/eSim/main/{file_name}") as r:
@@ -229,7 +229,7 @@ async def update(ctx, *, nicks):
         importlib.reload(utils)
         for extension in categories:
             bot.reload_extension(extension)
-        await ctx.send(f"**{nick}** updated")
+        await ctx.send(f"**{nick}** updated. Running commands won't be affected.")
 
 
 @bot.event

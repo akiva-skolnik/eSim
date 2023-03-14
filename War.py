@@ -77,6 +77,12 @@ class War(Cog):
                 restores -= 1
                 if randint(1, 100) <= chance_to_skip_restore:
                     await sleep(600)
+
+                # update data from db
+                d = (await utils.find_one("auto", "fight", os.environ['nick']))[server]
+                restores, battle_id, side, wep, food = d["restores"], d["battle_id"], d["side"], d["wep"], d["food"]
+                gift, ticket_quality, chance_to_skip_restore = d["gift"], d["ticket_quality"], d["chance_to_skip_restore"]
+
                 if not battle_id:
                     battle_id = await utils.get_battle_id(self.bot, str(nick), server, battle_id)
                 await ctx.send(f'**{nick}** <{base_url}battle.html?id={battle_id}> side: {side}\n'
@@ -119,10 +125,6 @@ class War(Cog):
                     await self.dump_health(server, battle_id, side, wep)
                 await utils.random_sleep(restores)
 
-                # update data from db
-                d = (await utils.find_one("auto", "fight", os.environ['nick']))[server]
-                restores, battle_id, side, wep, food = d["restores"], d["battle_id"], d["side"], d["wep"], d["food"]
-                gift, ticket_quality, chance_to_skip_restore = d["gift"], d["ticket_quality"], d["chance_to_skip_restore"]
             await utils.remove_command(ctx, "auto", "fight")
 
     @command(name="BO")
@@ -402,7 +404,6 @@ class War(Cog):
                            f"Current list: {', '.join(d[server])}")
         await utils.replace_one(ctx.invoked_with.lower().replace("y", "ies"), "list", utils.my_nick(), d)
 
-
     @command()
     async def hunt(self, ctx, nick: IsMyNick, max_dmg_for_bh: Dmg = 1, weapon_quality: Quality = 5, start_time: int = 60,
                    ticket_quality: Quality = 5, consume_first="none"):
@@ -459,6 +460,11 @@ class War(Cog):
                 if self.bot.should_break(ctx):
                     should_break = True
                     break
+                # update data if needed
+                d = (await utils.find_one("auto", "hunt", os.environ['nick']))[ctx.channel.name]
+                max_dmg_for_bh, weapon_quality = d["max_dmg_for_bh"], d["weapon_quality"]
+                start_time, ticket_quality, consume_first = d["start_time"], d["ticket_quality"], d["consume_first"]
+
                 defender, attacker = {}, {}
                 for hit_record in await self.bot.get_content(
                         f'{base_url}apiFights.html?battleId={battle_id}&roundId={api_battles["currentRound"]}'):
@@ -479,6 +485,7 @@ class War(Cog):
                         max_d_dmg //= 2
                     if api_battles["attackerId"] in allies:
                         max_a_dmg *= 2
+                        a_dmg += 1
                     enemy_dmg, ally_dmg = sum(defender.values()), sum(attacker.values())
                     if 0 <= enemy_dmg - ally_dmg <= max_dmg_for_bh and a_dmg > max_a_dmg:
                         a_dmg = enemy_dmg - ally_dmg
@@ -488,6 +495,7 @@ class War(Cog):
                         max_a_dmg //= 2
                     if api_battles["defenderId"] in allies:
                         max_d_dmg *= 2
+                        d_dmg += 1
                     enemy_dmg, ally_dmg = sum(attacker.values()), sum(defender.values())
                     if 0 <= enemy_dmg - ally_dmg <= max_dmg_for_bh and d_dmg > max_d_dmg:
                         d_dmg = enemy_dmg - ally_dmg
@@ -498,12 +506,8 @@ class War(Cog):
                 if d_dmg < max_d_dmg:
                     should_break, _ = await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "defender",
                                                        weapon_quality, d_dmg+1, ticket_quality, consume_first, 0)
-
-
             await sleep(30)
-            d = (await utils.find_one("auto", "hunt", os.environ['nick']))[ctx.channel.name]
-            max_dmg_for_bh, weapon_quality = d["max_dmg_for_bh"], d["weapon_quality"]
-            start_time, ticket_quality, consume_first = d["start_time"], d["ticket_quality"], d["consume_first"]
+
         await utils.remove_command(ctx, "auto", "hunt")
 
     @command()
@@ -535,14 +539,15 @@ class War(Cog):
             if seconds_till_round_end < 20:
                 await sleep(30)
                 continue
-            seconds_till_hit = uniform(10, seconds_till_round_end - 10) if start_time < 10 else (seconds_till_round_end - uniform(start_time-5, start_time+5))
+            seconds_till_hit = uniform(10, seconds_till_round_end - 10) if start_time < 10 else (
+                    seconds_till_round_end - start_time + uniform(-5, 5))
             await ctx.send(f"**{nick}** {round(seconds_till_hit)} seconds from now (at T {timedelta(seconds=round(seconds_till_round_end-seconds_till_hit))}),"
                            f" I will hit {dmg} {hits_or_dmg} at <{link}> for the {side} side.\n"
                            f"If you want to cancel it, type `.hold hunt_battle-{random_id} {nick}`")
             await sleep(seconds_till_hit)
             tree = await self.bot.get_content(link, return_tree=True)
             top = tree.xpath(f'//*[@id="top{side}1"]//div[3]/text()')
-            if top and int(str(top[0]).replace(",", "").strip()) != 0 and dmg_or_hits_per_bh == 1:
+            if dmg_or_hits_per_bh == 1 and top and int(str(top[0]).replace(",", "").strip()) != 0:
                 await ctx.send(f"**{nick}** someone else already fought in this round <{link}>")
                 await sleep(seconds_till_round_end - seconds_till_hit + 15)
                 continue
@@ -841,8 +846,8 @@ class War(Cog):
         (rest args have a default value)
 
         link="https://alpha.e-sim.org/battle.html?id=1", side="defender", start_time=120, keep_wall="5kk", let_overkill="15kk")
-        In this example, it will start fighting at t2 (120 sec), it will keep 5kk wall (checking every 10 sec),
-        and if enemies did more than 15kk it will pass this round.
+        In this example, it will start fighting at t2 (120+-5 secs), it will keep 5kk wall (checking every ~10 sec),
+        and if enemies did more than 15kk it will skip this round.
         * It will auto fly to bonus region (with Q5 ticket)
         * If `nick` contains more than 1 word - it must be within quotes.
         """
@@ -863,7 +868,7 @@ class War(Cog):
             r = await self.bot.get_content(battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
             if 8 in (r['defenderScore'], r['attackerScore']):
                 break
-            sleep_time = r["hoursRemaining"] * 3600 + r["minutesRemaining"] * 60 + r["secondsRemaining"] - start_time
+            sleep_time = r["hoursRemaining"] * 3600 + r["minutesRemaining"] * 60 + r["secondsRemaining"] - start_time + uniform(-5, 5)
             if sleep_time > 0:
                 await ctx.send(f"**{nick}** Sleeping for {sleep_time} seconds :zzz:"
                                f"\nIf you want me to stop, type `.hold watch-{random_id} {nick}`")

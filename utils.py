@@ -3,7 +3,7 @@ import json
 import os
 from asyncio import sleep
 from datetime import datetime
-from random import randint
+from random import randint, uniform
 
 client = None
 
@@ -137,7 +137,7 @@ async def random_sleep(restores_left: int = 1) -> None:
         minutes = int(now.strftime("%M"))
         sec = int(now.strftime("%S"))
         roundup = round(minutes + 5.1, -1)  # round up to the next ten minutes (00:10, 00:20 etc)
-        random_number = randint(30, 570)  # getting random number
+        random_number = uniform(30, 570)  # getting random number
         sleep_time = random_number + (roundup - minutes) * 60 - sec
         await sleep(sleep_time)
 
