@@ -200,27 +200,24 @@ class Info(Cog):
         embed.add_field(name="Gold : Time Reminding", value="\n".join(col3))
         await ctx.send(embed=embed)
 
-    @command(name="info-", hidden=True)
-    @check(utils.is_helper)
-    async def info_(self, ctx):
-        """info-"""
-        values = await utils.find(ctx.channel.name, "info")
-        if values:
-            values.sort(key=lambda x: x.get('Buffed at', "-"))
-            embed = Embed()
-            embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
-            embed.add_field(name="Worked At", value="\n".join([row.get("Worked at", "-") for row in values]))
-            embed.add_field(name="Buffed At", value="\n".join([row.get("Buffed at", "-") for row in values]))
-            embed.set_footer(text="Type .info <nick> for more info on a nick")
-            await ctx.send(embed=embed)
-        else:
-            await ctx.send("No data available")
-
     @command()
     async def info(self, ctx, *, nick: IsMyNick):
         """Shows some info about a given user.
-        `.info-` will give you a brief info about all users connected to MongoDB
-        (if you did not set it via config.json or config command, the info is only about you)"""
+        `.info all` will give you a brief info about all users connected to MongoDB
+        (if you did not set it via config.json or config command, the info is only about the specific nick)"""
+        if nick.lower() == "all" and await utils.is_helper():
+            values = await utils.find(ctx.channel.name, "info")
+            if values:
+                values.sort(key=lambda x: x.get('Buffed at', "-"))
+                embed = Embed()
+                embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
+                embed.add_field(name="Worked At", value="\n".join([row.get("Worked at", "-") for row in values]))
+                embed.add_field(name="Buffed At", value="\n".join([row.get("Buffed at", "-") for row in values]))
+                embed.set_footer(text="Type .info <nick> for more info on a nick")
+                await ctx.send(embed=embed)
+            else:
+                await ctx.send("No data available")
+            return
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         tree = await self.bot.get_content(base_url + "storage.html?storageType=PRODUCT", return_tree=True)
@@ -286,7 +283,7 @@ class Info(Cog):
                          tree.xpath('//*[@class="profile-row" and (strong="Debuffs" or strong="Buffs")]//img/@src') if
                          "//cdn.e-sim.org//img/specialItems/" in x]
         buffs = ', '.join([x.split("_")[0].lower().replace("vacations", "vac").replace("resistance", "sewer").replace(
-            "paindealer", "PD ").replace("bonusdamage", "") + ("% Bonus" if "bonusdamage" in x else "") for x in
+            "paindealer", "PD ").replace("bonusdamage", "") + ("% Bonus" if "bonusdamage" in x.lower() else "") for x in
                            buffs_debuffs if "positive" in x.split("_")[1:]]).title()
         debuffs = ', '.join([x.split("_")[0].lower().replace("vacations", "vac").replace(
             "resistance", "sewer") for x in buffs_debuffs if "negative" in x.split("_")[1:]]).title()
