@@ -387,10 +387,13 @@ class Eco(Cog):
                     await self.bot.get_content(base_url + "work/ajax", data={"action": "work"}, return_tree=True)
                 else:
                     try:
-                        region = utils.get_ids_from_path(
-                            tree, '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a')[0]
-                    except Exception:
-                        return await ctx.send(f"**{nick}** ERROR: I couldn't find in which region your work is. If you don't have a job, see `.help job`")
+                        region = tree.xpath("//*[@class='companyStats']//a/@href")[-1].split("=")[-1]
+                    except IndexError:
+                        try:
+                            region = utils.get_ids_from_path(
+                                tree, '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a')[0]
+                        except IndexError:
+                            return await ctx.send(f"**{nick}** ERROR: I couldn't find in which region your work is. If you don't have a job, see `.help job`")
                     if await ctx.invoke(self.bot.get_command("fly"), region, 5, nick=nick):
                         await self.bot.get_content(base_url + "work/ajax", data={"action": "work"})
                 tree = await self.bot.get_content(base_url + "work.html", return_tree=True)
