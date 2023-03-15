@@ -501,9 +501,13 @@ class War(Cog):
                         d_dmg = enemy_dmg - ally_dmg
 
                 if a_dmg < max_a_dmg:
+                    if 10 < a_dmg < 10000:
+                        a_dmg = 10000
                     should_break, _ = await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "attacker",
                                                        weapon_quality, a_dmg+1, ticket_quality, consume_first, 0)
                 if d_dmg < max_d_dmg:
+                    if 10 < d_dmg < 10000:
+                        d_dmg = 10000
                     should_break, _ = await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "defender",
                                                        weapon_quality, d_dmg+1, ticket_quality, consume_first, 0)
             await sleep(30)
@@ -864,7 +868,8 @@ class War(Cog):
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         api_citizen = await self.bot.get_content(f'{base_url}apiCitizenByName.html?name={nick.lower()}')
         battle_link = f"{base_url}battle.html?id={battle}"
-        while not self.bot.should_break(ctx):
+        error = False
+        while not error:
             r = await self.bot.get_content(battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
             if 8 in (r['defenderScore'], r['attackerScore']):
                 break
@@ -878,8 +883,8 @@ class War(Cog):
             await ctx.send(f"**{nick}** T{round(start_time / 60, 1)} at <{battle_link}&round={r['currentRound']}>")
             tree = await self.bot.get_content(battle_link, return_tree=True)
             hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
-            error = False
-            while not error and not self.bot.should_break(ctx):
+
+            while not error:
                 battle_score = await self.bot.get_content(
                     f'{base_url}battleScore.html?id={hidden_id}&at={api_citizen["id"]}&ci={api_citizen["citizenshipId"]}&premium=1',
                     return_type="json")
@@ -891,7 +896,8 @@ class War(Cog):
                 enemy_side = int(battle_score[("defender" if side == "attacker" else "attacker") + "Score"].replace(",", ""))
                 if enemy_side - my_side < let_overkill and my_side - enemy_side < wall:
                     error, medkits = await ctx.invoke(self.bot.get_command("fight"), nick, battle, side, weapon_quality,
-                                                    enemy_side - my_side + wall, ticket_quality, consume_first, medkits)
+                                                    max(enemy_side - my_side + wall, 10001), ticket_quality, consume_first, medkits)
+                error = error or self.bot.should_break(ctx)
                 await sleep(uniform(6, 13))
 
             await sleep(30)
