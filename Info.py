@@ -201,7 +201,7 @@ class Info(Cog):
         await ctx.send(embed=embed)
 
     @command()
-    async def info(self, ctx, *, nick: IsMyNick):
+    async def info(self, ctx, *, nick):
         """Shows some info about a given user.
         `.info all` will give you a brief info about all users connected to MongoDB
         (if you did not set it via config.json or config command, the info is only about the specific nick)"""
@@ -219,6 +219,9 @@ class Info(Cog):
                 await ctx.send("No data available")
             return
         server = ctx.channel.name
+        if nick.lower() != utils.my_nick(server).lower():
+            return
+
         base_url = f"https://{server}.e-sim.org/"
         tree = await self.bot.get_content(base_url + "storage.html?storageType=PRODUCT", return_tree=True)
         medkits = (tree.xpath('//*[@id="medkitButton"]/text()') or "0")[0].replace("Use medkit", "").replace("(you have", "").replace(")", "").strip()

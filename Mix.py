@@ -326,28 +326,29 @@ class Mix(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(hidden=True)
-    async def config(self, ctx, key, value, *, nick: IsMyNick):
+    async def config(self, ctx, key, value, *, nicks):
         """Examples:
             .config alpha Admin  my_nick
             .config alpha_password 1234  my_nick
             .config help ""  my_nick
         """
-        with open(self.bot.config_file, "r", encoding="utf-8") as file:
-            big_dict = json.load(file)
-        if not value and key in big_dict:
-            del big_dict[key]
-            del environ[key]
-            await ctx.send(f"I have deleted the `{key}` key from {nick}'s {self.bot.config_file} file")
-            if key == "help":
-                self.bot.remove_command("help")
-        else:
-            big_dict[key] = value
-            environ[key] = value
-            await ctx.send(f"I have added the following pair to {nick}'s {self.bot.config_file} file: `{key} = {value}`")
-        with open(self.bot.config_file, "w", encoding="utf-8") as file:
-            json.dump(big_dict, file)
-        if key == "database_url":
-            utils.initiate_db()
+        async for nick in utils.get_nicks(ctx.channel.name, nicks):
+            with open(self.bot.config_file, "r", encoding="utf-8") as file:
+                big_dict = json.load(file)
+            if not value and key in big_dict:
+                del big_dict[key]
+                del environ[key]
+                await ctx.send(f"I have deleted the `{key}` key from {nick}'s {self.bot.config_file} file")
+                if key == "help":
+                    self.bot.remove_command("help")
+            else:
+                big_dict[key] = value
+                environ[key] = value
+                await ctx.send(f"I have added the following pair to {nick}'s {self.bot.config_file} file: `{key} = {value}`")
+            with open(self.bot.config_file, "w", encoding="utf-8") as file:
+                json.dump(big_dict, file)
+            if key == "database_url":
+                utils.initiate_db()
 
     @command()
     async def register(self, ctx, lan, country: Country, *, nick: IsMyNick):
