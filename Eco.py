@@ -204,29 +204,38 @@ class Eco(Cog):
         await ctx.invoke(self.bot.get_command("work"), nicks=nick)
 
     @command(aliases=["split"])
-    async def merge(self, ctx, ids_or_quality, *, nick: IsMyNick):
+    async def merge(self, ctx, ids_or_quality: str, *, nick: IsMyNick):
         """
-        Merges a specific EQ IDs / all EQs up to specific Q (included).
+        Merges a specific EQ IDs / all EQs up to specific Q (included) / elixirs.
 
         Examples:
         .merge 36191,34271,33877 My Nick  ->   Merges eqs id 36191, 34271 and 33877
         .merge 5 My Nick                  ->   Merges all Q1-6 eqs in your storage.
         .split 36191 My Nick              ->   Splits eq id 36191
-        IMPORTANT NOTE: No spaces in `ids_or_quality`! only commas.
+        .merge mini_lucky My Nick         ->   Merges 3 mini elixirs into lucky
+        .merge mili_bloody My Nick        ->   Merges 3 mili bloody mess elixirs into mini
+
+        * You can also use blue/green/red/yellow instead of Jinxed/Finesse/bloody_mess/lucky
+        * You can also use Q1-6 instead of mili/mini/standard/major/huge/exceptional
+
+        IMPORTANT NOTE: No spaces in `ids_or_quality`! only commas (or within quotes)
         """
 
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
+
         if ctx.invoked_with.lower() == "split":
             payload = {'action': "SPLIT", "itemId": int(ids_or_quality.strip())}
             url = await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
             await ctx.send(f"**{nick}** <{url}>")
+            await ctx.invoke(self.bot.get_command("eqs"), nick=nick)
         elif "," in ids_or_quality:
             eq1, eq2, eq3 = [eq.strip() for eq in ids_or_quality.split(",")]
             payload = {'action': "MERGE", f'itemId[{eq1}]': eq1, f'itemId[{eq2}]': eq2, f'itemId[{eq3}]': eq3}
             url = await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
             await ctx.send(f"**{nick}** <{url}>")
+            await ctx.invoke(self.bot.get_command("eqs"), nick=nick)
 
-        else:
+        elif ids_or_quality.is_digit():
             await ctx.send(f"**{nick}** On it!")
             max_q_to_merge = int(ids_or_quality.lower().replace("q", ""))  # max_q_to_merge - including
             results = []
@@ -268,8 +277,22 @@ class Eco(Cog):
                 if error:
                     break
             await ctx.send(f"**{nick}**\n" + "\n".join(results)[:1950])
+            await ctx.invoke(self.bot.get_command("eqs"), nick=nick)
 
-        await ctx.invoke(self.bot.get_command("eqs"), nick=nick)
+        else:
+            tier_lookup = {"q1": "mili", "q2": "mini", "q3": "standard", "q4": "major", "q5": "huge", "q6": "exceptional"}
+            elixir_lookup = {"blue": "jinxed", "green": "finese", "red": "bloody_mess", "yellow": "lucky",
+                             "finesse": "finese", "bloody": "bloody_mess", "mess": "bloody_mess"}
+            tier, elixir = ids_or_quality.lower().split("_")
+            tier = tier_lookup.get(tier.strip(), tier.strip())
+            elixir = elixir_lookup.get(elixir.strip(), elixir.strip())
+            elixir_type = f"{tier}_{elixir}_ELIXIR".upper()
+            if elixir == "lucky":
+                payload = {"luckyElixirType": elixir_type, "action": "MERGE_THREE_ELIXIRS_INTO_LUCKY_ONE", "submit": "Merge"}
+            else:
+                payload = {"elixirType": elixir_type,"action": "MERGE_ELIXIRS_INTO_BIGGER", "submit": "Merge"}
+            url = await self.bot.get_content(base_url + "elixirAction.html", data=payload)
+            await ctx.send(f"**{nick}** <{url}>")
 
     @command()
     async def mm(self, ctx, *, nicks):
