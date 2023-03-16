@@ -285,6 +285,6 @@ def fix_elixir(elixir: str) -> str:
     elixir_lookup = {"blue": "jinxed", "green": "finese", "red": "bloody_mess", "yellow": "lucky",
                      "finesse": "finese", "bloody": "bloody_mess", "mess": "bloody_mess"}
     tier, elixir = [x.strip() for x in elixir.lower().split("_")[:2]]
-    tier = tier_lookup.get(tier if not tier.is_digit() else "q"+tier, tier)
+    tier = tier_lookup.get(tier if not tier.isdigit() else "q"+tier, tier)
     elixir = elixir_lookup.get(elixir, elixir)
     return f"{tier}_{elixir}_ELIXIR".upper()
