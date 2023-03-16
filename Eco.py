@@ -235,7 +235,7 @@ class Eco(Cog):
             await ctx.send(f"**{nick}** <{url}>")
             await ctx.invoke(self.bot.get_command("eqs"), nick=nick)
 
-        elif ids_or_quality.is_digit():
+        elif ids_or_quality.isdigit():
             await ctx.send(f"**{nick}** On it!")
             max_q_to_merge = int(ids_or_quality.lower().replace("q", ""))  # max_q_to_merge - including
             results = []
