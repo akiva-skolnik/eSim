@@ -90,7 +90,7 @@ class Info(Cog):
                 else:
                     s_item = s_item.replace(" elixir", "").split()
                     tier, elixir = s_item[0], s_item[1]
-                    elixirs[elixir][tiers.index(tier)] = item.xpath('span/text()')[0]
+                    elixirs[elixir][tiers.index(tier)] = item.xpath('span/text()')[0].replace("x", "")
 
         embed = Embed(title=nick, description=money_tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0] + " Gold")
         for name, data in zip(("Products", "Coins", "Special Items"), (products, coins, special)):
@@ -263,7 +263,7 @@ class Info(Cog):
                 else:
                     s_item = s_item.replace(" elixir", "").split()
                     tier, elixir = s_item[0], s_item[1]
-                    elixirs[elixir][tiers.index(tier)] = item.xpath('span/text()')[0]
+                    elixirs[elixir][tiers.index(tier)] = item.xpath('span/text()')[0].replace("x", "")
 
         api = await self.bot.get_content(base_url + 'apiCitizenByName.html?name=' + nick.lower())
         data = await utils.find_one(server, "info", nick)
@@ -282,8 +282,8 @@ class Info(Cog):
             if buffed_seconds < day_seconds:  # buff lasts 24h
                 seconds = day_seconds - buffed_seconds
             elif buffed_seconds < day_seconds * days:  # debuff ends
-                seconds = (datetime.strptime(debuff_ends, date_format) - datetime.strptime(now,
-                                                                                           date_format)).total_seconds()
+                seconds = (datetime.strptime(debuff_ends, date_format) - datetime.strptime(
+                    now, date_format)).total_seconds()
             else:
                 seconds = 0
             data["Buffed at"] += f" ({timedelta(seconds=seconds)}h left)"
@@ -362,8 +362,8 @@ class Info(Cog):
             region, country = utils.get_region_and_country_names(api_regions, api_countries, int(region_id))
             embed.add_field(name=f"Works in a {company_quality} {company_type} company",
                             value=f"[{company_name}]({comp_link}) ([{region}]({base_url}region.html?id={region_id}), {country})")
-        embed.add_field(name="__Storage__", value="\n".join([f'{k}: x{v:,}' for k, v in sorted(storage.items())]) or "-")
-        embed.add_field(name="__Special Items__", value="\n".join([f'{k}: x{v}' for k, v in sorted(special.items())]) or "-")
+        embed.add_field(name="__Storage__", value="\n".join([f'**{k}**: x{v:,}' for k, v in sorted(storage.items())]) or "-")
+        embed.add_field(name="__Special Items__", value="\n".join([f'**{k}**: {v}' for k, v in sorted(special.items())]) or "-")
 
         embed.add_field(name="**Elixir**", value="\n".join(tiers))
         embed.add_field(name="**Jinxed	Finesse**", value="\n".join(
