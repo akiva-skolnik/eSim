@@ -276,3 +276,4 @@ async def get_nicks(server: str, nicks: str) -> iter:
         if nick.lower() != my_nick(server).lower():
             continue
         yield nick
+        await sleep(randint(1, len(nicks)//3))

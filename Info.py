@@ -224,33 +224,24 @@ class Info(Cog):
 
         base_url = f"https://{server}.e-sim.org/"
         tree = await self.bot.get_content(base_url + "storage.html?storageType=PRODUCT", return_tree=True)
-        medkits = (tree.xpath('//*[@id="medkitButton"]/text()') or "0")[0].replace("Use medkit", "").replace("(you have", "").replace(")", "").strip()
 
         gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
-        storage1 = {}
+        storage = {}
         for num in range(2, 22):
             try:
                 item = str(tree.xpath(f'//*[@id="resourceInput"]/option[{num}]')[0].text).strip().replace(
                     "(available", "").replace(")", "").split(":")
                 while "  " in item[0]:
                     item[0] = item[0].replace("  ", "")
-                storage1[item[0]] = int(item[1])
+                storage[item[0]] = int(item[1])
             except Exception:
                 break
 
-        tree = await self.bot.get_content(base_url + 'storage.html?storageType=SPECIAL_ITEM', return_tree=True)
-        storage = []
-        for num in range(1, 16):
-            try:
-                amount = tree.xpath(f'//*[@id="storageConteiner"]//div//div//div[1]//div[{num}]/span')[0].text
-                if "x" in amount:
-                    item = str(
-                        tree.xpath(f'//*[@id="storageConteiner"]//div//div//div[1]//div[{num}]/b')[0].text).replace(
-                        "Extra", "").replace("Equipment parameter ", "")
-                if item != "Medkit" and "Bandage" not in item:
-                    storage.append(f'{amount.replace("x", "")} {item}')
-            except Exception:
-                break
+        special = {}
+        special_tree = await self.bot.get_content(f"{base_url}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
+        for item in special_tree.xpath('//div[@class="specialItemInventory"]'):
+            if item.xpath('span/text()'):
+                special[item.xpath('b/text()')[0]] = item.xpath('span/text()')[0]
 
         api = await self.bot.get_content(base_url + 'apiCitizenByName.html?name=' + nick.lower())
         data = await utils.find_one(server, "info", nick)
@@ -297,7 +288,7 @@ class Info(Cog):
                  "Premium": f"till {date.today() + timedelta(days=int(api['premiumDays']))} ({api['premiumDays']} days)" if
                             api['premiumDays'] else "", "Economy skill": round(api['economySkill'], 1),
                  "Birthday": (tree.xpath('//*[@class="profile-row" and span = "Birthday"]/span/text()') or [1])[0],
-                 "Medals": f"{api['medalsCount']:,}", "Friends": f"{api['friendsCount']:,}", "Medkits": medkits, "Gold": gold}
+                 "Medals": f"{api['medalsCount']:,}", "Friends": f"{api['friendsCount']:,}", "Gold": gold}
         data.update(stats)
 
         eqs = []
@@ -336,7 +327,7 @@ class Info(Cog):
                       "Free Flight": api['eqFreeFlight']}
 
         embed.add_field(name="__Stats__", value="\n".join([f"**{k}**: {v}" for k, v in data.items()]))
-        embed.add_field(name="__Parameters__", value="\n".join([f"**{k}**: {v}" for k, v in parameters.items()]))
+        embed.add_field(name="__Parameters__", value="\n".join([f"**{k}**: {v}" for k, v in parameters.items() if v]))
         embed.add_field(name="__Slots__", value="\n".join(eqs) or "- no eqs found -")
 
         if 'companyId' in api:
@@ -349,8 +340,8 @@ class Info(Cog):
             region, country = utils.get_region_and_country_names(api_regions, api_countries, int(region_id))
             embed.add_field(name=f"Works in a {company_quality} {company_type} company",
                             value=f"[{company_name}]({comp_link}) ([{region}]({base_url}region.html?id={region_id}), {country})")
-        embed.add_field(name="__Storage__", value="\n".join([f'{v:,} {k}' for k, v in storage1.items()]) or "-")
-        embed.add_field(name="__Special Items__", value="\n".join(sorted(storage)) or "-")
+        embed.add_field(name="__Storage__", value="\n".join([f'{k}: x{v:,}' for k, v in sorted(storage.items())]) or "-")
+        embed.add_field(name="__Special Items__", value="\n".join([f'{k}: x{v}' for k, v in sorted(special.items())]) or "-")
         embed.set_footer(text="Code Version: " + self.bot.VERSION)
         await ctx.send(embed=embed)
 
