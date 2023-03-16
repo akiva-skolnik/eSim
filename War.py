@@ -801,13 +801,13 @@ class War(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def rw(self, ctx, region_id_or_link: Id, ticket_quality: Optional[int] = 5, *, nick: IsMyNick):
-        """
-        Open RW.
-        Note: region can be link or id.
-        * It will auto fly to that region."""
-        base_url = f"https://{ctx.channel.name}.e-sim.org/"
+    async def rw(self, ctx, region_id_or_link: Id, ticket_quality: int = 5, delay: int = 0, *, nick: IsMyNick):
+        """Opens RW (Resistance War).
+        `delay` means how many seconds the bot should wait before opening the RW.
+        Note: region can be link or id."""
 
+        await sleep(delay)
+        base_url = f"https://{ctx.channel.name}.e-sim.org/"
         region_link = f"{base_url}region.html?id={region_id_or_link}"
         if not await ctx.invoke(self.bot.get_command("fly"), region_id_or_link, ticket_quality, nick=nick):
             return
