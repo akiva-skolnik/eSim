@@ -801,19 +801,21 @@ class War(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def rw(self, ctx, region_id_or_link: Id, ticket_quality: int = 5, delay: int = 0, *, nick: IsMyNick):
+    async def rw(self, ctx, region_id_or_link: Id, ticket_quality: Optional[int] = 5, delay: Optional[int] = 0, *, nick: IsMyNick):
         """Opens RW (Resistance War).
         `delay` means how many seconds the bot should wait before opening the RW.
         Note: region can be link or id."""
-
+        if delay > 0:
+            await ctx.send(f"**{nick}** Ok. If you changed your mind, type `.cancel rw {nick}`")
         await sleep(delay)
-        base_url = f"https://{ctx.channel.name}.e-sim.org/"
-        region_link = f"{base_url}region.html?id={region_id_or_link}"
-        if not await ctx.invoke(self.bot.get_command("fly"), region_id_or_link, ticket_quality, nick=nick):
-            return
-        tree = await self.bot.get_content(region_link, data={"submit": "Start resistance"}, return_tree=True)
-        result = tree.xpath("//*[@id='esim-layout']//div[2]/text()")[0]
-        await ctx.send(f"**{nick}** {result}")
+        if not self.bot.should_break(ctx):
+            base_url = f"https://{ctx.channel.name}.e-sim.org/"
+            region_link = f"{base_url}region.html?id={region_id_or_link}"
+            if not await ctx.invoke(self.bot.get_command("fly"), region_id_or_link, ticket_quality, nick=nick):
+                return
+            tree = await self.bot.get_content(region_link, data={"submit": "Start resistance"}, return_tree=True)
+            result = tree.xpath("//*[@id='esim-layout']//div[2]/text()")[0]
+            await ctx.send(f"**{nick}** {result}")
 
     @command()
     async def supply(self, ctx, amount: int, quality: Optional[Quality], product: Product, *, nick: IsMyNick):
