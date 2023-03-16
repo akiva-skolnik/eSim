@@ -225,10 +225,12 @@ async def update(ctx, *, nicks):
                         f"https://raw.githubusercontent.com/akiva0003/eSim/main/{file_name}") as r:
                     with open(file_name, "w", encoding="utf-8", newline='') as f:
                         f.write(await r.text())
-
+        async with (await get_session(server)).get("https://api.github.com/repos/akiva0003/eSim/branches/main") as r:
+            bot.VERSION = (await r.json())["commit"]["commit"]["author"]["date"]
         importlib.reload(utils)
         for extension in categories:
             bot.reload_extension(extension)
+
         await ctx.send(f"**{nick}** updated. Running commands won't be affected.")
 
 
