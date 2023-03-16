@@ -902,7 +902,7 @@ class War(Cog):
                 my_side = int(battle_score[f"{side}Score"].replace(",", ""))
                 enemy = "defender" if side == "attacker" else "attacker"
                 enemy_side = int(battle_score[enemy + "Score"].replace(",", ""))
-                wall = keep_wall * (battle_score[f"{enemy}Online"] + 1) if battle_score["spectatorsOnline"] != 1 else 1
+                wall = keep_wall * (battle_score[f"{enemy}sOnline"] + 1) if battle_score["spectatorsOnline"] != 1 else 1
                 if enemy_side - my_side < let_overkill and my_side - enemy_side < wall:
                     error, medkits = await ctx.invoke(self.bot.get_command("fight"), nick, battle, side, weapon_quality,
                                                     max(enemy_side - my_side + wall, 10001), ticket_quality, consume_first, medkits)
