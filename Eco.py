@@ -280,14 +280,8 @@ class Eco(Cog):
             await ctx.invoke(self.bot.get_command("eqs"), nick=nick)
 
         else:
-            tier_lookup = {"q1": "mili", "q2": "mini", "q3": "standard", "q4": "major", "q5": "huge", "q6": "exceptional"}
-            elixir_lookup = {"blue": "jinxed", "green": "finese", "red": "bloody_mess", "yellow": "lucky",
-                             "finesse": "finese", "bloody": "bloody_mess", "mess": "bloody_mess"}
-            tier, elixir = ids_or_quality.lower().split("_")
-            tier = tier_lookup.get(tier.strip(), tier.strip())
-            elixir = elixir_lookup.get(elixir.strip(), elixir.strip())
-            elixir_type = f"{tier}_{elixir}_ELIXIR".upper()
-            if elixir == "lucky":
+            elixir_type = utils.fix_elixir(ids_or_quality)
+            if "LUCKY" in elixir_type:
                 payload = {"luckyElixirType": elixir_type, "action": "MERGE_THREE_ELIXIRS_INTO_LUCKY_ONE", "submit": "Merge"}
             else:
                 payload = {"elixirType": elixir_type,"action": "MERGE_ELIXIRS_INTO_BIGGER", "submit": "Merge"}

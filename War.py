@@ -141,22 +141,30 @@ class War(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(aliases=["buff-"])
-    async def buff(self, ctx, buffs_names, *, nick: IsMyNick):
+    async def buff(self, ctx, buffs_names: str, *, nick: IsMyNick):
         """Buy and use buffs.
 
         The buff names should be formal (can be found via F12), but here are some shortcuts:
         VAC = EXTRA_VACATIONS, SPA = EXTRA_SPA, SEWER = SEWER_GUIDE, STR = STEROIDS, PD 10 = PAIN_DEALER_10_H
         More examples: BANDAGE_SIZE_C and CAMOUFLAGE_II, MILI_JINXED_ELIXIR, MINI_BLOODY_MESS_ELIXIR
 
+        * You can also use blue/green/red/yellow instead of Jinxed/Finesse/bloody_mess/lucky
+        * You can also use Q1-6 instead of mili/mini/standard/major/huge/exceptional
         * type `.buff-` if you don't want to buy the buff.
 
-        Example: .buff  str,tank  my nick"""
+        Examples:
+            .buff  str,tank          my nick
+            .buff  all_Q1_elixirs  my nick"""
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
+        elixirs = ("BLOODY_MESS", "FINESE", "JINXED", "LUCKY")
 
+        buffs_names = buffs_names.upper()
+        if buffs_names.endswith("_ELIXIRS"):
+            buffs_names = ",".join(f'{buffs_names.split("_")[0]}_{elixir}_ELIXIR' for elixir in elixirs)
         results = []
         for buff_name in buffs_names.split(","):
-            buff_name = buff_name.strip().upper().replace(" ", "_")
+            buff_name = buff_name.strip().replace(" ", "_")
             if buff_name == "VAC":
                 buff_name = "EXTRA_VACATIONS"
             elif buff_name == "SPA":
@@ -167,11 +175,11 @@ class War(Cog):
                 buff_name = "STEROIDS"
             elif "PD" in buff_name:
                 buff_name = buff_name.replace("PD", "PAIN_DEALER") + "_H"
-            elif any(x in buff_name for x in ("BLOODY_MESS", "FINESE", "JINXED", "LUCKY")):
-                if not buff_name.endswith("_ELIXIR"):
-                    buff_name += "_ELIXIR"
-
-            actions = ("BUY", "USE") if ctx.invoked_with.lower() == "buff" else ("USE", )
+            elif any(x in buff_name for x in elixirs):
+                if buff_name.endswith("_ELIXIR"):
+                    buff_name = utils.fix_elixir(buff_name)
+            buff_for_sell = buff_name in ("STEROIDS", "EXTRA_VACATIONS", "EXTRA_SPA", "TANK", "BUNKER", "SEWER_GUIDE")
+            actions = ("BUY", "USE") if ctx.invoked_with.lower() == "buff" and buff_for_sell else ("USE", )
             for action in actions:
                 if self.bot.should_break(ctx):
                     return
@@ -842,19 +850,18 @@ class War(Cog):
     async def watch(self, ctx, nick: IsMyNick, battle: Id, side: Side, start_time: int = 60,
                     keep_wall: Dmg = 3000000, let_overkill: Dmg = 10000000, weapon_quality: Quality = 5,
                     ticket_quality: Quality = 5, consume_first="gift", medkits: int = 0):
-        """
-        Fight at the last minutes of every round in a given battle.
+        """Fight at the last minutes of every round in a given battle.
 
         Examples:
-        when link="https://alpha.e-sim.org/battle.html?id=1" and side="defender"
-        In this example, it will start fighting at t1, it will keep a 3kk wall (checking every 10 sec),
-        and if enemies did more than 10kk it will pass this round.
-        (rest args have a default value)
+        .watch https://alpha.e-sim.org/battle.html?id=1 defender
+        In this example, it will start fighting at t1, and will try to keep a default 3kk wall (checking every ~10 sec),
+        and if enemies did more than 10kk it will skip the round.
 
-        link="https://alpha.e-sim.org/battle.html?id=1", side="defender", start_time=120, keep_wall="5kk", let_overkill="15kk")
-        In this example, it will start fighting at t2 (120+-5 secs), it will keep 5kk wall (checking every ~10 sec),
-        and if enemies did more than 15kk it will skip this round.
-        * It will auto fly to bonus region (with Q5 ticket)
+        If link="https://alpha.e-sim.org/battle.html?id=1", side="defender", start_time=120, keep_wall="5kk", let_overkill="15kk"
+        it will start fighting at ~t2 (120+-5 secs), it will keep a 5kk wall (checking every ~10 sec),
+        and if enemies did more than 15kk it will skip the round.
+
+        * It will increase the wall for every fighting enemy, to compensate for the delay.
         * If `nick` contains more than 1 word - it must be within quotes.
         """
         consume_first = consume_first.lower()
@@ -892,10 +899,10 @@ class War(Cog):
                     return_type="json")
                 if battle_score["remainingTimeInSeconds"] <= 0:
                     break
-                wall = keep_wall if battle_score["spectatorsOnline"] != 1 else 1
-
                 my_side = int(battle_score[f"{side}Score"].replace(",", ""))
-                enemy_side = int(battle_score[("defender" if side == "attacker" else "attacker") + "Score"].replace(",", ""))
+                enemy = "defender" if side == "attacker" else "attacker"
+                enemy_side = int(battle_score[enemy + "Score"].replace(",", ""))
+                wall = keep_wall * (battle_score[f"{enemy}Online"] + 1) if battle_score["spectatorsOnline"] != 1 else 1
                 if enemy_side - my_side < let_overkill and my_side - enemy_side < wall:
                     error, medkits = await ctx.invoke(self.bot.get_command("fight"), nick, battle, side, weapon_quality,
                                                     max(enemy_side - my_side + wall, 10001), ticket_quality, consume_first, medkits)

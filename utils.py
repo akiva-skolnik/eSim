@@ -277,3 +277,14 @@ async def get_nicks(server: str, nicks: str) -> iter:
             continue
         yield nick
         await sleep(randint(1, len(nicks)//3))
+
+
+def fix_elixir(elixir: str) -> str:
+    """fix elixir"""
+    tier_lookup = {"q1": "mili", "q2": "mini", "q3": "standard", "q4": "major", "q5": "huge", "q6": "exceptional"}
+    elixir_lookup = {"blue": "jinxed", "green": "finese", "red": "bloody_mess", "yellow": "lucky",
+                     "finesse": "finese", "bloody": "bloody_mess", "mess": "bloody_mess"}
+    tier, elixir = [x.strip() for x in elixir.lower().split("_")[:2]]
+    tier = tier_lookup.get(tier if not tier.is_digit() else "q"+tier, tier)
+    elixir = elixir_lookup.get(elixir, elixir)
+    return f"{tier}_{elixir}_ELIXIR".upper()
