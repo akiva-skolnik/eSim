@@ -78,15 +78,29 @@ class Info(Cog):
             except Exception:
                 break
 
+        special = {}
+        elixirs = {"jinxed": [""]*6, "finesse": [""]*6, "bloody": [""]*6, "lucky": [""]*6}
+        tiers = ["Mili", "Mini", "Standard", "Major", "Huge", "Exceptional"]
         special_tree = await self.bot.get_content(f"{base_url}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
         for item in special_tree.xpath('//div[@class="specialItemInventory"]'):
             if item.xpath('span/text()'):
-                special[item.xpath('b/text()')[0]] = item.xpath('span/text()')[0]
+                s_item = item.xpath('b/text()')[0]
+                if "elixir" not in s_item:
+                    special[s_item] = item.xpath('span/text()')[0]
+                else:
+                    s_item = s_item.replace(" elixir", "").split()
+                    tier, elixir = s_item[0], s_item[1]
+                    elixirs[elixir][tiers.index(tier)] = item.xpath('span/text()')[0]
 
         embed = Embed(title=nick, description=money_tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0] + " Gold")
         for name, data in zip(("Products", "Coins", "Special Items"), (products, coins, special)):
-            if data:
-                embed.add_field(name=f"**{name}:**", value="\n".join(f"**{k}**: {v}" for k, v in sorted(data.items())))
+            embed.add_field(name=f"**{name}:**", value="\n".join(f"**{k}**: {v}" for k, v in sorted(data.items())) or "-")
+        embed.add_field(name="**Elixir**", value="\n".join(tiers))
+        embed.add_field(name="**Jinxed	Finesse**", value="\n".join(
+            x.center(6, "\u2800") + y.center(6, "\u2800") for x, y in zip(elixirs['finesse'], elixirs['jinxed'])))
+        embed.add_field(name="**Bloody	Lucky**", value="\n".join(
+            x.center(5, "\u2800") + y.center(7, "\u2800") for x, y in zip(elixirs['bloody'], elixirs['lucky'])))
+
         await ctx.send(embed=embed)
 
     @command()
@@ -238,10 +252,18 @@ class Info(Cog):
                 break
 
         special = {}
+        elixirs = {"jinxed": [""]*6, "finesse": [""]*6, "bloody": [""]*6, "lucky": [""]*6}
+        tiers = ["Mili", "Mini", "Standard", "Major", "Huge", "Exceptional"]
         special_tree = await self.bot.get_content(f"{base_url}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
         for item in special_tree.xpath('//div[@class="specialItemInventory"]'):
             if item.xpath('span/text()'):
-                special[item.xpath('b/text()')[0]] = item.xpath('span/text()')[0]
+                s_item = item.xpath('b/text()')[0]
+                if "elixir" not in s_item:
+                    special[s_item] = item.xpath('span/text()')[0]
+                else:
+                    s_item = s_item.replace(" elixir", "").split()
+                    tier, elixir = s_item[0], s_item[1]
+                    elixirs[elixir][tiers.index(tier)] = item.xpath('span/text()')[0]
 
         api = await self.bot.get_content(base_url + 'apiCitizenByName.html?name=' + nick.lower())
         data = await utils.find_one(server, "info", nick)
@@ -342,6 +364,13 @@ class Info(Cog):
                             value=f"[{company_name}]({comp_link}) ([{region}]({base_url}region.html?id={region_id}), {country})")
         embed.add_field(name="__Storage__", value="\n".join([f'{k}: x{v:,}' for k, v in sorted(storage.items())]) or "-")
         embed.add_field(name="__Special Items__", value="\n".join([f'{k}: x{v}' for k, v in sorted(special.items())]) or "-")
+
+        embed.add_field(name="**Elixir**", value="\n".join(tiers))
+        embed.add_field(name="**Jinxed	Finesse**", value="\n".join(
+            x.center(6, "\u2800") + y.center(6, "\u2800") for x, y in zip(elixirs['finesse'], elixirs['jinxed'])))
+        embed.add_field(name="**Bloody	Lucky**", value="\n".join(
+            x.center(5, "\u2800") + y.center(7, "\u2800") for x, y in zip(elixirs['bloody'], elixirs['lucky'])))
+
         embed.set_footer(text="Code Version: " + self.bot.VERSION)
         await ctx.send(embed=embed)
 
