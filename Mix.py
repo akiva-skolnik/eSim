@@ -1,5 +1,6 @@
 """Mix.py"""
 import json
+import sys
 import textwrap
 import traceback
 from asyncio import sleep
@@ -7,7 +8,7 @@ from base64 import b64encode
 from contextlib import redirect_stdout
 from datetime import datetime
 from io import BytesIO, StringIO
-from os import environ
+from os import environ, execv
 from random import choice, randint, uniform
 from typing import Optional
 
@@ -554,12 +555,19 @@ class Mix(Cog):
                     await ctx.send(file=File(fp=io_output, filename="output.txt"))
 
     @command(hidden=True)
-    @is_owner()
-    async def shutdown(self, ctx, *, nick: IsMyNick):
-        """Shutting down specific nick (in case of ban or something)
+    async def shutdown(self, ctx, restart: bool, *, nicks):
+        """Shutting down specific nick.
         Warning: It's shutting down from all servers."""
-        await ctx.send(f"**{nick}** shut down")
-        await self.bot.close()
+        async for nick in utils.get_nicks(ctx.channel.name, nicks):
+            for session in self.bot.sessions.values():
+                await session.close()
+
+            if restart:
+                await ctx.send(f"**{nick}** restarting...")
+                execv(sys.executable, [sys.executable] + sys.argv)
+            else:
+                await ctx.send(f"**{nick}** shutting down...")
+                await self.bot.close()
 
 
 def setup(bot):
