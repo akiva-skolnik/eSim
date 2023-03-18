@@ -905,11 +905,13 @@ class War(Cog):
                 wall = keep_wall * (battle_score[f"{enemy}sOnline"] + 1) if battle_score["spectatorsOnline"] != 1 else 1
                 if enemy_side - my_side < let_overkill and my_side - enemy_side < wall:
                     error, medkits = await ctx.invoke(self.bot.get_command("fight"), nick, battle, side, weapon_quality,
-                                                    max(enemy_side - my_side + wall, 10001), ticket_quality, consume_first, medkits)
+                                                      max(enemy_side - my_side + wall, 10001), ticket_quality, consume_first, medkits)
                 error = error or self.bot.should_break(ctx)
                 await sleep(uniform(6, 13))
 
-            await sleep(30)
+            for _ in range(randint(3, 7)):  # keep the bot online for a while after the fight
+                await sleep(uniform(25, 35))
+                await self.bot.get_content(battle_link, return_tree=True)
 
         await utils.remove_command(ctx, "auto", "watch")
 
