@@ -405,11 +405,11 @@ class War(Cog):
         if country not in d:
             d[server].append(country)
             await ctx.send(f"**{nick}** added country id {country} to your {ctx.invoked_with} list.\n"
-                           f"Current list: {', '.join(d[server])}")
+                           f"Current list: {', '.join(str(x) for x in d[server])}")
         else:
             d[server].remove(country)
             await ctx.send(f"**{nick}** removed country id {country} from your {ctx.invoked_with} list.\n"
-                           f"Current list: {', '.join(d[server])}")
+                           f"Current list: {', '.join(str(x) for x in d[server])}")
         await utils.replace_one(ctx.invoked_with.lower().replace("y", "ies"), "list", utils.my_nick(), d)
 
     @command()
