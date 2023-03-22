@@ -66,13 +66,6 @@ class War(Cog):
             specific_battle = (battle_id != 0)
             await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.cancel auto_fight-{random_id} {nick}`")
 
-            if specific_battle and 1 <= ticket_quality <= 5:
-                api_battles = await self.bot.get_content(f"{base_url}apiBattles.html?battleId={battle_id}")
-                bonus_region = await utils.get_bonus_region(self.bot, base_url, side, api_battles)
-                if bonus_region:
-                    if not await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick):
-                        restores = 0
-
             while restores > 0 and not self.bot.should_break(ctx):
                 restores -= 1
                 if randint(1, 100) <= chance_to_skip_restore:
@@ -94,10 +87,7 @@ class War(Cog):
                     continue
                 tree = await self.bot.get_content(base_url + "home.html", return_tree=True)
                 if tree.xpath('//*[@id="taskButtonWork"]//@href') and randint(1, 4) == 2:  # Don't work as soon as you can (suspicious)
-                    current_loc = await utils.location(self.bot, nick, server)
                     await ctx.invoke(self.bot.get_command("work"), nicks=nick)
-                    if not await ctx.invoke(self.bot.get_command("fly"), current_loc, ticket_quality, nick=nick):
-                        break
                 api_battles = await self.bot.get_content(f"{base_url}apiBattles.html?battleId={battle_id}")
                 if 8 in (api_battles['attackerScore'], api_battles['defenderScore']):
                     if specific_battle:
@@ -105,7 +95,11 @@ class War(Cog):
                         break
                     await ctx.send(f"**{nick}** Searching for the next battle...")
                     battle_id = await utils.get_battle_id(self.bot, str(nick), server, battle_id)
-
+                if specific_battle and 1 <= ticket_quality <= 5:
+                    bonus_region = await utils.get_bonus_region(self.bot, base_url, side, api_battles)
+                    if bonus_region:
+                        if not await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick):
+                            restores = 0
                 tree = await self.bot.get_content(f'{base_url}battle.html?id={battle_id}', return_tree=True)
                 fight_ability = tree.xpath("//*[@id='newFightView']//div[3]//div[3]//div//text()[1]")
                 if any("You can't fight in this battle from your current location." in s for s in fight_ability):
