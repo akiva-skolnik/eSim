@@ -729,7 +729,7 @@ class War(Cog):
                 checking.clear()
 
     @command(aliases=["dow", "mpp"])
-    async def attack(self, ctx, country_or_region_id: Id, delay: int = 0, *, nick: IsMyNick):
+    async def attack(self, ctx, country_or_region_id: Id, delay: Optional[int], *, nick: IsMyNick):
         """
         Propose MPP / Declaration of war / Attack region.
         Possible after certain delay.
@@ -737,6 +737,7 @@ class War(Cog):
         action = ctx.invoked_with.lower()
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         if delay:
+            await ctx.send(f"**{nick}** Ok. Sleeping for {delay} seconds. You can cancel with `.cancel attack {nick}`")
             await sleep(delay)
             if self.bot.should_break(ctx):
                 return
