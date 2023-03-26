@@ -729,29 +729,17 @@ class War(Cog):
                 checking.clear()
 
     @command(aliases=["dow", "mpp"])
-    async def attack(self, ctx, country_or_region_id: Id, delay_or_battle_link="0", *, nick):
+    async def attack(self, ctx, country_or_region_id: Id, delay: int = 0, *, nick: IsMyNick):
         """
         Propose MPP / Declaration of war / Attack region.
-        Possible after certain delay / after certain battle.
-        `delay_or_battle_link` - optional
+        Possible after certain delay.
         """
-        if not delay_or_battle_link.isdigit():
-            nick = delay_or_battle_link + " " + nick
-            delay_or_battle_link = ""
-        await IsMyNick().convert(ctx, nick)
         action = ctx.invoked_with.lower()
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
-        if ".e-sim.org/battle.html?id=" in delay_or_battle_link:
-            api = await self.bot.get_content(
-                delay_or_battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
-            defender_score, attacker_score = api['defenderScore'], api['attackerScore']
-            while 8 not in (defender_score, attacker_score):
-                api = await self.bot.get_content(delay_or_battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
-                defender_score, attacker_score = api['defenderScore'], api['attackerScore']
-                await sleep(api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"])
-
-        elif delay_or_battle_link:
-            await sleep(int(delay_or_battle_link))
+        if delay:
+            await sleep(delay)
+            if self.bot.should_break(ctx):
+                return
 
         if action == "attack":
             payload = {'action': "ATTACK_REGION", 'regionId': country_or_region_id, 'attackButton': "Attack"}
@@ -762,9 +750,8 @@ class War(Cog):
         else:
             return await ctx.send(f"**{nick}** ERROR: parameter 'action' must be one of those: mpp/dow/attack (not {action})")
 
-        if not self.bot.should_break(ctx):
-            url = await self.bot.get_content(base_url + "countryLaws.html", data=payload)
-            await ctx.send(f"**{nick}** <{url}>")
+        url = await self.bot.get_content(base_url + "countryLaws.html", data=payload)
+        await ctx.send(f"**{nick}** <{url}>")
 
     @command()
     async def medkit(self, ctx, *, nick: IsMyNick):
