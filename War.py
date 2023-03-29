@@ -287,6 +287,8 @@ class War(Cog):
         round_ends = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
         start = time.time()
         while not self.bot.should_break(ctx) and damage_done < dmg and (time.time() - start < round_ends):
+            if len(output) > 1900:
+                output = "(Message is too long)"
             if weapon_quality > 0 and ((dmg >= 5 > wep) or (dmg < 5 and wep == 0)):
                 await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}\nERROR: no Q{weapon_quality} weps in storage")
                 break
