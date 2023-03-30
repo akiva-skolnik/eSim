@@ -203,7 +203,7 @@ class War(Cog):
             if not country_id:  # already in the location
                 return True
             if str(ticket_quality) not in tickets:
-                await ctx.send(f"**{nick}** there are 0 Q{ticket_quality} tickets in storage.")
+                await ctx.reply(f"**{nick}** ERROR: there are 0 Q{ticket_quality} tickets in storage.")
                 return False
             else:
                 payload = {'countryId': country_id[0], 'regionId': region_id, 'ticketQuality': ticket_quality}
