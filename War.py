@@ -194,24 +194,28 @@ class War(Cog):
 
     @command(aliases=["travel"])
     async def fly(self, ctx, region_id: Id, ticket_quality: Optional[int] = 5, *, nick: IsMyNick) -> bool:
-        """traveling to a region"""
+        """traveling to a region.
+        If you do not have tickets of that quality, the bot will use lower quality"""
         if 1 <= ticket_quality <= 5:
             base_url = f"https://{ctx.channel.name}.e-sim.org/"
             tree = await self.bot.get_content(f"{base_url}region.html?id={region_id}", return_tree=True)
             country_id = tree.xpath('//*[@id="countryId"]/@value')
-            tickets = tree.xpath('//*[@id="ticketQuality"]//@value')
+            tickets_qualities = [int(x) for x in tree.xpath('//*[@id="ticketQuality"]//@value')] or [6]
             if not country_id:  # already in the location
                 return True
-            if str(ticket_quality) not in tickets:
-                await ctx.reply(f"**{nick}** ERROR: there are 0 Q{ticket_quality} tickets in storage.")
-                return False
-            else:
-                payload = {'countryId': country_id[0], 'regionId': region_id, 'ticketQuality': ticket_quality}
-                url = await self.bot.get_content(f"{base_url}travel.html", data=payload)
-                await sleep(uniform(0, 1))
-                await ctx.send(f"**{nick}** <{url}>")
-                return True
-        return ticket_quality == 0  # ticket_quality=0 indicates that there's no need to fly.
+            if ticket_quality not in tickets_qualities:
+                if min(tickets_qualities) < ticket_quality:
+                    ticket_quality = min(tickets_qualities)
+                else:
+                    await ctx.reply(f"**{nick}** ERROR: there are 0 Q{ticket_quality} tickets in storage.")
+                    return False
+            payload = {'countryId': country_id[0], 'regionId': region_id, 'ticketQuality': ticket_quality}
+            url = await self.bot.get_content(f"{base_url}travel.html", data=payload)
+            await sleep(uniform(0, 1))
+            await ctx.send(f"**{nick}** <{url}>")
+            return True
+        else:
+            return ticket_quality == 0  # ticket_quality=0 indicates that there's no need to fly.
 
     @classmethod
     def convert_to_dict(cls, s):
