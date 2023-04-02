@@ -187,7 +187,7 @@ class Mix(Cog):
                         tree = await self.bot.get_content(f"{base_url}monetaryMarket.html?buyerCurrencyId=0&sellerCurrencyId=" +
                                                           str(citizen['citizenshipId']), return_tree=True)
                         try:
-                            offer_id = tree.xpath("//tr[2]//td[4]//form[1]//input[@value][2]")[0].value
+                            offer_id = tree.xpath("//*[@class='buy']/button")[0].attrib['data-id']
                             payload = {'action': "buy", 'id': offer_id, 'ammount': 0.5, "submit": "OK"}
                             await self.bot.get_content(base_url + "monetaryMarket.html", data=payload)
                         except IndexError:

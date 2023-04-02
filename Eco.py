@@ -70,26 +70,26 @@ class Eco(Cog):
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         for country in countries:
             bought_amount = 0
-            tree = await self.bot.get_content(f"{base_url}monetaryMarket.html?buyerCurrencyId={country}", return_tree=True)
-            prices = tree.xpath("//td[3]//b/text()")
-            ids = tree.xpath("//td[4]//form[1]//input[@value][2]")
-            amounts = tree.xpath('//td[2]//b/text()')
-            for offer_id, offer_amount, price in zip(ids, amounts, prices):
+            tree = await self.bot.get_content(f"{base_url}monetaryMarketOffers?sellerCurrencyId=0&buyerCurrencyId={country}&page=1", return_tree=True)
+            amounts = tree.xpath("//*[@class='amount']//b/text()")
+            ratios = tree.xpath("//*[@class='ratio']//b/text()")
+            offers_ids = [int(x.attrib['data-id']) for x in tree.xpath("//*[@class='buy']/button")]
+            for offer_id, offer_amount, ratio in zip(offers_ids, amounts, ratios):
                 if self.bot.should_break(ctx):
                     return
                 try:
-                    offer_amount, price = float(offer_amount), float(price)
-                    if price > max_price:
-                        await ctx.send(f"**{nick}** The price is too high ({price}).")
+                    offer_amount, ratio = float(offer_amount), float(ratio)
+                    if ratio > max_price:
+                        await ctx.send(f"**{nick}** The price is too high ({ratio}).")
                         break
 
-                    payload = {'action': "buy", 'id': offer_id.value, 'ammount': round(min(offer_amount, amount - bought_amount), 2),
+                    payload = {'action': "buy", 'id': offer_id, 'ammount': round(min(offer_amount, amount - bought_amount), 2),
                                'stockCompanyId': '', 'submit': 'Buy'}
                     url = await self.bot.get_content(f"{base_url}monetaryMarket.html?buyerCurrencyId={country}", data=payload)
                     if "MM_POST_OK_BUY" not in str(url):
                         await ctx.send(f"ERROR: <{url}>")
                         break
-                    await ctx.send(f"**{nick}** Bought {payload['ammount']} coins at {price} each.")
+                    await ctx.send(f"**{nick}** Bought {payload['ammount']} coins at {ratio} each.")
                     bought_amount += payload['ammount']
                     if bought_amount >= amount:
                         break
@@ -301,36 +301,36 @@ class Eco(Cog):
                 try:
                     currency = storage_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/text()')[-1].strip()
                     cc = [i["id"] for i in api if i["currencyName"] == currency][0]
-                    value = storage_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/b/text()')[0]
+                    amount = storage_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/b/text()')[0]
                     tree = await self.bot.get_content(f'{base_url}monetaryMarket.html?buyerCurrencyId={cc}&sellerCurrencyId=0', return_tree=True)
                     try:
-                        ratio = float(str(tree.xpath("//tr[2]//td[3]/b")[0].text).strip())
+                        rate = float(tree.xpath("//*[@class='buy']/button")[0].attrib['data-id'])
                     except Exception:
-                        ratio = 0.1
-                    payload = {"offeredMoneyId": cc, "buyedMoneyId": 0, "value": value,
-                               "exchangeRatio": round(ratio - 0.0001, 4), "submit": "Post new offer"}
-                    await self.bot.get_content(base_url + "monetaryMarket.html?action=post", data=payload)
-                    await ctx.send(f"**{nick}** posted {value} {currency} for {payload['exchangeRatio']}")
+                        rate = 0.1
+                    payload = {"offeredCurrencyId": cc, "buyerCurrencyId": 0, "amount": amount,
+                               "rate": round(rate - 0.0001, 4)}
+                    await self.bot.get_content(base_url + "monetaryMarketOfferPost.html", data=payload)
+                    await ctx.send(f"**{nick}** posted {amount} {currency} for {payload['exchangeRatio']}")
                 except Exception:
                     break
-            tree = await self.bot.get_content(base_url + "monetaryMarket.html", return_tree=True)
+            tree = await self.bot.get_content(base_url + "storage.html?storageType=MONEY", return_tree=True)
             ids = tree.xpath('//*[@id="command"]//input[1]')
-            for i in range(2, 30):
+            currencies = [x.strip() for x in tree.xpath(f"//*[@class='amount']//text()") if x.strip()][1::2]
+            for i in range(30):
                 if self.bot.should_break(ctx):
                     return
                 try:
-                    currency = tree.xpath(f'//*[@id="esim-layout"]//table[2]//tr[{i}]//td[1]/text()')[-1].strip()
-                    cc = [i["id"] for i in api if i["currencyName"] == currency][0]
-                    tree = await self.bot.get_content(f'{base_url}monetaryMarket.html?buyerCurrencyId={cc}&sellerCurrencyId=0', return_tree=True)
-                    seller = tree.xpath("//tr[2]//td[1]/a/text()")[0].strip()
+                    cc = [x["id"] for x in api if x["currencyName"] == currencies[i]][0]
+                    tree = await self.bot.get_content(f'{base_url}monetaryMarketOffers?buyerCurrencyId={cc}&sellerCurrencyId=0&page=1', return_tree=True)
+                    seller = tree.xpath("//*[@class='seller']/a/text()")[0].strip()
                     if seller.lower() != nick.lower():
                         try:
-                            ratio = float(str(tree.xpath("//tr[2]//td[3]/b")[0].text))
+                            rate = float(tree.xpath("//*[@class='ratio']//b/text()")[0])
                         except Exception:
-                            ratio = 0.1
-                        payload = {"id": ids[i - 2].value, "rate": round(ratio - 0.0001, 4), "submit": "Edit"}
+                            rate = 1
+                        payload = {"id": ids[i].value, "rate": round(rate - 0.0001, 4), "submit": "Edit"}
                         await self.bot.get_content(base_url + "monetaryMarket.html?action=change", data=payload)
-                        await ctx.send(f"**{nick}** edited {currency} for {payload['rate']}")
+                        await ctx.send(f"**{nick}** edited {currencies[i]} for {payload['rate']}")
                 except Exception:
                     break
 
