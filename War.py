@@ -659,8 +659,7 @@ class War(Cog):
         tree = await self.bot.get_content(base_url + 'storage.html?storageType=PRODUCT', return_tree=True)
 
         def get_storage(tree):
-            food, gift = utils.get_storage(tree, 3)
-            weps = 0
+            food = gift = weps = 0
             for num in range(2, 52):
                 try:
                     item = str(tree.xpath(f'//*[@id="resourceInput"]/option[{num}]')[0].text).strip()
@@ -669,7 +668,10 @@ class War(Cog):
                         item[0] = item[0].replace("  ", "")
                     if item[0] == "Q1 Weapon":
                         weps = int(item[1])
-                        break
+                    elif item[0] == "Q3 Gift":
+                        gift = int(item[1])
+                    elif item[0] == "Q3 Food":
+                        food = int(item[1])
                 except Exception:
                     break
 
