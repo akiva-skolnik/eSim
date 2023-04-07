@@ -320,12 +320,13 @@ class Eco(Cog):
                     return
                 currency_id = [x["id"] for x in api if x["currencyName"] == currencies[i]][0]
                 tree = await self.bot.get_content(f'{base_url}monetaryMarketOffers?buyerCurrencyId={currency_id}&sellerCurrencyId=0&page=1', return_tree=True)
-                seller = money_tree.xpath("//*[@class='seller']/a/text()")[0].strip()
+                try:
+                    seller = money_tree.xpath("//*[@class='seller']/a/text()")[0].strip()
+                    rate = float(tree.xpath("//*[@class='buy']/button")[0].attrib['data-sell-currency'])
+                except IndexError:
+                    seller = ""
+                    rate = 0.1
                 if seller.lower() != nick.lower():
-                    try:
-                        rate = float(tree.xpath("//*[@class='buy']/button")[0].attrib['data-sell-currency'])
-                    except Exception:
-                        rate = 0.1
                     payload = {"id": ids[i].value, "rate": round(rate - 0.0001, 4), "submit": "Edit"}
                     await self.bot.get_content(base_url + "monetaryMarket.html?action=change", data=payload)
                     await ctx.send(f"**{nick}** edited {currencies[i]} for {payload['rate']}")
