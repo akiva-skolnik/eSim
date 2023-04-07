@@ -56,7 +56,6 @@ class Info(Cog):
 
         special = {}
         products = {}
-        coins = {}
 
         storage_tree = await self.bot.get_content(f"{base_url}storage.html?storageType=PRODUCT", return_tree=True)
         for item in storage_tree.xpath("//div[@class='storage']"):
@@ -70,15 +69,9 @@ class Info(Cog):
             products[f"{quality.title()} {name}"] = item.xpath("div[1]/text()")[0].strip()
 
         money_tree = await self.bot.get_content(base_url + "storage.html?storageType=MONEY", return_tree=True)
-        for i in range(1, 30):
-            try:
-                currency = money_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/text()')[-1].strip()
-                value = money_tree.xpath(f'//*[@id="storageConteiner"]//div//div//div//div[{i}]/b/text()')[0]
-                coins[currency] = value
-            except Exception:
-                break
+        money = [x.strip() for x in money_tree.xpath("//*[@class='currencyDiv']//text()") if x.strip()]
+        coins = dict(zip(money[1::2], money[0::2]))
 
-        special = {}
         elixirs = {"jinxed": [""]*6, "finesse": [""]*6, "bloody": [""]*6, "lucky": [""]*6}
         tiers = ["Mili", "Mini", "Standard", "Major", "Huge", "Exceptional"]
         special_tree = await self.bot.get_content(f"{base_url}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
