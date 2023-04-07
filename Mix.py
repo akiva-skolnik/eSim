@@ -417,7 +417,7 @@ class Mix(Cog):
                         candidate_id = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]//td[5]//*[@id="command"]/input[2]')[0].value
                 except Exception:
                     return await ctx.send(f"**{nick}** ERROR: I couldn't find the vote button.")
-                payload = {'action': "VOTE", 'candidateId': candidate_id, "submit": "Vote"}
+                payload = {'action': "VOTE", 'candidate': candidate_id, "submit": "Vote"}
                 break
 
         if payload:
