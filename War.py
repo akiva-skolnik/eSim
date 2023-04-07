@@ -518,6 +518,8 @@ class War(Cog):
                         d_dmg = 10000
                     should_break, _ = await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "defender",
                                                        weapon_quality, d_dmg+1, ticket_quality, consume_first, 0)
+                if should_break:
+                    break
             await sleep(30)
 
         await utils.remove_command(ctx, "auto", "hunt")
