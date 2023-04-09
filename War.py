@@ -122,16 +122,18 @@ class War(Cog):
             await utils.remove_command(ctx, "auto", "fight")
 
     @command(name="BO")
-    async def battle_order(self, ctx, battle: Id, side: Side, *, nick: IsMyNick):
+    async def battle_order(self, ctx, battle: Id, side: Side, key: Optional[int] = 0, *, nick: IsMyNick):
         """
         Set battle order.
         You can use battle link/id.
+        key=0 means MU order, key=1 means country order, and key=2 means coalition order
         """
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
-        payload = {'action': "SET_ORDERS",
-                   'battleId': f"{battle}_{'true' if side == 'attacker' else 'false'}",
+        payload = {'action': 'SET_ORDERS' if key != 1 else 'CHANGE_ORDER',
+                   'battleId' if key != 1 else 'battleOrderId': f"{battle}_{'true' if side == 'attacker' else 'false'}",
                    'submit': "Set orders"}
-        url = await self.bot.get_content(base_url + "militaryUnitsActions.html", data=payload)
+        links = {0: "militaryUnitsActions.html", 1: "countryLaws.html", 2: "coalitionManagement.html"}
+        url = await self.bot.get_content(base_url + links[key], data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(aliases=["buff-"])
