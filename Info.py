@@ -87,7 +87,7 @@ class Info(Cog):
 
         embed = Embed(title=nick, description=money_tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0] + " Gold")
         for name, data in zip(("Products", "Coins", "Special Items"), (products, coins, special)):
-            embed.add_field(name=f"**{name}:**", value="\n".join(f"**{k}**: {v}" for k, v in sorted(data.items())) or "-")
+            embed.add_field(name=f"**{name}:**", value="\n".join(f"**{k}**: {v}" for k, v in sorted(data.items())[-20:]) or "-")
         embed.add_field(name="**Elixir**", value="\n".join(tiers))
         embed.add_field(name="**Jinxed	Finesse**", value="\n".join(
             x.center(6, "\u2800") + y.center(6, "\u2800") for x, y in zip(elixirs['finesse'], elixirs['jinxed'])))

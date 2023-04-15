@@ -69,32 +69,36 @@ class Social(Cog):
                 for page in range(1, reminding_alerts // 20 + 2):
                     tree = await self.bot.get_content(f"{base_url}notifications.html?page={page}", return_tree=True)
                     embed = Embed(title=f"**{nick}** {base_url}notifications.html?page={page}\n")
-                    for tr in range(2, min(20, reminding_alerts) + 2):
+                    for div in range(1, min(20, reminding_alerts) + 1):
                         try:
-                            alert = tree.xpath(f'//tr[{tr}]//td[2]')[0].text_content().strip()
-                            alert_date = tree.xpath(f'//tr[{tr}]//td[3]')[0].text_content().strip()
+                            alert_date = tree.xpath(f'//*[@id="command"]/div/div[2]/div[{div}]/div/div[1]/div/b')[
+                                0].text.strip()
+                            alert = tree.xpath(f'//*[@id="command"]/div/div[2]/div[{div}]/div/div[2]')[
+                                0].text_content().strip()
+                            links = tree.xpath(f'//*[@id="command"]/div/div[2]/div[{div}]/div/div[2]/a/@href')
+                        except IndexError:  # old format
                             try:
-                                links = tree.xpath(f"//tr[{tr}]//td[2]/a[2]/@href")
-                                if "has requested to add you as a friend" in alert:
-                                    await self.bot.get_content(base_url + str(links[0]))
-                                elif "has offered you to sign" in alert:
-                                    alert = alert.replace("contract", f'[contract]({base_url}{links[0]})').replace(
-                                        "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!",
-                                        f"\ntype `.contract {links[0].split('=')[1]} {nick}` to accept it.")
-                                elif len(links) > 1:
-                                    link = [x for x in links if "profile" not in x]
-                                    if link:
-                                        alert = f'[{alert}]({base_url}{link[0]})'
-                                    else:
-                                        alert = f'[{alert}]({base_url}{links[0]})'
-                                elif links:
-                                    alert = f'[{alert}]({base_url}{links[0]})'
-                            except Exception:
-                                pass
-                            reminding_alerts -= 1
-                            embed.add_field(name=alert_date, value=alert, inline=False)
-                        except Exception:
-                            break
+                                alert = tree.xpath(f'//tr[{div}]//td[2]')[0].text_content().strip()
+                                alert_date = tree.xpath(f'//tr[{div}]//td[3]')[0].text_content().strip()
+                                links = tree.xpath(f"//tr[{div}]//td[2]/a[2]/@href")
+                            except IndexError:
+                                break
+                        if "has requested to add you as a friend" in alert:
+                            await self.bot.get_content(base_url + str(links[0]))
+                        elif "has offered you to sign" in alert:
+                            alert = alert.replace("contract", f'[contract]({base_url}{links[0]})').replace(
+                                "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!",
+                                f"\ntype `.contract {links[0].split('=')[1]} {nick}` to accept it.")
+                        elif len(links) > 1:
+                            link = [x for x in links if "profile" not in x]
+                            if link:
+                                alert = f'[{alert}]({base_url}{link[0]})'
+                            else:
+                                alert = f'[{alert}]({base_url}{links[0]})'
+                        elif links:
+                            alert = f'[{alert}]({base_url}{links[0]})'
+                        reminding_alerts -= 1
+                        embed.add_field(name=alert_date, value=alert, inline=False)
                     await ctx.send(embed=embed)
 
             if msgs:
