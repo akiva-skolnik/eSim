@@ -171,9 +171,8 @@ class War(Cog):
                 buff_name = "STEROIDS"
             elif "PD" in buff_name:
                 buff_name = buff_name.replace("PD", "PAIN_DEALER") + "_H"
-            elif any(x in buff_name for x in elixirs):
-                if buff_name.endswith("_ELIXIR"):
-                    buff_name = utils.fix_elixir(buff_name)
+            elif buff_name.endswith("_ELIXIR"):
+                buff_name = utils.fix_elixir(buff_name)
             buff_for_sell = buff_name in ("STEROIDS", "EXTRA_VACATIONS", "EXTRA_SPA", "TANK", "BUNKER", "SEWER_GUIDE")
             actions = ("BUY", "USE") if ctx.invoked_with.lower() == "buff" and buff_for_sell else ("USE", )
             for action in actions:
@@ -370,7 +369,7 @@ class War(Cog):
                 await msg.edit(content=output)
         await msg.edit(content=output)
         await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
-        return "ERROR" in output or damage_done == 0, medkits
+        return "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
 
     @command(aliases=["cancel"], hidden=True)
     async def hold(self, ctx, cmd, *, nicks):
