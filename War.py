@@ -663,7 +663,7 @@ class War(Cog):
 
         def get_storage(tree):
             food = gift = weps = 0
-            for num in range(2, 52):
+            for num in range(1, 52):
                 try:
                     item = str(tree.xpath(f'//*[@id="resourceInput"]/option[{num}]')[0].text).strip()
                     item = item.replace("(available", "").replace(")", "").split(":")

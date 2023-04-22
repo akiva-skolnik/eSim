@@ -234,7 +234,7 @@ class Info(Cog):
 
         gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
         storage = {}
-        for num in range(2, 22):
+        for num in range(1, 22):
             try:
                 item = str(tree.xpath(f'//*[@id="resourceInput"]/option[{num}]')[0].text).strip().replace(
                     "(available", "").replace(")", "").split(":")
