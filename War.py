@@ -777,7 +777,8 @@ class War(Cog):
         """
         Reshuffle/upgrade a specific parameter.
         Parameter example: Increase chance to avoid damage by 7.08%
-        If it's not working, you can try writing "first" or "last" as a parameter.
+        If it's not working, you can try writing "first", "second" or "last" as a parameter.
+        (you can also try "avoid", but sometimes there may be unexpected behavior)
 
         it's recommended to copy and paste the parameter, but you can also write first/last
         """
@@ -788,12 +789,14 @@ class War(Cog):
 
         link = f"{base_url}showEquipment.html?id={eq_id_or_link}"
         tree = await self.bot.get_content(link, return_tree=True)
-        eq = tree.xpath('//*[@id="esim-layout"]//div/div[4]/div/h4/text()')
-        parameter_id = tree.xpath('//*[@id="esim-layout"]//div/div[4]/div/h3/text()')
+        eq = tree.xpath('//*[@id="esim-layout"]//div/div[3]/div/h4/text()')
+        parameter_id = tree.xpath('//*[@id="esim-layout"]//div/div[3]/div/h3/text()')
         if parameter in eq[0].replace("by  ", "by ") or parameter == "first":
             parameter_id = parameter_id[0].split("#")[1]
-        elif parameter in eq[1].replace("by  ", "by ") or parameter == "last":
+        elif parameter in eq[1].replace("by  ", "by ") or parameter == "second":
             parameter_id = parameter_id[1].split("#")[1]
+        elif parameter in eq[-1].replace("by  ", "by ") or parameter == "last":
+            parameter_id = parameter_id[-1].split("#")[1]
         else:
             return await ctx.send(
                 f"**{nick}** ERROR: I did not find the parameter {parameter} at <{link}>. Try copy & paste.")

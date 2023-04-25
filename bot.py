@@ -22,7 +22,7 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
-bot.VERSION = "20/04/2023"
+bot.VERSION = "25/04/2023"
 bot.config_file = config_file
 bot.sessions = {}
 bot.should_break_dict = {}

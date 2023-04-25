@@ -118,12 +118,10 @@ class Info(Cog):
         coins = tree.xpath('//*[@id="esim-layout"]//div[4]/div/text()')[2::3][:coins_len]
 
         embed = Embed(title=nick)
-        if products:
-            embed.add_field(name="**Products:**",
-                            value="\n".join(f"**{product}**: {amount:,}" for product, amount in products.items()))
-        if coins:
-            embed.add_field(name=f"**Coins (first {coins_len}):**",
-                            value="\n".join(f"**{coin.strip()}**: {round(float(amount), 2):,}" for coin, amount in zip(coins, amounts)))
+        embed.add_field(name="**Products:**",
+                        value="\n".join(f"**{product}**: {amount:,}" for product, amount in products.items()) if products else "-")
+        embed.add_field(name=f"**Coins (first {coins_len}):**",
+                        value="\n".join(f"**{coin.strip()}**: {round(float(amount), 2):,}" for coin, amount in zip(coins, amounts)) if coins else "-")
         embed.set_footer(text="Military Unit Inventory")
         await ctx.send(embed=embed)
 

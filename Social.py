@@ -78,9 +78,9 @@ class Social(Cog):
                             links = tree.xpath(f'//*[@id="command"]/div/div[2]/div[{div}]/div/div[2]/a/@href')
                         except IndexError:  # old format
                             try:
-                                alert = tree.xpath(f'//tr[{div}]//td[2]')[0].text_content().strip()
-                                alert_date = tree.xpath(f'//tr[{div}]//td[3]')[0].text_content().strip()
-                                links = tree.xpath(f"//tr[{div}]//td[2]/a[2]/@href")
+                                alert = tree.xpath(f'//tr[{div+1}]//td[2]')[0].text_content().strip()
+                                alert_date = tree.xpath(f'//tr[{div+1}]//td[3]')[0].text_content().strip()
+                                links = tree.xpath(f"//tr[{div+1}]//td[2]/a[2]/@href")
                             except IndexError:
                                 break
                         if "has requested to add you as a friend" in alert:

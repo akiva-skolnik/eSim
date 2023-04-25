@@ -478,21 +478,26 @@ class Mix(Cog):
     @command(hidden=True)
     async def click(self, ctx, nick: IsMyNick, link, *, data="{}"):
         """Clicks on a given link.
-        Examples:
-        .click "my nick" https://secura.e-sim.org/friends.html?action=PROPOSE&id=1
-        .click "my nick" https://secura.e-sim.org/partyStatistics.html   {"action": "LEAVE", "submit": "Leave party"}
-        .click "my nick" https://secura.e-sim.org/myParty.html {"name": "the party name",  "description": "optional description", "action": "CREATE_PARTY", "submit": "Create party"}
-        .click "my nick" https://secura.e-sim.org/countryLaws.html   {"action": "PROPOSE_DISMISS_MOF", "dismissMofLogin": "Admin", "submit": "Propose to dismiss Minister of Finance"}
-        .click "my nick" https://secura.e-sim.org/countryLaws.html {"action": "DONATE_MONEY_TO_COUNTRY_TREASURE", "currencyId": 0, "sum": 0.01, "reason": "xd", "submit": "Donate"}
-        .click "my nick" https://secura.e-sim.org/companies.html {"name": "best company", "resource": "IRON", "submit": "Create company"}
-        .click "my nick" https://secura.e-sim.org/company.html {"action": "UPGRADE",  "id": "1", "upgradeCompanybutton": "Upgrade company"}
-        .click "my nick" https://secura.e-sim.org/company.html?id=1 {"action": "POST_JOB_OFFER"}
-        .click "my nick" https://secura.e-sim.org/work.html {"action": "leave", "submit": "Leave job"}
-        .click "my nick" https://secura.e-sim.org/civilWar.html?id=1 {"action": "CAST_SUPPORT", "side": "Loyalists"}
-        .click "my nick" https://secura.e-sim.org/countryLaws.html { "coalitionId": "1", "action": "JOIN_COALITION", "submit": "Join coalition"}
-        .click "my nick" https://secura.e-sim.org/stockCompanyAction.html {"currencyId": 0, "sum": 1, "id": 1, "reason": "", "action": "DONATE_MONEY", "submit": "Donate"}
-        .click "my nick" https://secura.e-sim.org/donateProducts.html?id=0000 {"product": "5-WEAPON", "quantity": 00000, "submit": "Donate"}
-        """
+Examples:
+.click "my nick" https://secura.e-sim.org/friends.html?action=PROPOSE&id=1   (GET request, not POST)
+.click nick https://secura.e-sim.org/partyStatistics.html {"action": "LEAVE"}
+.click nick https://secura.e-sim.org/myParty.html {"name": "XXX",  "description": "YYY", "action": "CREATE_PARTY"}
+.click nick https://secura.e-sim.org/countryLaws.html {"action": "PROPOSE_DISMISS_MOF", "dismissMofLogin": "XXX"}
+.click nick https://secura.e-sim.org/countryLaws.html {"action": "DONATE_MONEY_TO_COUNTRY_TREASURE", "currencyId": 0, "sum": 0.01, "reason": "X"}
+.click nick https://secura.e-sim.org/countryLaws.html {"action": "LEAVE_COALITION"}
+.click nick https://secura.e-sim.org/coalitionManagement.html {"action": "SUPPORT_CANDIDATE", "countryId": 0, "support": "positive"}
+.click nick https://secura.e-sim.org/companies.html {"name": "XXX", "resource": "IRON"}
+.click nick https://secura.e-sim.org/company.html {"action": "UPGRADE", "id": 1, "upgradeCompanybutton": "Upgrade company"}
+.click nick https://secura.e-sim.org/company.html?id=1 {"price": 1.0, "action": "POST_JOB_OFFER"}
+.click nick https://secura.e-sim.org/civilWar.html?id=1 {"action": "CAST_SUPPORT", "side": "Loyalists"}
+.click nick https://secura.e-sim.org/countryLaws.html {"coalitionId": 1, "action": "JOIN_COALITION"}
+.click nick https://secura.e-sim.org/stockCompanyAction.html {"currencyId": 0, "sum": 1, "id": 1, "reason": "", "action": "DONATE_MONEY"}
+.click nick https://secura.e-sim.org/donateProducts.html?id=0000 {"product": "5-WEAPON", "quantity": 00000}
+.click nick https://secura.e-sim.org/donateProductsToMilitaryUnit.html?id=0 {"product": "1-IRON", "quantity": 0}
+.click nick https://secura.e-sim.org/promotionalCode.html {"code": "XXX", "action": "REDEEM"}
+.click nick https://secura.e-sim.org/teamTournamentTeam.html?id=0 {"teamId": 0, "action": "APPLY"}
+.click nick https://secura.e-sim.org/citizenshipApplicationAction.html {"action": "ACCEPT", "applicationId": 0}
+"""
         url = await self.bot.get_content(link, data=json.loads(data.replace("'", '"')) or None)
         await ctx.send(f"**{nick}** <{url}>")
 
