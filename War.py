@@ -44,14 +44,18 @@ class War(Cog):
             await sleep(uniform(0, 2))
 
     @command()
-    async def auto_fight(self, ctx, nicks, restores: int = 100, battle_id: Id = 0,
-                         side: Side = "attacker", wep: Quality = 0, food: Quality = 5, gift: Quality = 0, ticket_quality: Quality = 5,
-                         chance_to_skip_restore: int = 15):
+    async def auto_fight(self, ctx, nicks, battle_id: Id = 0, side: Side = "attacker", wep: Quality = 0,
+                         food: Quality = 5, gift: Quality = 0, ticket_quality: Quality = 5,
+                         chance_to_skip_restore: int = 7, restores: int = 120):
         """Dumping health at a random time every restore
+        (everything inside [] is optional with default values)
+        `battle_id=0` means random battle.
 
         If `nick` contains more than 1 word - it must be within quotes.
-        If you want to skip a parameter, you should write the default value.
-        Example: `.add "My Nick" 100 0 attacker 0 5` - write 0 to `battle_id` in order to change `food`"""
+        You can write multiple nicks: "nick 1, nick 2, ..."
+
+        Example: `.auto_fight "My Nick" 0 attacker 1 5 5 1 0 100`
+        [In this example: battle=0 (random), fight for the attacker side, wep quality=1, food and gift quality=5, ticket quality=1, no skip restores (0%), 120 restores (20 hours)]"""
 
         async for nick in utils.get_nicks(ctx.channel.name, nicks):
             data = {"restores": restores, "battle_id": battle_id, "side": side, "wep": wep, "food": food,
@@ -240,8 +244,8 @@ class War(Cog):
                     dmg_or_hits: Dmg = 200, ticket_quality: Quality = 5, consume_first="gift", medkits: int = 0) -> (bool, int):
         """
         Dumping limits at a specific battle.
-
-        Examples: (everything inside [] is optional with default values)
+        (everything inside [] is optional with default values)
+        Examples:
             .fight "my nick" https://primera.e-sim.org/battle.html?id=1 attacker
             .fight nick 1 a 5 1kk 5 none 1
 
