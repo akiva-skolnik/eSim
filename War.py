@@ -145,12 +145,12 @@ class War(Cog):
         More examples: BANDAGE_SIZE_C and CAMOUFLAGE_II, MILI_JINXED_ELIXIR, MINI_BLOODY_MESS_ELIXIR
 
         * You can also use blue/green/red/yellow instead of Jinxed/Finesse/bloody_mess/lucky
-        * You can also use Q1-6 instead of mili/mini/standard/major/huge/exceptional
+        * You can also use Q1-Q6 instead of mili/mini/standard/major/huge/exceptional
         * type `.buff-` if you don't want to buy the buff.
 
         Examples:
-            .buff  str,tank          my nick
-            .buff  all_Q1_elixirs  my nick"""
+            .buff  str,tank    my nick
+            .buff  Q1_elixirs  my nick"""
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         elixirs = ("BLOODY_MESS", "FINESE", "JINXED", "LUCKY")

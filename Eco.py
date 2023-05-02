@@ -139,23 +139,34 @@ class Eco(Cog):
             products_bought += quantity
 
     @command()
-    async def donate(self, ctx, donation_type, data, receiver_id: Id, *, nick: IsMyNick):
+    async def donate(self, ctx, donation_type, data, receiver_name: str, *, nick: IsMyNick):
         """
         Donating specific EQ ID(s) to a specific user.
         `donation_type` can be eq or gold.
         if you want to donate eq, write its ids at `data`, separated by adjacent commas.
         if you want to donate gold, write the amount at `data`.
-        if you want to donate product use:
-         .click nick https://primera.e-sim.org/donateProducts.html?id=0000 {"product": "5-WEAPON", "quantity": 00000, "submit": "Donate"}
+        if you want to donate product, use this:
+         .click nick https://primera.e-sim.org/donateProducts.html?id=0000  {"product": "5-WEAPON", "quantity": X}
+        if you want to donate specific coin or specify reason, use this:
+         .click nick https://primera.e-sim.org/donateMoney.html?id=0000     {"currencyId": 0, "sum": 0, "reason": ""}
+         .click nick https://primera.e-sim.org/donateEquipment.html?id=0000 {"equipmentId": XX, "id": XXX, "reason": ""}
 
+        You can also input receiver_id instead of receiver_name. If your nick is numerical, write it with a leading dot: ".000"
         """
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
+        if receiver_name.startswith("."):
+            receiver_id = receiver_name[1:]
+        elif receiver_name.isdigit():
+            receiver_id = receiver_name
+        else:
+            api_citizen = await self.bot.get_content(f"{base_url}apiCitizenByName.html?name={receiver_name.lower()}")
+            receiver_id = api_citizen["id"]
 
         if "eq" in donation_type.lower():
             results = []
             ids = [int(x.strip()) for x in data.split(",") if x.strip()]
             for index, eq_id in enumerate(ids):
-                payload = {"equipmentId": eq_id, "id": receiver_id, "reason": " ", "submit": "Donate"}
+                payload = {"equipmentId": eq_id, "id": receiver_id, "reason": "", "submit": "Donate"}
                 url = await self.bot.get_content(base_url + "donateEquipment.html", data=payload)
                 results.append(f"ID {eq_id} - <{url}>")
             await ctx.send(f"**{nick}**\n" + "\n".join(results))

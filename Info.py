@@ -89,10 +89,10 @@ class Info(Cog):
         for name, data in zip(("Products", "Coins", "Special Items"), (products, coins, special)):
             embed.add_field(name=f"**{name}:**", value="\n".join(f"**{k}**: {v}" for k, v in sorted(data.items())[-20:]) or "-")
         embed.add_field(name="**Elixir**", value="\n".join(tiers))
-        embed.add_field(name="**Jinxed	Finesse**", value="\n".join(
-            x.center(6, "\u2800") + y.center(6, "\u2800") for x, y in zip(elixirs['finesse'], elixirs['jinxed'])))
-        embed.add_field(name="**Bloody	Lucky**", value="\n".join(
-            x.center(5, "\u2800") + y.center(7, "\u2800") for x, y in zip(elixirs['bloody'], elixirs['lucky'])))
+        embed.add_field(name="**:blue_circle: Jinxed	:green_circle: Finesse**", value="\n".join(
+            x.center(8, "\u2800") + y.center(8, "\u2800") for x, y in zip(elixirs['finesse'], elixirs['jinxed'])))
+        embed.add_field(name="**:red_circle: Bloody	:yellow_circle: Lucky**", value="\n".join(
+            x.center(7, "\u2800") + y.center(9, "\u2800") for x, y in zip(elixirs['bloody'], elixirs['lucky'])))
 
         await ctx.send(embed=embed)
 
@@ -357,10 +357,10 @@ class Info(Cog):
         embed.add_field(name="__Special Items__", value="\n".join([f'**{k}**: {v}' for k, v in sorted(special.items())]) or "-")
 
         embed.add_field(name="**Elixir**", value="\n".join(tiers))
-        embed.add_field(name="**Jinxed	Finesse**", value="\n".join(
-            x.center(6, "\u2800") + y.center(6, "\u2800") for x, y in zip(elixirs['finesse'], elixirs['jinxed'])))
-        embed.add_field(name="**Bloody	Lucky**", value="\n".join(
-            x.center(5, "\u2800") + y.center(7, "\u2800") for x, y in zip(elixirs['bloody'], elixirs['lucky'])))
+        embed.add_field(name="**:blue_circle: Jinxed	:green_circle: Finesse**", value="\n".join(
+            x.center(8, "\u2800") + y.center(8, "\u2800") for x, y in zip(elixirs['finesse'], elixirs['jinxed'])))
+        embed.add_field(name="**:red_circle: Bloody	:yellow_circle: Lucky**", value="\n".join(
+            x.center(7, "\u2800") + y.center(9, "\u2800") for x, y in zip(elixirs['bloody'], elixirs['lucky'])))
 
         embed.set_footer(text="Code Version: " + self.bot.VERSION)
         await ctx.send(embed=embed)
