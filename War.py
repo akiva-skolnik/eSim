@@ -159,11 +159,13 @@ class War(Cog):
         base_url = f"https://{server}.e-sim.org/"
         elixirs = ("BLOODY_MESS", "FINESE", "JINXED", "LUCKY")
 
-        buffs_names = buffs_names.upper()
-        if buffs_names.endswith("_ELIXIRS"):
-            buffs_names = ",".join(f'{buffs_names.split("_")[0]}_{elixir}_ELIXIR' for elixir in elixirs)
+        buffs_names = buffs_names.upper().split(",")
+        for buff in buffs_names[:]:
+            if buff.endswith("_ELIXIRS"):
+                buffs_names.remove(buff)
+                buffs_names.extend([f'{buff.split("_")[0]}_{elixir}_ELIXIR' for elixir in elixirs])
         results = []
-        for buff_name in buffs_names.split(","):
+        for buff_name in buffs_names:
             buff_name = buff_name.strip().replace(" ", "_")
             if buff_name == "VAC":
                 buff_name = "EXTRA_VACATIONS"
@@ -192,10 +194,17 @@ class War(Cog):
                     results.append(f"ERROR: No such buff ({buff_name})")
                 if "MESSAGE_OK" in url and buff_name in ("STEROIDS", "TANK", "SEWER", "BUNKER"):
                     data = await utils.find_one(server, "info", nick)
-                    now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%Y-%m-%d %H:%M:%S")
+                    now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%m/%d %H:%M")
                     data["Buffed at"] = now
                     await utils.replace_one(server, "info", nick, data)
+
         await ctx.send(f"**{nick}**\n" + "\n".join(results))
+        if "EXTRA_SPA" in buffs_names or "EXTRA_VACATIONS" in buffs_names:
+            tree = await self.bot.get_content(base_url, return_tree=True)
+            food_limit, gift_limit = utils.get_limits(tree)
+            data = await utils.find_one(server, "info", nick)
+            data["limits"] = f"{food_limit}/{gift_limit}"
+            await utils.replace_one(server, "info", nick, data)
 
     @command(aliases=["travel"])
     async def fly(self, ctx, region_id: Id, ticket_quality: Optional[int] = 5, *, nick: IsMyNick) -> bool:
@@ -373,6 +382,9 @@ class War(Cog):
                 await msg.edit(content=output)
         await msg.edit(content=output)
         await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
+        data = await utils.find_one(server, "info", nick)
+        data["limits"] = f"{food_limit}/{gift_limit}"
+        await utils.replace_one(server, "info", nick, data)
         return "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
 
     @command(aliases=["cancel"], hidden=True)
@@ -661,7 +673,8 @@ class War(Cog):
         * checking first 200 new citizens only.
         * If you do not have Q3 food / Q3 gift / Q1 weps when it starts - it will try to take some from your MU storage.
         """
-        base_url = f"https://{ctx.channel.name}.e-sim.org/"
+        server = ctx.channel.name
+        base_url = f"https://{server}.e-sim.org/"
 
         tree = await self.bot.get_content(base_url + 'storage.html?storageType=PRODUCT', return_tree=True)
 
@@ -742,6 +755,11 @@ class War(Cog):
             if citizen_id % 10 == 0 and checking:
                 await ctx.send(f"**{nick}**\n" + "\n".join(checking))
                 checking.clear()
+
+        food_limit, gift_limit = utils.get_limits(tree)
+        data = await utils.find_one(server, "info", nick)
+        data["limits"] = f"{food_limit}/{gift_limit}"
+        await utils.replace_one(server, "info", nick, data)
 
     @command(aliases=["dow", "mpp"])
     async def attack(self, ctx, country_or_region_id: Id, delay: Optional[int], *, nick: IsMyNick):

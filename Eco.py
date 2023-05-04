@@ -207,7 +207,7 @@ class Eco(Cog):
                 return await ctx.send(f"**{nick}** ERROR: There are no job offers in <{base_url}company.html?id={company_id}> for your skill.")
         else:
             tree = await self.bot.get_content(base_url + "jobMarket.html", return_tree=True)
-            job_id = tree.xpath("//tr[2]//td[6]//input[1]")[0].value
+            job_id = tree.xpath("//*[@class='job-offer-footer']//@value")[0]
 
         url = await self.bot.get_content(base_url + "jobMarket.html", data={"id": job_id, "submit": "Apply"})
         if "APPLY_FOR_JOB_ALREADY_HAVE_JOB" in url:
@@ -425,7 +425,7 @@ class Eco(Cog):
                 tree = await self.bot.get_content(base_url + "work.html", return_tree=True)
                 if not tree.xpath('//*[@id="taskButtonWork"]//@href'):
                     data = await utils.find_one(server, "info", nick)
-                    data["Worked at"] = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%Y-%m-%d %H:%M:%S")
+                    data["Worked at"] = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%m/%d %H:%M")
                     await utils.replace_one(server, "info", nick, data)
                     await ctx.send(f"**{nick}** Worked successfully")
                 else:

@@ -215,9 +215,14 @@ class Info(Cog):
             if values:
                 values.sort(key=lambda x: x.get('Buffed at', "-"))
                 embed = Embed()
+                for row in values:  # temp fix for old version
+                    if "-" in row.get("Buffed at", ""):
+                        row["Buffed at"] = row["Buffed at"][5:-3].replace("-", "/")
+                    if "-" in row.get("Worked at", ""):
+                        row["Worked at"] = row["Worked at"][5:-3].replace("-", "/")
                 embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
-                embed.add_field(name="Worked At", value="\n".join([row.get("Worked at", "-") for row in values]))
-                embed.add_field(name="Buffed At", value="\n".join([row.get("Buffed at", "-") for row in values]))
+                embed.add_field(name="Limits", value="\n".join([row.get("limits", "Unknown") for row in values]))
+                embed.add_field(name="Worked At		 Buffed at", value="\n".join([row.get("Worked at", "-").ljust(13, "\u2800") + row.get("Buffed at", "-").ljust(13, "\u2800") for row in values]))
                 embed.set_footer(text="Type .info <nick> for more info on a nick")
                 await ctx.send(embed=embed)
             else:
@@ -258,16 +263,17 @@ class Info(Cog):
 
         api = await self.bot.get_content(base_url + 'apiCitizenByName.html?name=' + nick.lower())
         data = await utils.find_one(server, "info", nick)
-        date_format = "%Y-%m-%d %H:%M:%S"
+        date_format = "%m/%d %H:%M"
 
         now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime(date_format)
 
         if "Buffed at" not in data:
             data["Buffed at"] = "-"
         else:
+            if "-" in data["Buffed at"]:  # temp fix for old version
+                data["Buffed at"] = data["Buffed at"][5:-3].replace("-", "/")
             days = 2 if api["premiumDays"] else 3
-            buffed_seconds = (
-                    datetime.strptime(now, date_format) - datetime.strptime(data["Buffed at"], date_format)).total_seconds()
+            buffed_seconds = (datetime.strptime(now, date_format) - datetime.strptime(data["Buffed at"], date_format)).total_seconds()
             day_seconds = 24 * 60 * 60
             debuff_ends = (timedelta(days=days) + datetime.strptime(data["Buffed at"], date_format)).strftime(date_format)
             if buffed_seconds < day_seconds:  # buff lasts 24h

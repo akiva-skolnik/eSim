@@ -52,11 +52,6 @@ async def find_one(server: str, collection: str, document: str) -> dict:
         return {}
 
 
-async def chunker(seq: list, size: int) -> iter:
-    """list to sub lists"""
-    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
-
-
 async def replace_one(server: str, collection: str, document: str, data: dict) -> None:
     """replace one document"""
     if client is not None:
@@ -72,6 +67,11 @@ async def replace_one(server: str, collection: str, document: str, data: dict) -
         big_dict[document.lower()] = data
         with open(filename, "w", encoding='utf-8', errors='ignore') as file:
             json.dump(big_dict, file)
+
+
+async def chunker(seq: list, size: int) -> iter:
+    """list to sub lists"""
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
 def get_region_and_country_names(api_regions: list, api_countries: list, region_id: int) -> (str, str):
