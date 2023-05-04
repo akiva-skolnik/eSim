@@ -826,18 +826,35 @@ class War(Cog):
             await ctx.send(f"**{nick}** {result}")
 
     @command()
+    async def pack(self, ctx, nick: IsMyNick, wep_quality: Quality, weps: int = 200, food: int = 15, gift: int = 15,
+                   tickets_quality: Quality = 0, tickets: int = 0):
+        """Sends a pack of supply from your MU.
+        Examples:
+            .pack "my nick" Q1                    (it will send the default amounts: 15/15 and 200 Q1 weps)
+            .pack "my nick" Q5 150 20 15 Q1 20    (it will send: 20/15 food/gift, 150 Q5 weps, 20 Q1 tickets)
+        """
+        if food:
+            await ctx.invoke(self.bot.get_command("supply"), food, 5, "FOOD", nick=nick)
+        if gift:
+            await ctx.invoke(self.bot.get_command("supply"), gift, 5, "GIFT", nick=nick)
+        if wep_quality and weps:
+            await ctx.invoke(self.bot.get_command("supply"), weps, wep_quality, "WEAPON", nick=nick)
+        if tickets_quality and tickets:
+            await ctx.invoke(self.bot.get_command("supply"), tickets, tickets_quality, "TICKET", nick=nick)
+
+    @command()
     async def supply(self, ctx, amount: int, quality: Optional[Quality], product: Product, *, nick: IsMyNick):
         """Taking a specific product from MU storage."""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(base_url + "militaryUnitStorage.html", return_tree=True)
         my_id = utils.get_ids_from_path(tree, '//*[@id="userName"]')[0]
         payload = {'product': f"{quality or 5}-{product}", 'quantity': amount,
-                   "reason": " ", "citizen1": my_id, "submit": "Donate"}
+                   "reason": "", "citizen1": my_id, "submit": "Donate"}
         url = await self.bot.get_content(base_url + "militaryUnitStorage.html", data=payload)
         if "index" in url:
             await ctx.send(f"**{nick}** You are not in any military unit.")
         else:
-            await ctx.send(f"**{nick}** <{url}>")
+            await ctx.send(f"**{nick}** {amount} Q{payload['product']} <{url}>")
 
     @command(aliases=["gift"])
     async def food(self, ctx, quality: Optional[int] = 5, *, nick: IsMyNick):
