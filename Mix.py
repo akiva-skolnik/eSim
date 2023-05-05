@@ -516,11 +516,12 @@ Examples:
         self.bot.reload_extension(file)
 
     @command(hidden=True)
-    @is_owner()
     async def execute(self, ctx, nicks, *, code) -> None:
         """Evaluates a given Python code.
         This is limited to the bot's owner only for security reasons."""
         # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/admin.py#L215
+        if ctx.author.id not in environ.get("trusted_users_ids", [ctx.author.id]):
+            return
         server = ctx.channel.name
         async for nick in utils.get_nicks(server, nicks):
             env = {
