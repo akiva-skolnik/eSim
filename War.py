@@ -853,10 +853,13 @@ class War(Cog):
         """
         if food:
             await ctx.invoke(self.bot.get_command("supply"), food, 5, "FOOD", nick=nick)
+            await sleep(uniform(1, 5))
         if gift:
             await ctx.invoke(self.bot.get_command("supply"), gift, 5, "GIFT", nick=nick)
+            await sleep(uniform(1, 5))
         if wep_quality and weps:
             await ctx.invoke(self.bot.get_command("supply"), weps, wep_quality, "WEAPON", nick=nick)
+            await sleep(uniform(1, 5))
         if tickets_quality and tickets:
             await ctx.invoke(self.bot.get_command("supply"), tickets, tickets_quality, "TICKET", nick=nick)
 

@@ -8,7 +8,7 @@ from base64 import b64encode
 from contextlib import redirect_stdout
 from datetime import datetime
 from io import BytesIO, StringIO
-from os import environ, execv
+from os import environ, execv, listdir, remove
 from random import choice, randint, uniform
 from typing import Optional
 
@@ -350,6 +350,14 @@ class Mix(Cog):
                 json.dump(big_dict, file)
             if key == "database_url":
                 utils.initiate_db()
+                for filename in listdir()[:]:
+                    if filename.endswith(".json") and "_" in filename:
+                        server, collection = filename.replace(".json", "").split("_")
+                        with open(filename, "r", encoding='utf-8', errors='ignore') as file:
+                            d = json.load(file)
+                            for document, data in d.items():
+                                await utils.replace_one(server, collection, document, data)
+                        remove(filename)
 
     @command()
     async def register(self, ctx, lan, country: Country, *, nick: IsMyNick):

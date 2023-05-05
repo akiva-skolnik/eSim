@@ -22,7 +22,7 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
-bot.VERSION = "04/05/2023"
+bot.VERSION = "05/05/2023"
 bot.config_file = config_file
 bot.sessions = {}
 bot.should_break_dict = {}
@@ -228,6 +228,7 @@ async def update(ctx, *, nicks):
         async with (await get_session(server)).get("https://api.github.com/repos/akiva0003/eSim/branches/main") as r:
             bot.VERSION = (await r.json())["commit"]["commit"]["author"]["date"]
         importlib.reload(utils)
+        utils.initiate_db()
         for extension in categories:
             bot.reload_extension(extension)
 
