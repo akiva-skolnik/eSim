@@ -8,7 +8,7 @@ from base64 import b64encode
 from contextlib import redirect_stdout
 from datetime import datetime
 from io import BytesIO, StringIO
-from os import environ, execv, listdir, remove
+from os import environ, listdir, remove, system
 from random import choice, randint, uniform
 from typing import Optional
 
@@ -577,11 +577,11 @@ Examples:
                 await session.close()
 
             if restart:
-                await ctx.send(f"**{nick}** restarting...")
-                execv(sys.executable, [sys.executable] + sys.argv)
+                await ctx.send(f"**{nick}** attempting restart... (try `.ping {nick}` in a few seconds)")
+                system(f"nohup {sys.executable} bot.py &")
             else:
                 await ctx.send(f"**{nick}** shutting down...")
-                await self.bot.close()
+            await self.bot.close()
 
 
 def setup(bot):
