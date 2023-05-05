@@ -352,7 +352,7 @@ class Mix(Cog):
                 utils.initiate_db()
                 for filename in listdir()[:]:
                     if filename.endswith(".json") and "_" in filename:
-                        server, collection = filename.replace(".json", "").split("_")
+                        server, collection = filename.replace(".json", "").split("_", 1)
                         with open(filename, "r", encoding='utf-8', errors='ignore') as file:
                             d = json.load(file)
                             for document, data in d.items():

@@ -425,7 +425,7 @@ class Eco(Cog):
                 tree = await self.bot.get_content(base_url + "work.html", return_tree=True)
                 if not tree.xpath('//*[@id="taskButtonWork"]//@href'):
                     data = await utils.find_one(server, "info", nick)
-                    data["Worked at"] = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%m/%d %H:%M")
+                    data["Worked at"] = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%d/%m  %H:%M")
                     await utils.replace_one(server, "info", nick, data)
                     await ctx.send(f"**{nick}** Worked successfully")
                 else:

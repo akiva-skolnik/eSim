@@ -194,7 +194,7 @@ class War(Cog):
                     results.append(f"ERROR: No such buff ({buff_name})")
                 if "MESSAGE_OK" in url and buff_name in ("STEROIDS", "TANK", "SEWER", "BUNKER"):
                     data = await utils.find_one(server, "info", nick)
-                    now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%m/%d %H:%M")
+                    now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%d/%m  %H:%M")
                     data["Buffed at"] = now
                     await utils.replace_one(server, "info", nick, data)
 
