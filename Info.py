@@ -220,10 +220,10 @@ class Info(Cog):
                     month, hour = row["Worked at"][5:-3].split()
                     row["Worked at"] = "/".join(month.split("-")[::-1]) + "  " + hour
             if values:
-                values.sort(key=lambda x: x.get('Buffed at', "-"))
+                values.sort(key=lambda x: datetime.strptime(x.get('Buffed at', "01/01  00:00"), "%d/%m  %H:%M"))
                 embed = Embed()
                 embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
-                embed.add_field(name="Limits	 Worked At", value="\n".join([row.get(
+                embed.add_field(name="Limits Worked At", value="\n".join([row.get(
                     "limits", "-/-") + "\u2800"*2 + row.get("Worked at", "-") for row in values]))
                 embed.add_field(name="Buffed at", value="\n".join([row.get("Buffed at", "-") for row in values]))
                 embed.set_footer(text="Type .info <nick> for more info on a nick")
