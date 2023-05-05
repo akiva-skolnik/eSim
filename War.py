@@ -726,14 +726,15 @@ class War(Cog):
         while not self.bot.should_break(ctx):
             try:
                 if sent_count == 5:
-                    return await ctx.send(
-                        f"**{nick}**\n" + "\n".join(checking) + "\n- Successfully motivated 5 players.")
+                    await ctx.send(f"**{nick}**\n" + "\n".join(checking) + "\n- Successfully motivated 5 players.")
+                    break
                 tree = await self.bot.get_content(f'{base_url}profile.html?id={citizen_id}', return_tree=True)
                 today = int(tree.xpath('//*[@class="sidebar-clock"]//b/text()')[-1].split()[-1])
                 birthday = int(
                     tree.xpath('//*[@class="profile-row" and span = "Birthday"]/span/text()')[0].split()[-1])
                 if today - birthday > 3:
-                    return await ctx.send(f"**{nick}** Checked all new players")
+                    await ctx.send(f"**{nick}** Checked all new players")
+                    break
                 checking.append(f"Checking <{base_url}profile.html?id={citizen_id}>")
                 if tree.xpath('//*[@id="motivateCitizenButton"]'):
                     for num in storage.values():

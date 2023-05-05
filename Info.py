@@ -129,13 +129,17 @@ class Info(Cog):
     async def limits(self, ctx, *, nicks):
         """Display limits"""
         async for nick in utils.get_nicks(ctx.channel.name, nicks):
-            base_url = f"https://{ctx.channel.name}.e-sim.org/"
+            server = ctx.channel.name
+            base_url = f"https://{server}.e-sim.org/"
             tree = await self.bot.get_content(base_url + "home.html", return_tree=True)
             gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
             food_storage, gift_storage = utils.get_storage(tree)
             food_limit, gift_limit = utils.get_limits(tree)
             await ctx.send(f"**{nick}** Limits: {food_limit}/{gift_limit}, "
                            f"storage: {food_storage}/{gift_storage}, {gold} Gold.")
+            data = await utils.find_one(server, "info", nick)
+            data["limits"] = f"{food_limit}/{gift_limit}"
+            await utils.replace_one(server, "info", nick, data)
 
     @command()
     @check(utils.is_helper)
