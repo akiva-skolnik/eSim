@@ -86,9 +86,9 @@ class Social(Cog):
                         if "has requested to add you as a friend" in alert:
                             await self.bot.get_content(base_url + str(links[0]))
                         elif "has offered you to sign" in alert:
-                            alert = alert.replace("contract", f'[contract]({base_url}{links[0]})').replace(
+                            alert = alert.replace("contract", f'[contract]({base_url}{links[-1]})').replace(
                                 "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!",
-                                f"\ntype `.contract {links[0].split('=')[1]} {nick}` to accept it.")
+                                f"\ntype `.contract {links[-1].split('=')[1]} {nick}` to accept it.")
                         elif len(links) > 1:
                             link = [x for x in links if "profile" not in x]
                             if link:
