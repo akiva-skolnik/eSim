@@ -90,7 +90,7 @@ class Info(Cog):
             embed.add_field(name=f"**{name}:**", value="\n".join(f"**{k}**: {v}" for k, v in sorted(data.items())[-20:]) or "-")
         embed.add_field(name="**Elixir**", value="\n".join(tiers))
         embed.add_field(name="**:blue_circle: Jinxed	:green_circle: Finesse**", value="\n".join(
-            x.center(8, "\u2800") + y.center(8, "\u2800") for x, y in zip(elixirs['finesse'], elixirs['jinxed'])))
+            x.center(8, "\u2800") + y.center(8, "\u2800") for x, y in zip(elixirs['jinxed'], elixirs['finesse'])))
         embed.add_field(name="**:red_circle: Bloody	:yellow_circle: Lucky**", value="\n".join(
             x.center(7, "\u2800") + y.center(9, "\u2800") for x, y in zip(elixirs['bloody'], elixirs['lucky'])))
 
@@ -372,7 +372,7 @@ class Info(Cog):
 
         embed.add_field(name="**Elixir**", value="\n".join(tiers))
         embed.add_field(name="**:blue_circle: Jinxed	:green_circle: Finesse**", value="\n".join(
-            x.center(8, "\u2800") + y.center(8, "\u2800") for x, y in zip(elixirs['finesse'], elixirs['jinxed'])))
+            x.center(8, "\u2800") + y.center(8, "\u2800") for x, y in zip(elixirs['jinxed'], elixirs['finesse'])))
         embed.add_field(name="**:red_circle: Bloody	:yellow_circle: Lucky**", value="\n".join(
             x.center(7, "\u2800") + y.center(9, "\u2800") for x, y in zip(elixirs['bloody'], elixirs['lucky'])))
 
