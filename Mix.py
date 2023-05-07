@@ -327,37 +327,36 @@ class Mix(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command(hidden=True)
-    async def config(self, ctx, key, value, *, nicks):
+    async def config(self, ctx, key, value, *, nick: IsMyNick):
         """Examples:
             .config alpha Admin  my_nick
             .config alpha_password 1234  my_nick
             .config help ""  my_nick
         """
-        async for nick in utils.get_nicks(ctx.channel.name, nicks):
-            with open(self.bot.config_file, "r", encoding="utf-8") as file:
-                big_dict = json.load(file)
-            if not value and key in big_dict:
-                del big_dict[key]
-                del environ[key]
-                await ctx.send(f"I have deleted the `{key}` key from {nick}'s {self.bot.config_file} file")
-                if key == "help":
-                    self.bot.remove_command("help")
-            else:
-                big_dict[key] = value
-                environ[key] = value
-                await ctx.send(f"I have added the following pair to {nick}'s {self.bot.config_file} file: `{key} = {value}`")
-            with open(self.bot.config_file, "w", encoding="utf-8") as file:
-                json.dump(big_dict, file)
-            if key == "database_url":
-                utils.initiate_db()
-                for filename in listdir()[:]:
-                    if filename.endswith(".json") and "_" in filename:
-                        server, collection = filename.replace(".json", "").split("_", 1)
-                        with open(filename, "r", encoding='utf-8', errors='ignore') as file:
-                            d = json.load(file)
-                            for document, data in d.items():
-                                await utils.replace_one(server, collection, document, data)
-                        remove(filename)
+        with open(self.bot.config_file, "r", encoding="utf-8") as file:
+            big_dict = json.load(file)
+        if not value and key in big_dict:
+            del big_dict[key]
+            del environ[key]
+            await ctx.send(f"I have deleted the `{key}` key from {nick}'s {self.bot.config_file} file")
+            if key == "help":
+                self.bot.remove_command("help")
+        else:
+            big_dict[key] = value
+            environ[key] = value
+            await ctx.send(f"I have added the following pair to {nick}'s {self.bot.config_file} file: `{key} = {value}`")
+        with open(self.bot.config_file, "w", encoding="utf-8") as file:
+            json.dump(big_dict, file)
+        if key == "database_url":
+            utils.initiate_db()
+            for filename in listdir()[:]:
+                if filename.endswith(".json") and "_" in filename:
+                    server, collection = filename.replace(".json", "").split("_", 1)
+                    with open(filename, "r", encoding='utf-8', errors='ignore') as file:
+                        d = json.load(file)
+                        for document, data in d.items():
+                            await utils.replace_one(server, collection, document, data)
+                    remove(filename)
 
     @command()
     async def register(self, ctx, lan, country: Country, *, nick: IsMyNick):
@@ -516,72 +515,70 @@ Examples:
         self.bot.reload_extension(file)
 
     @command(hidden=True)
-    async def execute(self, ctx, nicks, *, code) -> None:
+    async def execute(self, ctx, nick: IsMyNick, *, code) -> None:
         """Evaluates a given Python code.
         This is limited to the bot's owner only for security reasons."""
         # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/admin.py#L215
         if ctx.author.id not in environ.get("trusted_users_ids", [ctx.author.id]):
             return
         server = ctx.channel.name
-        async for nick in utils.get_nicks(server, nicks):
-            env = {
-                'bot': self.bot,
-                'ctx': ctx,
-                'channel': ctx.channel,
-                'author': ctx.author,
-                'guild': ctx.guild,
-                'message': ctx.message
-            }
+        env = {
+            'bot': self.bot,
+            'ctx': ctx,
+            'channel': ctx.channel,
+            'author': ctx.author,
+            'guild': ctx.guild,
+            'message': ctx.message
+        }
 
-            env.update(globals())
+        env.update(globals())
 
-            # remove ```py\n```
-            if code.startswith('```') and code.endswith('```'):
-                code = '\n'.join(code.split('\n')[1:-1])
-            else:  # remove `foo`
-                code = code.strip('` \n')
+        # remove ```py\n```
+        if code.startswith('```') and code.endswith('```'):
+            code = '\n'.join(code.split('\n')[1:-1])
+        else:  # remove `foo`
+            code = code.strip('` \n')
 
-            to_compile = f'async def func():\n{textwrap.indent(code, "  ")}'
-            stdout = StringIO()
+        to_compile = f'async def func():\n{textwrap.indent(code, "  ")}'
+        stdout = StringIO()
+        try:
+            exec(to_compile, env)
+        except Exception as exc:
+            return await ctx.send(f'```py\n{exc.__class__.__name__}: {exc}\n```')
+        func = env['func']
+        try:
+            with redirect_stdout(stdout):
+                ret = await func()
+        except Exception:
+            value = stdout.getvalue()
+            await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
+        else:
+            value = stdout.getvalue()
             try:
-                exec(to_compile, env)
-            except Exception as exc:
-                return await ctx.send(f'```py\n{exc.__class__.__name__}: {exc}\n```')
-            func = env['func']
-            try:
-                with redirect_stdout(stdout):
-                    ret = await func()
+                if ret is None:
+                    if value:
+                        await ctx.send(f'```py\n{value}\n```')
+                else:
+                    await ctx.send(f'```py\n{value}{ret}\n```')
             except Exception:
-                value = stdout.getvalue()
-                await ctx.send(f'```py\n{value}{traceback.format_exc()}\n```')
-            else:
-                value = stdout.getvalue()
-                try:
-                    if ret is None:
-                        if value:
-                            await ctx.send(f'```py\n{value}\n```')
-                    else:
-                        await ctx.send(f'```py\n{value}{ret}\n```')
-                except Exception:
-                    io_output = StringIO(newline='')
-                    io_output.write(value + (ret or ""))
-                    io_output.seek(0)
-                    await ctx.send(file=File(fp=io_output, filename="output.txt"))
+                io_output = StringIO(newline='')
+                io_output.write(value + (ret or ""))
+                io_output.seek(0)
+                await ctx.send(file=File(fp=io_output, filename="output.txt"))
 
     @command(hidden=True)
-    async def shutdown(self, ctx, restart: bool, *, nicks):
+    async def shutdown(self, ctx, restart: bool, *, nick: IsMyNick):
         """Shutting down specific nick.
         Warning: It's shutting down from all servers."""
-        async for nick in utils.get_nicks(ctx.channel.name, nicks):
-            for session in self.bot.sessions.values():
-                await session.close()
+        for session in self.bot.sessions.values():
+            await session.close()
 
-            if restart:
-                await ctx.send(f"**{nick}** attempting restart... (try `.ping {nick}` in a few seconds)")
-                system(f"nohup {sys.executable} bot.py &")
-            else:
-                await ctx.send(f"**{nick}** shutting down...")
-            await self.bot.close()
+        if restart:
+            await ctx.send(f"**{nick}** attempting restart... (try `.ping {nick}` in a few seconds)")
+            system(f"nohup {sys.executable} bot.py &")
+        else:
+            await ctx.send(f"**{nick}** shutting down...")
+        await self.bot.close()
 
 
 def setup(bot):

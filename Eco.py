@@ -304,44 +304,43 @@ class Eco(Cog):
             await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def mm(self, ctx, *, nicks):
+    async def mm(self, ctx, *, nick: IsMyNick):
         """Sells all currencies in your account in the appropriate markets & edit current offers if needed."""
-        async for nick in utils.get_nicks(ctx.channel.name, nicks):
-            base_url = f"https://{ctx.channel.name}.e-sim.org/"
-            api = await self.bot.get_content(base_url + "apiCountries.html")
-            money_tree = await self.bot.get_content(base_url + "storage.html?storageType=MONEY", return_tree=True)
-            money = [x.strip() for x in money_tree.xpath("//*[@class='currencyDiv']//text()") if x.strip()]
-            coins = dict(zip(money[1::2], money[0::2]))
-            if "Gold" in coins:
-                del coins["Gold"]
-            for currency, amount in coins.items():
-                if self.bot.should_break(ctx):
-                    return
-                currency_id = [i["id"] for i in api if i["currencyName"] == currency][0]
-                tree = await self.bot.get_content(f'{base_url}monetaryMarket.html?buyerCurrencyId={currency_id}&sellerCurrencyId=0', return_tree=True)
-                try:
-                    rate = float(tree.xpath("//*[@class='buy']/button")[0].attrib['data-sell-currency'])
-                except Exception:
-                    rate = 0.1
-                payload = {"offeredCurrencyId": currency_id, "buyerCurrencyId": 0, "amount": amount,
-                           "rate": round(rate - 0.0001, 4)}
-                await self.bot.get_content(base_url + "monetaryMarketOfferPost.html", data=payload)
-                await ctx.send(f"**{nick}** posted {amount} {currency} for {payload['rate']}")
-
-            money_tree = await self.bot.get_content(base_url + "storage.html?storageType=MONEY", return_tree=True)
-            ids = money_tree.xpath('//*[@id="command"]//input[1]')
-            currencies = [x.strip() for x in money_tree.xpath(f"//*[@class='amount']//text()") if x.strip()][1::2]
-            for i in range(len(currencies)):
-                if self.bot.should_break(ctx):
-                    return
-                currency_id = [x["id"] for x in api if x["currencyName"] == currencies[i]][0]
-                tree = await self.bot.get_content(f'{base_url}monetaryMarketOffers?buyerCurrencyId={currency_id}&sellerCurrencyId=0&page=1', return_tree=True)
-                seller = tree.xpath("//*[@class='seller']/a/text()")[0].strip()
+        base_url = f"https://{ctx.channel.name}.e-sim.org/"
+        api = await self.bot.get_content(base_url + "apiCountries.html")
+        money_tree = await self.bot.get_content(base_url + "storage.html?storageType=MONEY", return_tree=True)
+        money = [x.strip() for x in money_tree.xpath("//*[@class='currencyDiv']//text()") if x.strip()]
+        coins = dict(zip(money[1::2], money[0::2]))
+        if "Gold" in coins:
+            del coins["Gold"]
+        for currency, amount in coins.items():
+            if self.bot.should_break(ctx):
+                return
+            currency_id = [i["id"] for i in api if i["currencyName"] == currency][0]
+            tree = await self.bot.get_content(f'{base_url}monetaryMarket.html?buyerCurrencyId={currency_id}&sellerCurrencyId=0', return_tree=True)
+            try:
                 rate = float(tree.xpath("//*[@class='buy']/button")[0].attrib['data-sell-currency'])
-                if seller.lower() != nick.lower():
-                    payload = {"id": ids[i].value, "rate": round(rate - 0.0001, 4), "submit": "Edit"}
-                    await self.bot.get_content(base_url + "monetaryMarket.html?action=change", data=payload)
-                    await ctx.send(f"**{nick}** edited {currencies[i]} for {payload['rate']}")
+            except Exception:
+                rate = 0.1
+            payload = {"offeredCurrencyId": currency_id, "buyerCurrencyId": 0, "amount": amount,
+                       "rate": round(rate - 0.0001, 4)}
+            await self.bot.get_content(base_url + "monetaryMarketOfferPost.html", data=payload)
+            await ctx.send(f"**{nick}** posted {amount} {currency} for {payload['rate']}")
+
+        money_tree = await self.bot.get_content(base_url + "storage.html?storageType=MONEY", return_tree=True)
+        ids = money_tree.xpath('//*[@id="command"]//input[1]')
+        currencies = [x.strip() for x in money_tree.xpath(f"//*[@class='amount']//text()") if x.strip()][1::2]
+        for i in range(len(currencies)):
+            if self.bot.should_break(ctx):
+                return
+            currency_id = [x["id"] for x in api if x["currencyName"] == currencies[i]][0]
+            tree = await self.bot.get_content(f'{base_url}monetaryMarketOffers?buyerCurrencyId={currency_id}&sellerCurrencyId=0&page=1', return_tree=True)
+            seller = tree.xpath("//*[@class='seller']/a/text()")[0].strip()
+            rate = float(tree.xpath("//*[@class='buy']/button")[0].attrib['data-sell-currency'])
+            if seller.lower() != nick.lower():
+                payload = {"id": ids[i].value, "rate": round(rate - 0.0001, 4), "submit": "Edit"}
+                await self.bot.get_content(base_url + "monetaryMarket.html?action=change", data=payload)
+                await ctx.send(f"**{nick}** edited {currencies[i]} for {payload['rate']}")
 
     @command()
     async def sell(self, ctx, quantity: int, quality: Optional[Quality], product: Product, price: float, country: Country, *, nick: IsMyNick):
@@ -386,99 +385,97 @@ class Eco(Cog):
         await ctx.send(f"**{nick}**\n" + "\n".join(results))
 
     @command(aliases=["w", "work+"])
-    async def work(self, ctx, *, nicks):
+    async def work(self, ctx, *, nick: IsMyNick):
         """`work+` -> for premium users (https://primera.e-sim.org/taskQueue.html)"""
 
         server = ctx.channel.name
-        async for nick in utils.get_nicks(server, nicks):
-            base_url = f"https://{server}.e-sim.org/"
-            if ctx.invoked_with.lower() == "work+":
-                payload1 = {'task': "WORK", "action": "put", "submit": "Add plan"}
-                payload2 = {'task': "TRAIN", "action": "put", "submit": "Add plan"}
-                await self.bot.get_content(base_url + "taskQueue.html", data=payload1)
-                await sleep(uniform(1, 2))
-                await self.bot.get_content(base_url + "taskQueue.html", data=payload2)
+        base_url = f"https://{server}.e-sim.org/"
+        if ctx.invoked_with.lower() == "work+":
+            payload1 = {'task': "WORK", "action": "put", "submit": "Add plan"}
+            payload2 = {'task': "TRAIN", "action": "put", "submit": "Add plan"}
+            await self.bot.get_content(base_url + "taskQueue.html", data=payload1)
+            await sleep(uniform(1, 2))
+            await self.bot.get_content(base_url + "taskQueue.html", data=payload2)
 
-            tree = await self.bot.get_content(base_url + "work.html", return_tree=True)
-            await sleep(uniform(3, 20))
+        tree = await self.bot.get_content(base_url + "work.html", return_tree=True)
+        await sleep(uniform(3, 20))
 
-            train_first = randint(1, 2) == 1
-            if train_first and tree.xpath('//*[@id="taskButtonTrain"]//@href'):
-                await self.bot.get_content(base_url + "train/ajax", data={"action": "train"})
-                await ctx.send(f"**{nick}** Trained successfully")
-                await sleep(uniform(3, 30))
+        train_first = randint(1, 2) == 1
+        if train_first and tree.xpath('//*[@id="taskButtonTrain"]//@href'):
+            await self.bot.get_content(base_url + "train/ajax", data={"action": "train"})
+            await ctx.send(f"**{nick}** Trained successfully")
+            await sleep(uniform(3, 30))
 
-            if tree.xpath('//*[@id="taskButtonWork"]//@href'):
-                if tree.xpath('//*[@id="workButton"]'):
-                    await self.bot.get_content(base_url + "work/ajax", data={"action": "work"}, return_tree=True)
-                else:
-                    try:
-                        region = tree.xpath("//*[@class='companyStats']//a/@href")[-1].split("=")[-1]
-                    except IndexError:
-                        try:
-                            region = utils.get_ids_from_path(
-                                tree, '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a')[0]
-                        except IndexError:
-                            return await ctx.send(f"**{nick}** ERROR: I couldn't find in which region your work is. If you don't have a job, see `.help job`")
-                    if await ctx.invoke(self.bot.get_command("fly"), region, 5, nick=nick):
-                        await self.bot.get_content(base_url + "work/ajax", data={"action": "work"})
-                tree = await self.bot.get_content(base_url + "work.html", return_tree=True)
-                if not tree.xpath('//*[@id="taskButtonWork"]//@href'):
-                    data = await utils.find_one(server, "info", nick)
-                    data["Worked at"] = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%d/%m  %H:%M")
-                    await utils.replace_one(server, "info", nick, data)
-                    await ctx.send(f"**{nick}** Worked successfully")
-                else:
-                    await ctx.send(f"**{nick}** ERROR: Couldn't work")
+        if tree.xpath('//*[@id="taskButtonWork"]//@href'):
+            if tree.xpath('//*[@id="workButton"]'):
+                await self.bot.get_content(base_url + "work/ajax", data={"action": "work"}, return_tree=True)
             else:
-                await ctx.send(f"**{nick}** Already worked")
-            if not train_first and tree.xpath('//*[@id="taskButtonTrain"]//@href'):
-                await sleep(uniform(3, 30))
-                await self.bot.get_content(base_url + "train/ajax", data={"action": "train"})
-                await ctx.send(f"**{nick}** Trained successfully")
-            if randint(1, 100) < 37:  # 37%
-                await sleep(uniform(1, 3))
-                await ctx.invoke(self.bot.get_command("read"), nicks=nick)
+                try:
+                    region = tree.xpath("//*[@class='companyStats']//a/@href")[-1].split("=")[-1]
+                except IndexError:
+                    try:
+                        region = utils.get_ids_from_path(
+                            tree, '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a')[0]
+                    except IndexError:
+                        return await ctx.send(f"**{nick}** ERROR: I couldn't find in which region your work is. If you don't have a job, see `.help job`")
+                if await ctx.invoke(self.bot.get_command("fly"), region, 5, nick=nick):
+                    await self.bot.get_content(base_url + "work/ajax", data={"action": "work"})
+            tree = await self.bot.get_content(base_url + "work.html", return_tree=True)
+            if not tree.xpath('//*[@id="taskButtonWork"]//@href'):
+                data = await utils.find_one(server, "info", nick)
+                data["Worked at"] = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%d/%m  %H:%M")
+                await utils.replace_one(server, "info", nick, data)
+                await ctx.send(f"**{nick}** Worked successfully")
+            else:
+                await ctx.send(f"**{nick}** ERROR: Couldn't work")
+        else:
+            await ctx.send(f"**{nick}** Already worked")
+        if not train_first and tree.xpath('//*[@id="taskButtonTrain"]//@href'):
+            await sleep(uniform(3, 30))
+            await self.bot.get_content(base_url + "train/ajax", data={"action": "train"})
+            await ctx.send(f"**{nick}** Trained successfully")
+        if randint(1, 100) < 37:  # 37%
+            await sleep(uniform(1, 3))
+            await ctx.invoke(self.bot.get_command("read"), nicks=nick)
 
     @command()
-    async def auto_work(self, ctx, work_sessions: Optional[int] = 1, chance_to_skip_work: Optional[int] = 7, *, nicks):
+    async def auto_work(self, ctx, work_sessions: Optional[int] = 1, chance_to_skip_work: Optional[int] = 7, *, nick: IsMyNick):
         """Works at random times throughout every day"""
-        async for nick in utils.get_nicks(ctx.channel.name, nicks):
-            data = {"work_sessions": work_sessions, "chance_to_skip_work": chance_to_skip_work}
-            if await utils.save_command(ctx, "auto", "work", data):
-                await ctx.send(f"**{nick}** The command already running. I will update the data if needed.")
-                return  # Command already running
-            await ctx.send(f"**{nick}** I will work from now on {work_sessions} times every day, with {chance_to_skip_work}% chance to skip work."
-                           f"If you wish to stop it, type `.cancel auto_work`")
+        data = {"work_sessions": work_sessions, "chance_to_skip_work": chance_to_skip_work}
+        if await utils.save_command(ctx, "auto", "work", data):
+            await ctx.send(f"**{nick}** The command already running. I will update the data if needed.")
+            return  # Command already running
+        await ctx.send(f"**{nick}** I will work from now on {work_sessions} times every day, with {chance_to_skip_work}% chance to skip work."
+                       f"If you wish to stop it, type `.cancel auto_work`")
 
-            tz = timezone('Europe/Berlin')
-            while not self.bot.should_break(ctx):  # for every day:
-                sec_between_works = (24 * 60 * 60) // work_sessions
+        tz = timezone('Europe/Berlin')
+        while not self.bot.should_break(ctx):  # for every day:
+            sec_between_works = (24 * 60 * 60) // work_sessions
+            now = datetime.now(tz)
+            midnight = tz.localize(datetime.combine(now + timedelta(days=1), time(0, 0, 0, 0)))
+
+            for i in range(work_sessions):
+                sec_til_midnight = (midnight - now).seconds
+                work_session_start = sec_between_works if i else 0
+                work_session_end = sec_til_midnight % sec_between_works + (sec_between_works if i else 0)
+                if work_session_start < min(work_session_end, sec_til_midnight-20):
+                    await sleep(uniform(work_session_start, min(work_session_end, sec_til_midnight - 20)))
                 now = datetime.now(tz)
-                midnight = tz.localize(datetime.combine(now + timedelta(days=1), time(0, 0, 0, 0)))
+                if self.bot.should_break(ctx):
+                    break
+                if randint(1, 100) > chance_to_skip_work:
+                    await ctx.invoke(self.bot.get_command("work"), nicks=nick)
+                if (midnight - now).seconds < sec_between_works:
+                    break
 
-                for i in range(work_sessions):
-                    sec_til_midnight = (midnight - now).seconds
-                    work_session_start = sec_between_works if i else 0
-                    work_session_end = sec_til_midnight % sec_between_works + (sec_between_works if i else 0)
-                    if work_session_start < min(work_session_end, sec_til_midnight-20):
-                        await sleep(uniform(work_session_start, min(work_session_end, sec_til_midnight - 20)))
-                    now = datetime.now(tz)
-                    if self.bot.should_break(ctx):
-                        break
-                    if randint(1, 100) > chance_to_skip_work:
-                        await ctx.invoke(self.bot.get_command("work"), nicks=nick)
-                    if (midnight - now).seconds < sec_between_works:
-                        break
+            # Updated the data once a day (allow the user to change chance_to_skip_work or work_sessions)
+            data = (await utils.find_one("auto", "work", os.environ['nick']))[ctx.channel.name]
+            chance_to_skip_work = data["chance_to_skip_work"]
+            work_sessions = data["work_sessions"]
 
-                # Updated the data once a day (allow the user to change chance_to_skip_work or work_sessions)
-                data = (await utils.find_one("auto", "work", os.environ['nick']))[ctx.channel.name]
-                chance_to_skip_work = data["chance_to_skip_work"]
-                work_sessions = data["work_sessions"]
-
-                # sleep till midnight
-                await sleep((midnight - now).seconds + 20)
-            await utils.remove_command(ctx, "auto", "work")
+            # sleep till midnight
+            await sleep((midnight - now).seconds + 20)
+        await utils.remove_command(ctx, "auto", "work")
 
     @command()
     async def send_contracts(self, ctx, contract_id: Id, contract_name, *, nick: IsMyNick):

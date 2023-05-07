@@ -57,62 +57,61 @@ class Social(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def read(self, ctx, *, nicks):
+    async def read(self, ctx, *, nick: IsMyNick):
         """Reading all new msgs and notifications + accept friend requests"""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
-        async for nick in utils.get_nicks(ctx.channel.name, nicks):
-            tree = await self.bot.get_content(base_url + "home.html", return_tree=True)
-            msgs = int(str(tree.xpath("//*[@id='inboxMessagesMission']/b")[0].text))
-            alerts = int(str(tree.xpath('//*[@id="numero1"]/a/b')[0].text))
-            if alerts:
-                reminding_alerts = alerts
-                for page in range(1, reminding_alerts // 20 + 2):
-                    tree = await self.bot.get_content(f"{base_url}notifications.html?page={page}", return_tree=True)
-                    embed = Embed(title=f"**{nick}** {base_url}notifications.html?page={page}\n")
-                    for div in range(1, min(20, reminding_alerts) + 1):
+        tree = await self.bot.get_content(base_url + "home.html", return_tree=True)
+        msgs = int(str(tree.xpath("//*[@id='inboxMessagesMission']/b")[0].text))
+        alerts = int(str(tree.xpath('//*[@id="numero1"]/a/b')[0].text))
+        if alerts:
+            reminding_alerts = alerts
+            for page in range(1, reminding_alerts // 20 + 2):
+                tree = await self.bot.get_content(f"{base_url}notifications.html?page={page}", return_tree=True)
+                embed = Embed(title=f"**{nick}** {base_url}notifications.html?page={page}\n")
+                for div in range(1, min(20, reminding_alerts) + 1):
+                    try:
+                        alert_date = tree.xpath(f'//*[@id="command"]/div/div[2]/div[{div}]/div/div[1]/div/b')[
+                            0].text.strip()
+                        alert = tree.xpath(f'//*[@id="command"]/div/div[2]/div[{div}]/div/div[2]')[
+                            0].text_content().strip()
+                        links = tree.xpath(f'//*[@id="command"]/div/div[2]/div[{div}]/div/div[2]/a/@href')
+                    except IndexError:  # old format
                         try:
-                            alert_date = tree.xpath(f'//*[@id="command"]/div/div[2]/div[{div}]/div/div[1]/div/b')[
-                                0].text.strip()
-                            alert = tree.xpath(f'//*[@id="command"]/div/div[2]/div[{div}]/div/div[2]')[
-                                0].text_content().strip()
-                            links = tree.xpath(f'//*[@id="command"]/div/div[2]/div[{div}]/div/div[2]/a/@href')
-                        except IndexError:  # old format
-                            try:
-                                alert = tree.xpath(f'//tr[{div+1}]//td[2]')[0].text_content().strip()
-                                alert_date = tree.xpath(f'//tr[{div+1}]//td[3]')[0].text_content().strip()
-                                links = tree.xpath(f"//tr[{div+1}]//td[2]/a[2]/@href")
-                            except IndexError:
-                                break
-                        if "has requested to add you as a friend" in alert:
-                            await self.bot.get_content(base_url + str(links[0]))
-                        elif "has offered you to sign" in alert:
-                            alert = alert.replace("contract", f'[contract]({base_url}{links[-1]})').replace(
-                                "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!",
-                                f"\ntype `.contract {links[-1].split('=')[1]} {nick}` to accept it.")
-                        elif len(links) > 1:
-                            link = [x for x in links if "profile" not in x]
-                            if link:
-                                alert = f'[{alert}]({base_url}{link[0]})'
-                            else:
-                                alert = f'[{alert}]({base_url}{links[0]})'
-                        elif links:
+                            alert = tree.xpath(f'//tr[{div+1}]//td[2]')[0].text_content().strip()
+                            alert_date = tree.xpath(f'//tr[{div+1}]//td[3]')[0].text_content().strip()
+                            links = tree.xpath(f"//tr[{div+1}]//td[2]/a[2]/@href")
+                        except IndexError:
+                            break
+                    if "has requested to add you as a friend" in alert:
+                        await self.bot.get_content(base_url + str(links[0]))
+                    elif "has offered you to sign" in alert:
+                        alert = alert.replace("contract", f'[contract]({base_url}{links[-1]})').replace(
+                            "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!",
+                            f"\ntype `.contract {links[-1].split('=')[1]} {nick}` to accept it.")
+                    elif len(links) > 1:
+                        link = [x for x in links if "profile" not in x]
+                        if link:
+                            alert = f'[{alert}]({base_url}{link[0]})'
+                        else:
                             alert = f'[{alert}]({base_url}{links[0]})'
-                        reminding_alerts -= 1
-                        embed.add_field(name=alert_date, value=alert, inline=False)
-                    await ctx.send(embed=embed)
-
-            if msgs:
-                tree = await self.bot.get_content(base_url + "inboxMessages.html", return_tree=True)
-                embed = Embed(title=f"**{nick}** {base_url}inboxMessages.html")
-                for tr in range(2, msgs + 2):
-                    author = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[1]//div/a[2]/text()')[0].strip()
-                    content = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[2]/div[1]')[0].text_content().strip()
-                    title = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[2]/b[1]//div')[0].text_content().strip()
-                    date = str(tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[3]/b')[0].text).strip()
-                    embed.add_field(name=author, value=f"**{title}**\n{content}\n{date}", inline=False)
+                    elif links:
+                        alert = f'[{alert}]({base_url}{links[0]})'
+                    reminding_alerts -= 1
+                    embed.add_field(name=alert_date, value=alert, inline=False)
                 await ctx.send(embed=embed)
-            if not alerts and not msgs:
-                await ctx.send(f"**{nick}:** There are no new alerts or messages!")
+
+        if msgs:
+            tree = await self.bot.get_content(base_url + "inboxMessages.html", return_tree=True)
+            embed = Embed(title=f"**{nick}** {base_url}inboxMessages.html")
+            for tr in range(2, msgs + 2):
+                author = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[1]//div/a[2]/text()')[0].strip()
+                content = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[2]/div[1]')[0].text_content().strip()
+                title = tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[2]/b[1]//div')[0].text_content().strip()
+                date = str(tree.xpath(f'//*[@id="inboxTable"]//tr[{tr}]//td[3]/b')[0].text).strip()
+                embed.add_field(name=author, value=f"**{title}**\n{content}\n{date}", inline=False)
+            await ctx.send(embed=embed)
+        if not alerts and not msgs:
+            await ctx.send(f"**{nick}:** There are no new alerts or messages!")
 
     @command(aliases=["MU"])
     async def citizenship(self, ctx, country_or_mu: Union[Country, Id], *, nick: IsMyNick):

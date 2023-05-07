@@ -17,14 +17,13 @@ class Info(Cog):
         self.bot = bot
 
     @command(aliases=["version"], hidden=True)
-    async def ping(self, ctx, *, nicks):
+    async def ping(self, ctx, *, nick: IsMyNick):
         """Shows the code version of the given nick(s).
         Can also use: .ping all"""
         server = ctx.channel.name
-        async for nick in utils.get_nicks(server, nicks):
-            if nick != utils.my_nick(server):
-                nick = f"{nick} ({utils.my_nick(server)})"
-            await ctx.send(f'**{nick}** Code Version: {self.bot.VERSION}')
+        if nick != utils.my_nick(server):
+            nick = f"{nick} ({utils.my_nick(server)})"
+        await ctx.send(f'**{nick}** Code Version: {self.bot.VERSION}')
 
     @command()
     async def eqs(self, ctx, *, nick: IsMyNick):
@@ -126,20 +125,19 @@ class Info(Cog):
         await ctx.send(embed=embed)
 
     @command()
-    async def limits(self, ctx, *, nicks):
+    async def limits(self, ctx, *, nick: IsMyNick):
         """Display limits"""
-        async for nick in utils.get_nicks(ctx.channel.name, nicks):
-            server = ctx.channel.name
-            base_url = f"https://{server}.e-sim.org/"
-            tree = await self.bot.get_content(base_url + "home.html", return_tree=True)
-            gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
-            food_storage, gift_storage = utils.get_storage(tree)
-            food_limit, gift_limit = utils.get_limits(tree)
-            await ctx.send(f"**{nick}** Limits: {food_limit}/{gift_limit}, "
-                           f"storage: {food_storage}/{gift_storage}, {gold} Gold.")
-            data = await utils.find_one(server, "info", nick)
-            data["limits"] = f"{food_limit}/{gift_limit}"
-            await utils.replace_one(server, "info", nick, data)
+        server = ctx.channel.name
+        base_url = f"https://{server}.e-sim.org/"
+        tree = await self.bot.get_content(base_url + "home.html", return_tree=True)
+        gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
+        food_storage, gift_storage = utils.get_storage(tree)
+        food_limit, gift_limit = utils.get_limits(tree)
+        await ctx.send(f"**{nick}** Limits: {food_limit}/{gift_limit}, "
+                       f"storage: {food_storage}/{gift_storage}, {gold} Gold.")
+        data = await utils.find_one(server, "info", nick)
+        data["limits"] = f"{food_limit}/{gift_limit}"
+        await utils.replace_one(server, "info", nick, data)
 
     @command()
     @check(utils.is_helper)

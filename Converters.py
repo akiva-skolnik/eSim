@@ -1,4 +1,7 @@
 """Converters.py"""
+from asyncio import sleep
+from random import uniform
+
 from aiohttp import ClientSession
 from discord.ext.commands import BadArgument, Converter, errors
 
@@ -10,9 +13,16 @@ session = ClientSession()
 class IsMyNick(Converter):
     """IsMyNick Converter"""
     async def convert(self, ctx, nick: str) -> str:
-        nick = nick.replace('"', "").replace("'", "").strip().strip()
-        if nick.lower() == utils.my_nick(ctx.channel.name).lower():
-            return nick
+        server = ctx.channel.name
+        my_nick = utils.my_nick(server).lower()
+        nicks = [x.strip() for x in nick.replace('"', "").replace("'", "").replace("\n", ",").split(",")]
+        if nick.lower() == "all":
+            nicks.append(my_nick)
+            await sleep(uniform(1, 20))
+        elif len(nicks) > 1:
+            await sleep(uniform(0, len(nicks) * 2))
+        if my_nick in nicks:
+            return my_nick
         raise errors.CheckFailure
 
 

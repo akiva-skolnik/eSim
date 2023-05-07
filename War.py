@@ -44,7 +44,7 @@ class War(Cog):
             await sleep(uniform(0, 2))
 
     @command()
-    async def auto_fight(self, ctx, nicks, battle_id: Id = 0, side: Side = "attacker", wep: Quality = 0,
+    async def auto_fight(self, ctx, nick: IsMyNick, battle_id: Id = 0, side: Side = "attacker", wep: Quality = 0,
                          food: Quality = 5, gift: Quality = 0, ticket_quality: Quality = 5,
                          chance_to_skip_restore: int = 7, restores: int = 120):
         """Dumping health at a random time every restore
@@ -57,73 +57,72 @@ class War(Cog):
         Example: `.auto_fight "My Nick" 0 attacker 1 5 5 1 0 100`
         [In this example: battle=0 (random), fight for the attacker side, wep quality=1, food and gift quality=5, ticket quality=1, no skip restores (0%), 120 restores (20 hours)]"""
 
-        async for nick in utils.get_nicks(ctx.channel.name, nicks):
-            data = {"restores": restores, "battle_id": battle_id, "side": side, "wep": wep, "food": food,
-                    "gift": gift, "ticket_quality": ticket_quality, "chance_to_skip_restore": chance_to_skip_restore}
-            random_id = randint(1, 9999)
-            ctx.command = f"{ctx.command}-{random_id}"
-            if await utils.save_command(ctx, "auto", "fight", data):
-                return  # Command already running
+        data = {"restores": restores, "battle_id": battle_id, "side": side, "wep": wep, "food": food,
+                "gift": gift, "ticket_quality": ticket_quality, "chance_to_skip_restore": chance_to_skip_restore}
+        random_id = randint(1, 9999)
+        ctx.command = f"{ctx.command}-{random_id}"
+        if await utils.save_command(ctx, "auto", "fight", data):
+            return  # Command already running
 
-            server = ctx.channel.name
-            base_url = f"https://{server}.e-sim.org/"
-            specific_battle = (battle_id != 0)
-            await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.cancel auto_fight-{random_id} {nick}`")
+        server = ctx.channel.name
+        base_url = f"https://{server}.e-sim.org/"
+        specific_battle = (battle_id != 0)
+        await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.cancel auto_fight-{random_id} {nick}`")
 
-            while restores > 0 and not self.bot.should_break(ctx):
-                restores -= 1
-                if randint(1, 100) <= chance_to_skip_restore:
-                    await sleep(600)
+        while restores > 0 and not self.bot.should_break(ctx):
+            restores -= 1
+            if randint(1, 100) <= chance_to_skip_restore:
+                await sleep(600)
 
-                # update data from db
-                d = (await utils.find_one("auto", "fight", os.environ['nick']))[server]
-                restores, battle_id, side, wep, food = d["restores"], d["battle_id"], d["side"], d["wep"], d["food"]
-                gift, ticket_quality, chance_to_skip_restore = d["gift"], d["ticket_quality"], d["chance_to_skip_restore"]
+            # update data from db
+            d = (await utils.find_one("auto", "fight", os.environ['nick']))[server]
+            restores, battle_id, side, wep, food = d["restores"], d["battle_id"], d["side"], d["wep"], d["food"]
+            gift, ticket_quality, chance_to_skip_restore = d["gift"], d["ticket_quality"], d["chance_to_skip_restore"]
 
-                if not battle_id:
-                    battle_id = await utils.get_battle_id(self.bot, str(nick), server, battle_id)
-                await ctx.send(f'**{nick}** <{base_url}battle.html?id={battle_id}> side: {side}\n'
-                               f'If you want to stop it, type `.cancel auto_fight-{random_id} {nick}`')
-                if not battle_id:
-                    await ctx.send(
-                        f"**{nick}** WARNING: I can't fight in any battle right now, but I will check again after the next restore")
-                    await utils.random_sleep(restores)
-                    continue
-                tree = await self.bot.get_content(base_url + "home.html", return_tree=True)
-                if tree.xpath('//*[@id="taskButtonWork"]//@href') and randint(1, 4) == 2:  # Don't work as soon as you can (suspicious)
-                    await ctx.invoke(self.bot.get_command("work"), nicks=nick)
-                api_battles = await self.bot.get_content(f"{base_url}apiBattles.html?battleId={battle_id}")
-                if 8 in (api_battles['attackerScore'], api_battles['defenderScore']):
-                    if specific_battle:
-                        await ctx.send(f"**{nick}** Battle has finished.")
-                        break
-                    await ctx.send(f"**{nick}** Searching for the next battle...")
-                    battle_id = await utils.get_battle_id(self.bot, str(nick), server, battle_id)
+            if not battle_id:
+                battle_id = await utils.get_battle_id(self.bot, str(nick), server, battle_id)
+            await ctx.send(f'**{nick}** <{base_url}battle.html?id={battle_id}> side: {side}\n'
+                           f'If you want to stop it, type `.cancel auto_fight-{random_id} {nick}`')
+            if not battle_id:
+                await ctx.send(
+                    f"**{nick}** WARNING: I can't fight in any battle right now, but I will check again after the next restore")
+                await utils.random_sleep(restores)
+                continue
+            tree = await self.bot.get_content(base_url + "home.html", return_tree=True)
+            if tree.xpath('//*[@id="taskButtonWork"]//@href') and randint(1, 4) == 2:  # Don't work as soon as you can (suspicious)
+                await ctx.invoke(self.bot.get_command("work"), nicks=nick)
+            api_battles = await self.bot.get_content(f"{base_url}apiBattles.html?battleId={battle_id}")
+            if 8 in (api_battles['attackerScore'], api_battles['defenderScore']):
+                if specific_battle:
+                    await ctx.send(f"**{nick}** Battle has finished.")
+                    break
+                await ctx.send(f"**{nick}** Searching for the next battle...")
+                battle_id = await utils.get_battle_id(self.bot, str(nick), server, battle_id)
+            if specific_battle and 1 <= ticket_quality <= 5:
+                bonus_region = await utils.get_bonus_region(self.bot, base_url, side, api_battles)
+                if bonus_region:
+                    if not await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick):
+                        restores = 0
+            tree = await self.bot.get_content(f'{base_url}battle.html?id={battle_id}', return_tree=True)
+            fight_ability = tree.xpath("//*[@id='newFightView']//div[3]//div[3]//div//text()[1]")
+            if any("You can't fight in this battle from your current location." in s for s in fight_ability):
                 if specific_battle and 1 <= ticket_quality <= 5:
                     bonus_region = await utils.get_bonus_region(self.bot, base_url, side, api_battles)
                     if bonus_region:
                         if not await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick):
-                            restores = 0
-                tree = await self.bot.get_content(f'{base_url}battle.html?id={battle_id}', return_tree=True)
-                fight_ability = tree.xpath("//*[@id='newFightView']//div[3]//div[3]//div//text()[1]")
-                if any("You can't fight in this battle from your current location." in s for s in fight_ability):
-                    if specific_battle and 1 <= ticket_quality <= 5:
-                        bonus_region = await utils.get_bonus_region(self.bot, base_url, side, api_battles)
-                        if bonus_region:
-                            if not await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick):
-                                break
-                    await ctx.send(f"**{nick}** ERROR: You can't fight in this battle from your current location.")
-                    break
+                            break
+                await ctx.send(f"**{nick}** ERROR: You can't fight in this battle from your current location.")
+                break
+            await self.dump_health(server, battle_id, side, wep)
+            if food:
+                await self.bot.get_content(f"{base_url}eat.html", data={'quality': food})
+            if gift:
+                await self.bot.get_content(f"{base_url}gift.html", data={'quality': gift})
+            if food or gift:
                 await self.dump_health(server, battle_id, side, wep)
-                if food:
-                    await self.bot.get_content(f"{base_url}eat.html", data={'quality': food})
-                if gift:
-                    await self.bot.get_content(f"{base_url}gift.html", data={'quality': gift})
-                if food or gift:
-                    await self.dump_health(server, battle_id, side, wep)
-                await utils.random_sleep(restores)
+            await utils.random_sleep(restores)
 
-            await utils.remove_command(ctx, "auto", "fight")
+        await utils.remove_command(ctx, "auto", "fight")
 
     @command(name="BO")
     async def battle_order(self, ctx, battle: Id, side: Side, key: Optional[int] = 0, *, nick: IsMyNick):
@@ -165,6 +164,7 @@ class War(Cog):
                 buffs_names.remove(buff)
                 buffs_names.extend([f'{buff.split("_")[0]}_{elixir}_ELIXIR' for elixir in elixirs])
         results = []
+        buffed = False
         for buff_name in buffs_names:
             buff_name = buff_name.strip().replace(" ", "_")
             if buff_name == "VAC":
@@ -193,10 +193,11 @@ class War(Cog):
                 if "error" in url.lower():
                     results.append(f"ERROR: No such buff ({buff_name})")
                 if "MESSAGE_OK" in url and buff_name in ("STEROIDS", "TANK", "SEWER", "BUNKER"):
-                    data = await utils.find_one(server, "info", nick)
-                    now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%d/%m  %H:%M")
-                    data["Buffed at"] = now
-                    await utils.replace_one(server, "info", nick, data)
+                    buffed = True
+        if buffed:
+            data = await utils.find_one(server, "info", nick)
+            data["Buffed at"] = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%d/%m  %H:%M")
+            await utils.replace_one(server, "info", nick, data)
 
         await ctx.send(f"**{nick}**\n" + "\n".join(results))
         if "EXTRA_SPA" in buffs_names or "EXTRA_VACATIONS" in buffs_names:
@@ -388,24 +389,23 @@ class War(Cog):
         return "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
 
     @command(aliases=["cancel"], hidden=True)
-    async def hold(self, ctx, cmd, *, nicks):
+    async def hold(self, ctx, cmd, *, nick: IsMyNick):
         """Cancel command (it might take a while before it actually cancel)"""
         server = ctx.channel.name
         cmd = cmd.lower()
-        async for nick in utils.get_nicks(server, nicks):
-            if server not in self.bot.should_break_dict:
-                self.bot.should_break_dict[server] = {}
-            self.bot.should_break_dict[server][cmd] = True
-            original = cmd
-            if cmd in ("hunt", "hunt_battle", "watch"):
-                cmd = "auto_" + cmd
-            if "auto_" in cmd:
-                data = await utils.find_one("auto", "_".join(cmd.split("_")[1:]), os.environ['nick'])
-                if server in data and original in data[server]:
-                    del data[server][original]
-                    await utils.replace_one("auto", "_".join(cmd.split("_")[1:]), os.environ['nick'], data)
+        if server not in self.bot.should_break_dict:
+            self.bot.should_break_dict[server] = {}
+        self.bot.should_break_dict[server][cmd] = True
+        original = cmd
+        if cmd in ("hunt", "hunt_battle", "watch"):
+            cmd = "auto_" + cmd
+        if "auto_" in cmd:
+            data = await utils.find_one("auto", "_".join(cmd.split("_")[1:]), os.environ['nick'])
+            if server in data and original in data[server]:
+                del data[server][original]
+                await utils.replace_one("auto", "_".join(cmd.split("_")[1:]), os.environ['nick'], data)
 
-            await ctx.send(f"**{nick}** I have forwarded your instruction. (it might take a while until it actually cancel {cmd})")
+        await ctx.send(f"**{nick}** I have forwarded your instruction. (it might take a while until it actually cancel {cmd})")
 
     @command(aliases=["ally"])
     async def enemy(self, ctx, country: Country, *, nick: IsMyNick):
@@ -641,30 +641,29 @@ class War(Cog):
         await utils.remove_command(ctx, "auto", "hunt_battle")
 
     @command()
-    async def auto_motivate(self, ctx, chance_to_skip_a_day: Optional[int] = 7, *, nicks):
+    async def auto_motivate(self, ctx, chance_to_skip_a_day: Optional[int] = 7, *, nick: IsMyNick):
         """Motivates at random times throughout every day"""
-        async for nick in utils.get_nicks(ctx.channel.name, nicks):
-            if await utils.save_command(ctx, "auto", "motivate", {"chance_to_skip_a_day": chance_to_skip_a_day}):
-                return  # Command already running
+        if await utils.save_command(ctx, "auto", "motivate", {"chance_to_skip_a_day": chance_to_skip_a_day}):
+            return  # Command already running
 
-            while not self.bot.should_break(ctx):  # for every day:
-                tz = timezone('Europe/Berlin')
-                now = datetime.now(tz)
-                midnight = tz.localize(datetime.combine(now + timedelta(days=1), dt_time(0, 0, 0, 0)))
-                sec_til_midnight = (midnight - now).seconds
-                await sleep(uniform(0, sec_til_midnight - 600))
-                if not self.bot.should_break(ctx) and randint(1, 100) > chance_to_skip_a_day:
-                    await ctx.invoke(self.bot.get_command("motivate"), nick=nick)
+        while not self.bot.should_break(ctx):  # for every day:
+            tz = timezone('Europe/Berlin')
+            now = datetime.now(tz)
+            midnight = tz.localize(datetime.combine(now + timedelta(days=1), dt_time(0, 0, 0, 0)))
+            sec_til_midnight = (midnight - now).seconds
+            await sleep(uniform(0, sec_til_midnight - 600))
+            if not self.bot.should_break(ctx) and randint(1, 100) > chance_to_skip_a_day:
+                await ctx.invoke(self.bot.get_command("motivate"), nick=nick)
 
-                # sleep till midnight
-                tz = timezone('Europe/Berlin')
-                now = datetime.now(tz)
-                midnight = tz.localize(datetime.combine(now + timedelta(days=1), dt_time(0, 0, 0, 0)))
-                await sleep((midnight - now).seconds + 20)
+            # sleep till midnight
+            tz = timezone('Europe/Berlin')
+            now = datetime.now(tz)
+            midnight = tz.localize(datetime.combine(now + timedelta(days=1), dt_time(0, 0, 0, 0)))
+            await sleep((midnight - now).seconds + 20)
 
-                data = (await utils.find_one("auto", "motivate", os.environ['nick']))[ctx.channel.name]
-                chance_to_skip_a_day = data["chance_to_skip_a_day"]
-            await utils.remove_command(ctx, "auto", "motivate")
+            data = (await utils.find_one("auto", "motivate", os.environ['nick']))[ctx.channel.name]
+            chance_to_skip_a_day = data["chance_to_skip_a_day"]
+        await utils.remove_command(ctx, "auto", "motivate")
 
     @command()
     async def motivate(self, ctx, *, nick: IsMyNick):
