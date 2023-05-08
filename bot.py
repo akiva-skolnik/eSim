@@ -12,7 +12,7 @@ from discord.ext.commands import Bot, errors
 from lxml.html import fromstring
 
 import utils
-from Converters import IsMyNick
+import Converters
 
 config_file = "config.json"
 if config_file in os.listdir():
@@ -211,7 +211,7 @@ async def on_message(message):
 
 
 @bot.command()
-async def update(ctx, *, nick: IsMyNick):
+async def update(ctx, *, nick: Converters.IsMyNick):
     """Updates the code from the source.
     You can also use `.update ALL`"""
     server = ctx.channel.name
@@ -228,6 +228,7 @@ async def update(ctx, *, nick: IsMyNick):
     async with (await get_session(server)).get("https://api.github.com/repos/akiva0003/eSim/branches/main") as r:
         bot.VERSION = (await r.json())["commit"]["commit"]["author"]["date"]
     importlib.reload(utils)
+    importlib.reload(Converters)
     utils.initiate_db()
     for extension in categories:
         bot.reload_extension(extension)
