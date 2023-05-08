@@ -216,7 +216,7 @@ class Eco(Cog):
             if "APPLY_FOR_JOB_ALREADY_HAVE_JOB" in url:
                 return await ctx.send(f"**{nick}** ERROR: Couldn't apply for a new job. Perhaps you should wait 6 hours.")
         await ctx.send(f"**{nick}** <{url}>")
-        await ctx.invoke(self.bot.get_command("work"), nicks=nick)
+        await ctx.invoke(self.bot.get_command("work"), nick=nick)
 
     @command(aliases=["split"])
     async def merge(self, ctx, ids_or_quality: str, *, nick: IsMyNick):
@@ -436,7 +436,7 @@ class Eco(Cog):
             await ctx.send(f"**{nick}** Trained successfully")
         if randint(1, 100) < 37:  # 37%
             await sleep(uniform(1, 3))
-            await ctx.invoke(self.bot.get_command("read"), nicks=nick)
+            await ctx.invoke(self.bot.get_command("read"), nick=nick)
 
     @command()
     async def auto_work(self, ctx, work_sessions: Optional[int] = 1, chance_to_skip_work: Optional[int] = 7, *, nick: IsMyNick):
@@ -464,7 +464,7 @@ class Eco(Cog):
                 if self.bot.should_break(ctx):
                     break
                 if randint(1, 100) > chance_to_skip_work:
-                    await ctx.invoke(self.bot.get_command("work"), nicks=nick)
+                    await ctx.invoke(self.bot.get_command("work"), nick=nick)
                 if (midnight - now).seconds < sec_between_works:
                     break
 

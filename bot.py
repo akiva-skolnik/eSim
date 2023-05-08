@@ -72,13 +72,13 @@ async def start():
         message = await channel.fetch_message(int(d["message_id"]))
         ctx = await bot.get_context(message)
         bot.loop.create_task(ctx.invoke(
-            bot.get_command("auto_work"), d["work_sessions"], d["chance_to_skip_work"], nicks=d["nick"]))
+            bot.get_command("auto_work"), d["work_sessions"], d["chance_to_skip_work"], nick=d["nick"]))
 
     for d in (await utils.find_one("auto", "motivate", os.environ['nick'])).values():
         channel = bot.get_channel(int(d["channel_id"]))
         message = await channel.fetch_message(int(d["message_id"]))
         ctx = await bot.get_context(message)
-        bot.loop.create_task(ctx.invoke(bot.get_command("auto_motivate"), d["chance_to_skip_a_day"], nicks=d["nick"]))
+        bot.loop.create_task(ctx.invoke(bot.get_command("auto_motivate"), d["chance_to_skip_a_day"], nick=d["nick"]))
 
     for d in (await utils.find_one("auto", "fight", os.environ['nick'])).values():
         channel = bot.get_channel(int(d["channel_id"]))

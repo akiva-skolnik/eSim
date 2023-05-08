@@ -130,7 +130,7 @@ class Mix(Cog):
                     if num == 1:
                         await self.bot.get_content(base_url + "inboxMessages.html")
                     elif num in (2, 4, 16, 27, 28, 36, 43, 59):
-                        await ctx.invoke(self.bot.get_command("work"), nicks=nick)
+                        await ctx.invoke(self.bot.get_command("work"), nick=nick)
                     elif num in (3, 7):
                         await ctx.invoke(self.bot.get_command("auto_fight"), nick, 1)
                     elif num in (5, 26, 32, 35, 38, 40, 47, 51, 53, 64):

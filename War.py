@@ -90,7 +90,7 @@ class War(Cog):
                 continue
             tree = await self.bot.get_content(base_url + "home.html", return_tree=True)
             if tree.xpath('//*[@id="taskButtonWork"]//@href') and randint(1, 4) == 2:  # Don't work as soon as you can (suspicious)
-                await ctx.invoke(self.bot.get_command("work"), nicks=nick)
+                await ctx.invoke(self.bot.get_command("work"), nick=nick)
             api_battles = await self.bot.get_content(f"{base_url}apiBattles.html?battleId={battle_id}")
             if 8 in (api_battles['attackerScore'], api_battles['defenderScore']):
                 if specific_battle:
