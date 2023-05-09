@@ -570,12 +570,16 @@ Examples:
     async def shutdown(self, ctx, restart: bool, *, nick: IsMyNick):
         """Shutting down specific nick.
         Warning: It's shutting down from all servers."""
+        import platform
         for session in self.bot.sessions.values():
             await session.close()
 
         if restart:
             await ctx.send(f"**{nick}** attempting restart... (try `.ping {nick}` in a few seconds)")
-            system(f"nohup {sys.executable} bot.py &")
+            if platform.system() == 'Windows':
+                system(f"start /b {sys.executable} bot.py")
+            else:
+                system(f"nohup {sys.executable} bot.py &")
         else:
             await ctx.send(f"**{nick}** shutting down...")
         await self.bot.close()
