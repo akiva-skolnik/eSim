@@ -14,14 +14,14 @@ class IsMyNick(Converter):
     """IsMyNick Converter"""
     async def convert(self, ctx, nick: str) -> str:
         server = ctx.channel.name
-        my_nick = utils.my_nick(server).lower()
-        nicks = [x.strip() for x in nick.replace('"', "").replace("'", "").replace("\n", ",").split(",")]
+        my_nick = utils.my_nick(server)
+        nicks = [x.strip().lower() for x in nick.replace('"', "").replace("'", "").replace("\n", ",").split(",")]
         if nick.lower() == "all":
-            nicks.append(my_nick)
+            nicks.append(my_nick.lower())
             await sleep(uniform(1, 20))
         elif len(nicks) > 1:
             await sleep(uniform(0, len(nicks) * 2))
-        if my_nick in nicks:
+        if my_nick.lower() in nicks:
             return my_nick
         raise errors.CheckFailure
 
