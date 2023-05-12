@@ -295,7 +295,7 @@ class Info(Cog):
         tree = await self.bot.get_content(link, return_tree=True)
 
         embed = Embed(colour=0x3D85C6, url=link)
-        embed.title = ("\U0001f7e2" if tree.xpath('//*[@id="loginBar"]/span[2]/@class')[0] == "online" else
+        embed.title = ("\U0001f7e2" if tree.xpath('//*[@id="loginBar"]//span[2]/@class')[0] == "online" else
                        "\U0001f534") + f" {api['login']}, {api['citizenship']} (id {api['citizenshipId']})"
 
         buffs_debuffs = [x.split("/specialItems/")[-1].split(".png")[0] for x in
