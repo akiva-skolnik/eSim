@@ -361,7 +361,7 @@ class Mix(Cog):
         async with ClientSession(headers=headers) as session:
             async with session.get(base_url, ssl=True) as _:
                 async with session.get(base_url + "index.html?advancedRegistration=true&lan=" + lan.replace(f"{base_url}lan.", ""), ssl=True) as _:
-                    payload = {"login": nick, "password": environ.get(server+"_password", environ['password']), "mail": "",
+                    payload = {"login": nick, "password": environ.get(server+"_password", environ.get('password')), "mail": "",
                                "countryId": country, "checkHuman": "Human"}
                     async with session.post(base_url + "registration.html", data=payload, ssl=True) as registration:
                         if "act=register" not in str(registration.url):

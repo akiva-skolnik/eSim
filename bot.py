@@ -190,7 +190,7 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
     if not_logged_in:
         await close_session(server)
 
-        payload = {'login': nick, 'password': os.environ.get(server + "_password", os.environ['password']), "submit": "Login"}
+        payload = {'login': nick, 'password': os.environ.get(server + "_password", os.environ.get('password')), "submit": "Login"}
         async with (await get_session(server)).get(url, ssl=True) as _:
             async with (await get_session(server)).post(url + "login.html", data=payload, ssl=True) as r:
                 print(r.url)
