@@ -366,7 +366,7 @@ class Mix(Cog):
                     payload = {"login": nick, "password": environ.get(server+"_password", environ['password']), "mail": "",
                                "countryId": country, "checkHuman": "Human"}
                     async with session.post(base_url + "registration.html", data=payload, ssl=True) as registration:
-                        if "profile" not in str(registration.url) and base_url + "index.html" not in str(registration.url):
+                        if "act=register" not in str(registration.url):
                             await ctx.send(f"**{nick}** ERROR: Could not register")
                         else:
                             await ctx.send(f"**{nick}** <{registration.url}>\nHINT: type `.help avatar` and `.help job`")
