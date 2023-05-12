@@ -149,7 +149,7 @@ class Mix(Cog):
                         fight_url, data = await War.get_fight_data(base_url, tree, 0, "default", "Regular")
                         await self.bot.get_content(fight_url, data=data)
                     elif num == 5:
-                        await ctx.invoke(self.bot.get_command("food"), 1, nick=nick)
+                        await ctx.invoke(self.bot.get_command("food"), quality=1, nick=nick)
                     elif num == 6:
                         citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
                         capital = [row['id'] for row in await self.bot.get_content(base_url + "apiRegions.html") if row[
@@ -159,7 +159,7 @@ class Mix(Cog):
                         await self.bot.get_content(base_url + "notifications.html")
                     elif num == 8:
                         tree = await self.bot.get_content(f"{base_url}productMarket.html", return_tree=True)
-                        product_id = tree.xpath('//*[@id="command"]/input[1]')[0].value
+                        product_id = tree.xpath('//*[@class="buy"]/button')[0].attrib['data-id']
                         payload = {'action': "buy", 'id': product_id, 'quantity': 1, "submit": "Buy"}
                         await self.bot.get_content(base_url + "productMarket.html", data=payload)
                     elif num == 9:
@@ -369,7 +369,7 @@ class Mix(Cog):
                         if "act=register" not in str(registration.url):
                             await ctx.send(f"**{nick}** ERROR: Could not register")
                         else:
-                            await ctx.send(f"**{nick}** <{registration.url}>\nHINT: type `.help avatar` and `.help job`")
+                            await ctx.send(f"**{nick}** <{registration.url}>\nHINT: type `.help avatar` and `.help missions`")
 
     @command()
     async def report(self, ctx, target_citizen: Id, category, report_reason, *, nick: IsMyNick):

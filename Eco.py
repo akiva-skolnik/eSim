@@ -123,7 +123,7 @@ class Eco(Cog):
             tree = await self.bot.get_content(f"{base_url}productMarket.html?resource={product}&quality={quality}&countryId={market}", return_tree=True)
             data = tree.xpath("//*[@class='buy']/button")
             try:
-                (data or tree.xpath('//*[@id="command"]/input[1]'))[0]
+                (data or tree.xpath('//*[@class="buy"]/button'))[0]
             except IndexError:
                 await ctx.send(f"**{nick}** ERROR: there are no Q{quality} {product} in the market.")
                 break
