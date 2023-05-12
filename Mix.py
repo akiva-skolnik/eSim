@@ -17,6 +17,7 @@ from discord import File
 from discord.ext.commands import Cog, command, is_owner
 from pytz import timezone
 
+from War import War
 import utils
 from Converters import Country, Id, IsMyNick, Quality
 
@@ -121,54 +122,55 @@ class Mix(Cog):
                         return
                     await ctx.send(f"**{nick}** WARNING: Skipped mission {num}")
                     continue
-
                 await ctx.send(f"**{nick}** Mission number {num}")
                 c = await self.bot.get_content(base_url + "betaMissions.html?action=START", data={"submit": "Start mission"})
                 if "MISSION_START_OK" not in c:
                     c = await self.bot.get_content(base_url + "betaMissions.html?action=COMPLETE", data={"submit": "Collect"})
                 if "MISSION_REWARD_OK" not in c:
+                    """Day 1:
+                    Mission #1: First training.
+                    Mission #2: Your first job.
+                    Mission #3: First day of work.
+                    Mission #4: Fight 1 hit.
+                    Mission #5: Restore your health points.
+                    Mission #6: Travel to the capital.
+                    Mission #7: Check your notifications page.
+                    Mission #8: Buy some products
+                    Mission #9 Achievements."""
                     if num == 1:
                         await self.bot.get_content(base_url + "inboxMessages.html")
-                    elif num in (2, 4, 16, 27, 28, 36, 43, 59):
+                        await self.bot.get_content(base_url + "train/ajax", data={"action": "train"})
+                    elif num == 2:
+                        await ctx.invoke(self.bot.get_command("job"), nick=nick)
+                    elif num == 3:
                         await ctx.invoke(self.bot.get_command("work"), nick=nick)
-                    elif num in (3, 7):
-                        await ctx.invoke(self.bot.get_command("auto_fight"), nick, 1)
-                    elif num in (5, 26, 32, 35, 38, 40, 47, 51, 53, 64):
-                        if num == 31:
-                            restores = 3
-                            await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
-                        elif num == 46:
-                            restores = 2
-                            await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
-                        else:
-                            restores = 1
-                        await ctx.invoke(self.bot.get_command("auto_fight"), nick, restores)
+                    elif num == 4:
+                        tree = await self.bot.get_content(f'{base_url}battle.html?id=0', return_tree=True)
+                        fight_url, data = await War.get_fight_data(base_url, tree, 0, "default", "Regular")
+                        await self.bot.get_content(fight_url, data=data)
+                    elif num == 5:
+                        await ctx.invoke(self.bot.get_command("food"), 1, nick=nick)
                     elif num == 6:
-                        for q in range(1, 6):
-                            try:
-                                await self.bot.get_content(f"{base_url}food.html", data={'quality': q})
-                            except Exception:
-                                pass
-                    elif num == 8:
-                        await self.bot.get_content(base_url + "editCitizen.html")
-                    elif num == 9:
-                        await self.bot.get_content(base_url + "notifications.html")
-                    elif num == 10:
-                        await self.bot.get_content(base_url + "newMap.html")
-                    elif num == 11:
-                        tree = await self.bot.get_content(f"{base_url}productMarket.html", return_tree=True)
-                        product_id = tree.xpath('//*[@id="command"]/input[1]')[0].value
-                        payload = {'action': "buy", 'id': product_id, 'quantity': 1, "submit": "Buy"}
-                        await self.bot.get_content(base_url + "productMarket.html", data=payload)
-                    elif num in (12, 54):
                         citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
                         capital = [row['id'] for row in await self.bot.get_content(base_url + "apiRegions.html") if row[
                             'homeCountry'] == citizen['citizenshipId'] and row['capital']][0]
                         await ctx.invoke(self.bot.get_command("fly"), capital, 5, nick=nick)
-                    elif num in (13, 66):
-                        await self.bot.get_content(base_url + 'friends.html?action=PROPOSE&id=8')
+                    elif num == 7:
+                        await self.bot.get_content(base_url + "notifications.html")
+                    elif num == 8:
+                        tree = await self.bot.get_content(f"{base_url}productMarket.html", return_tree=True)
+                        product_id = tree.xpath('//*[@id="command"]/input[1]')[0].value
+                        payload = {'action': "buy", 'id': product_id, 'quantity': 1, "submit": "Buy"}
+                        await self.bot.get_content(base_url + "productMarket.html", data=payload)
+                    elif num == 9:
+                        # await self.bot.get_content(base_url + 'friends.html?action=PROPOSE&id=8')
                         await self.bot.get_content(base_url + "citizenAchievements.html",
                                                    data={"id": my_id, "submit": "Recalculate achievements"})
+                    # new avatar:
+                    #    await self.bot.get_content(base_url + "editCitizen.html")
+                    elif num == 10:
+                        await self.bot.get_content(base_url + "newMap.html")
+
                     elif num == 14:
                         tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
                         item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
@@ -208,6 +210,16 @@ class Mix(Cog):
                     elif num == 25:
                         payload = {'setBg': "LIGHT_I", 'action': "CHANGE_BACKGROUND"}
                         await self.bot.get_content(base_url + "editCitizen.html", data=payload)
+                    elif num in (26, 32, 35, 38, 40, 47, 51, 53, 64):
+                        if num == 31:
+                            restores = 3
+                            await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
+                        elif num == 46:
+                            restores = 2
+                            await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
+                        else:
+                            restores = 1
+                        await ctx.invoke(self.bot.get_command("auto_fight"), nick, restores)
                     # day 3
                     elif num == 29:
                         for article_id in range(2, 7):
@@ -298,23 +310,6 @@ class Mix(Cog):
                     return
                 await ctx.send(f"**{nick}** WARNING: Skipped mission {num}")
         await ctx.send(f"**{nick}** missions command reached its end.")
-    """
-    Mission #1: Check messages.
-    Mission #2: First training.
-    Mission #3: Your first job.
-    Mission #4: First day of work.
-    Mission #5: Five hits.
-    Mission #6: Restore your health points.
-    Mission #7: Go 'Berserk' in practice battle.
-    Mission #8: Choose your avatar.
-    Mission #9: Check notifications.
-    Mission #10: Look at the map.
-    Mission #11: Buy product
-    Mission #12 Travel to the capital of your country.
-    Mission #13 Learn about achievements.
-    Mission #14 Wear something.
-    Mission #15: Upvote one article.
-    """
 
     @command(aliases=["hospital"])
     async def building(self, ctx, region_id: Id, quality: Quality, at_round: int, *, nick: IsMyNick):

@@ -67,8 +67,6 @@ class War(Cog):
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         specific_battle = (battle_id != 0)
-        await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.cancel auto_fight-{random_id} {nick}`")
-
         while restores > 0 and not self.bot.should_break(ctx):
             restores -= 1
             if randint(1, 100) <= chance_to_skip_restore:
