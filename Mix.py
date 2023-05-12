@@ -93,9 +93,7 @@ class Mix(Cog):
 
     @command()
     async def missions(self, ctx, *, nick: IsMyNick):
-        """Auto finish missions.
-        * "action" must be one of: start / complete / skip / ALL
-        If nick contains more than 1 word - it must be within quotes"""
+        """Auto finish missions."""
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
 
@@ -149,7 +147,7 @@ class Mix(Cog):
                         fight_url, data = await War.get_fight_data(base_url, tree, 0, "default", "Regular")
                         await self.bot.get_content(fight_url, data=data)
                     elif num == 5:
-                        await ctx.invoke(self.bot.get_command("food"), quality=1, nick=nick)
+                        await self.bot.get_content(f"{base_url}eat.html", data={'quality': 1})
                     elif num == 6:
                         citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
                         capital = [row['id'] for row in await self.bot.get_content(base_url + "apiRegions.html") if row[
