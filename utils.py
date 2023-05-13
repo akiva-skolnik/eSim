@@ -219,6 +219,14 @@ def get_limits(tree) -> (int, int):
     return int(food_limit), int(gift_limit)
 
 
+async def update_limits(server: str, nick: str, limits: str) -> None:
+    """update limits"""
+    data = await find_one(server, "info", nick)
+    if data["limits"] != limits:
+        data["limits"] = limits
+        await replace_one(server, "info", nick, data)
+
+
 def get_storage(tree, q: int = 5) -> (int, int):
     try:
         food_storage = tree.xpath(f'//*[@id="foodQ{q}"]/text()')[0]

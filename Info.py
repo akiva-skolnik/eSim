@@ -135,9 +135,7 @@ class Info(Cog):
         food_limit, gift_limit = utils.get_limits(tree)
         await ctx.send(f"**{nick}** Limits: {food_limit}/{gift_limit}, "
                        f"storage: {food_storage}/{gift_storage}, {gold} Gold.")
-        data = await utils.find_one(server, "info", nick)
-        data["limits"] = f"{food_limit}/{gift_limit}"
-        await utils.replace_one(server, "info", nick, data)
+        await utils.update_limits(server, nick, f"{food_limit}/{gift_limit}")
 
     @command()
     @check(utils.is_helper)

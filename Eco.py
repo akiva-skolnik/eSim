@@ -69,40 +69,41 @@ class Eco(Cog):
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         for country in countries:
             bought_amount = 0
-            tree = await self.bot.get_content(f"{base_url}monetaryMarketOffers?sellerCurrencyId=0&buyerCurrencyId={country}&page=1", return_tree=True)
-            amounts = tree.xpath("//*[@class='amount']//b/text()")
-            ratios = tree.xpath("//*[@class='ratio']//b/text()")
-            offers_ids = [int(x.attrib['data-id']) for x in tree.xpath("//*[@class='buy']/button")]
-            try:
-                cc = tree.xpath("//*[@class='buy']/button")[0].attrib['data-buy-currency-name']
-            except IndexError:
-                await ctx.send(f"**{nick}** country {country} - no offers found.")
-                continue
-            for offer_id, offer_amount, ratio in zip(offers_ids, amounts, ratios):
-                if self.bot.should_break(ctx):
-                    return
+            for page in range(10):
+                tree = await self.bot.get_content(f"{base_url}monetaryMarketOffers?sellerCurrencyId=0&buyerCurrencyId={country}&page=1", return_tree=True)
+                amounts = tree.xpath("//*[@class='amount']//b/text()")
+                ratios = tree.xpath("//*[@class='ratio']//b/text()")
+                offers_ids = [int(x.attrib['data-id']) for x in tree.xpath("//*[@class='buy']/button")]
                 try:
-                    offer_amount, ratio = float(offer_amount), float(ratio)
-                    if ratio > max_price:
-                        await ctx.send(f"**{nick}** The price is too high ({ratio} per {cc}).")
-                        break
+                    cc = tree.xpath("//*[@class='buy']/button")[0].attrib['data-buy-currency-name']
+                except IndexError:
+                    await ctx.send(f"**{nick}** country {country} - no offers found.")
+                    continue
+                for offer_id, offer_amount, ratio in zip(offers_ids, amounts, ratios):
+                    if self.bot.should_break(ctx):
+                        return
+                    try:
+                        offer_amount, ratio = float(offer_amount), float(ratio)
+                        if ratio > max_price:
+                            await ctx.send(f"**{nick}** The price is too high ({ratio} per {cc}).")
+                            break
 
-                    payload = {'action': "buy", 'id': offer_id, 'ammount': round(min(offer_amount, amount - bought_amount), 2),
-                               'stockCompanyId': '', 'submit': 'Buy'}
-                    url = await self.bot.get_content(f"{base_url}monetaryMarketOfferBuy.html", data=payload)
-                    if "MM_POST_OK_BUY" not in str(url):
-                        await ctx.send(f"ERROR: <{url}>")
-                        break
-                    await ctx.send(f"**{nick}** Bought {payload['ammount']} {cc} at {ratio} each.")
-                    bought_amount += payload['ammount']
-                    if bought_amount >= amount:
-                        break
-                    await sleep(uniform(0, 2))
-                    # sleeping for a random time between 0 and 2 seconds. feel free to change it
+                        payload = {'action': "buy", 'id': offer_id, 'ammount': round(min(offer_amount, amount - bought_amount), 2),
+                                   'stockCompanyId': '', 'submit': 'Buy'}
+                        url = await self.bot.get_content(f"{base_url}monetaryMarketOfferBuy.html", data=payload)
+                        if "MM_POST_OK_BUY" not in str(url):
+                            await ctx.send(f"ERROR: <{url}>")
+                            break
+                        await ctx.send(f"**{nick}** Bought {payload['ammount']} {cc} at {ratio} each.")
+                        bought_amount += payload['ammount']
+                        if bought_amount >= amount:
+                            break
+                        await sleep(uniform(0, 2))
+                        # sleeping for a random time between 0 and 2 seconds. feel free to change it
 
-                except Exception as exc:
-                    await ctx.send(f"**{nick}** ERROR {exc}")
-                    await sleep(5)
+                    except Exception as exc:
+                        await ctx.send(f"**{nick}** ERROR {exc}")
+                        await sleep(5)
 
             if bought_amount > 0:
                 await ctx.send(f"**{nick}** bought total {round(bought_amount, 2)} {cc}.")

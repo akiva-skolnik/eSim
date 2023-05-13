@@ -201,9 +201,7 @@ class War(Cog):
         if "EXTRA_SPA" in buffs_names or "EXTRA_VACATIONS" in buffs_names:
             tree = await self.bot.get_content(base_url, return_tree=True)
             food_limit, gift_limit = utils.get_limits(tree)
-            data = await utils.find_one(server, "info", nick)
-            data["limits"] = f"{food_limit}/{gift_limit}"
-            await utils.replace_one(server, "info", nick, data)
+            await utils.update_limits(server, nick, f"{food_limit}/{gift_limit}")
 
     @command(aliases=["travel"])
     async def fly(self, ctx, region_id: Id, ticket_quality: Optional[int] = 5, *, nick: IsMyNick) -> bool:
@@ -381,9 +379,7 @@ class War(Cog):
                 await msg.edit(content=output)
         await msg.edit(content=output)
         await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
-        data = await utils.find_one(server, "info", nick)
-        data["limits"] = f"{food_limit}/{gift_limit}"
-        await utils.replace_one(server, "info", nick, data)
+        await utils.update_limits(server, nick, f"{food_limit}/{gift_limit}")
         return "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
 
     @command(aliases=["cancel"], hidden=True)
@@ -755,9 +751,7 @@ class War(Cog):
                 checking.clear()
 
         food_limit, gift_limit = utils.get_limits(tree)
-        data = await utils.find_one(server, "info", nick)
-        data["limits"] = f"{food_limit}/{gift_limit}"
-        await utils.replace_one(server, "info", nick, data)
+        await utils.update_limits(server, nick, f"{food_limit}/{gift_limit}")
 
     @command(aliases=["dow", "mpp"])
     async def attack(self, ctx, country_or_region_id: Id, delay: Optional[int], *, nick: IsMyNick):
