@@ -95,7 +95,9 @@ class Mix(Cog):
     async def missions(self, ctx, *, nick: IsMyNick):
         """Auto finish missions.
         If you want to skip a mission, type:
-        .click "nick" https://secura.e-sim.org/betaMissions.html {"action": "SKIP", "submit": "Skip"}"""
+        .click "nick" https://secura.e-sim.org/betaMissions.html {"action": "SKIP"}
+        You can also use {"action": "COMPLETE"} and {"action": "START"}
+        """
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
 
@@ -105,7 +107,7 @@ class Mix(Cog):
             if self.bot.should_break(ctx):
                 break
             await self.bot.get_content(base_url + "betaMissions.html", data={"action": "COMPLETE"})
-            tree = await self.bot.get_content(base_url + "home.html", return_tree=True)
+            tree = await self.bot.get_content(base_url, return_tree=True)
             my_id = utils.get_ids_from_path(tree, '//*[@id="userName"]')[0]
             try:
                 num = int(str(tree.xpath('//*[@id="inProgressPanel"]/div[1]/div/strong')[0].text).split("#")[1])
@@ -227,7 +229,7 @@ class Mix(Cog):
                 else:
                     restores = 2
                     await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
-                await ctx.invoke(self.bot.get_command("auto_fight"), nick, restores=restores)
+                await ctx.invoke(self.bot.get_command("auto_fight"), nick, chance_to_skip_restore=0, restores=restores)
 
             # Day 3:
             elif num == 24:
