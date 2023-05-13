@@ -135,7 +135,7 @@ class Social(Cog):
                 await self.bot.get_content(base_url + "citizenshipApplicationAction.html",
                                            data={"action": "CANCEL", "applicationId": application_ids[0], "submit": "Cancel"})
         else:
-            payload = {'action': "SEND_APPLICATION", 'id': country_or_mu, "message": choice(messages), "submit": "Send application"}
+            payload = {'action': "SEND_APPLICATION", 'id': country_or_mu, "message": choice(messages + ["Hello there! Im the new player, please join me!"]), "submit": "Send application"}
             link = "militaryUnitsActions.html"
             await self.bot.get_content(base_url + link, data={"action": "CANCEL_APPLICATION", "submit": "Cancel application"})
             await self.bot.get_content(base_url + link, data={"action": "LEAVE_MILITARY_UNIT", "submit": "Leave military unit"})

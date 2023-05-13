@@ -144,14 +144,23 @@ class Mix(Cog):
             Mission #19: Deal 10,000 damage.
             
             Day 3:
+            Mission #20 Third work.
+            Mission #21 Third train.
+            Mission #22 BERSERK.
+            Mission #23 Deal 30,000 damage
+            Mission #24 Send application to Military Unit 
+            Mission #25 Bid auction.
+            Mission #26 BERSERK.
             """
             if num == 1:
                 await self.bot.get_content(base_url + "inboxMessages.html")
                 await self.bot.get_content(base_url + "train/ajax", data={"action": "train"})
             elif num == 2:
                 await ctx.invoke(self.bot.get_command("job"), nick=nick)
-            elif num in (3, 10, 11):
+            elif num in (3, 10, 20):
                 await ctx.invoke(self.bot.get_command("work"), nick=nick)
+            elif num in (11, 21):
+                pass
             elif num == 4:
                 tree = await self.bot.get_content(f'{base_url}battle.html?id=0', return_tree=True)
                 fight_url, data = await War.get_fight_data(base_url, tree, 0, "default", "Regular")
@@ -184,8 +193,12 @@ class Mix(Cog):
                     await self.bot.get_content(base_url + "monetaryMarket.html", data=payload)
                 except IndexError:
                     await ctx.send(f"**{nick}** ERROR: couldn't buy gold")
-            elif num == 13:
-                await self.bot.get_content(f"{base_url}auctions.html")
+            elif num in (13, 25):
+                tree = await self.bot.get_content(f"{base_url}auctions.html?type=EQUIPMENT&eqQ_Q1=true", return_tree=True)
+                auction = tree.xpath('//*[@class="auctionButtons"]/button')[1]
+                payload = {'action': "BID", 'id': auction.attrib['data-id'], 'price': auction.attrib['data-minimal-outbid']}
+                url = await self.bot.get_content(base_url + "auctionAction.html", data=payload)
+                await ctx.send(f"**{nick}** <{url}>")
             elif num == 14:
                 tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
                 item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[-1].replace("#", "")
@@ -208,10 +221,22 @@ class Mix(Cog):
             elif num == 18:
                 payload = {'setBg': choice(["AR", "CL", "CH", "DN", "EE", "HUN"]), 'action': "CHANGE_BACKGROUND"}
                 await self.bot.get_content(base_url + "editCitizen.html", data=payload)
-            elif num == 19:
-                await ctx.send(f"**{nick}** Hitting 2 restores, it might take a while")
-                await ctx.invoke(self.bot.get_command("auto_fight"), nick, restores=2)
+            elif num in (19, 22, 23, 26):
+                if num in (22, 26):
+                    restores = 1
+                else:
+                    restores = 2
+                    await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
+                await ctx.invoke(self.bot.get_command("auto_fight"), nick, restores=restores)
 
+            # Day 3:
+            elif num == 24:
+                ctx.invoked_with = "mu"
+                await ctx.invoke(self.bot.get_command("citizenship"), randint(1, 21), nick=nick)
+
+            # Day 4:
+
+            # Old missions:
             # new avatar:
             #    await self.bot.get_content(base_url + "editCitizen.html")
             # Check map:
@@ -228,27 +253,13 @@ class Mix(Cog):
             #    await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
             # Vote article:
             #    await self.bot.get_content(f"{base_url}vote.html", data={"id": randint(1, 15)})
-
-            # Day 3:
-            elif num in (26, 32, 35, 38, 40, 47, 51, 53, 64):
-                if num == 31:
-                    restores = 3
-                    await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
-                elif num == 46:
-                    restores = 2
-                    await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
-                else:
-                    restores = 1
-                await ctx.invoke(self.bot.get_command("auto_fight"), nick, restores=restores)
-
+                """
             elif num == 29:
                 for article_id in range(2, 7):
                     await self.bot.get_content(f"{base_url}vote.html", data={"id": article_id})
             elif num == 30:
                 await self.bot.get_content(f"{base_url}sub.html", data={"id": randint(1, 21)})
-            elif num == 31:
-                ctx.invoked_with = "mu"
-                await ctx.invoke(self.bot.get_command("citizenship"), randint(1, 21), nick=nick)
+
             # day 4
             elif num == 37:
                 shout_body = choice(["Mission: Get to know the community better", "Hi",
@@ -309,6 +320,7 @@ class Mix(Cog):
             elif num == 63:
                 await self.bot.get_content(f"{base_url}medkit.html", data={})
                 # if food & gift limits >= 10 it won't work.
+            """
             else:
                 await ctx.send(f"**{nick}** ERROR: I don't know how to finish this mission ({num}).")
             await sleep(uniform(1, 5))
