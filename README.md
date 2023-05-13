@@ -35,18 +35,19 @@ Here's what you get when you type `.help `:
    Then, press enter and wait for the external packages to get installed on your computer.
 
 ## Setup:
-1. [Get your discord token](https://devsjournal.com/how-to-get-your-discord-token.html) (check all intents)  
+1. [Get your discord token](https://devsjournal.com/how-to-get-your-discord-token.html) (check all intents and make it private)  
    invite the bot to your server, and name the channels as the e-sim servers (channels names might be #secura, #alpha, etc)  
    Invite link: https://discordapp.com/api/oauth2/authorize?client_id=YOUR_BOT_ID_HERE&permissions=8&scope=bot (replace `YOUR_BOT_ID_HERE`)
 2. Fill your details on [config.json](https://github.com/akiva0003/eSim/blob/main/config.json)  
-Note: if you have a different nick in other servers, add lines to this file as follows: `"server": "your_nick",`  
+   - Get the `TOKEN` form the previous step.
+   - Note: if you have a different nick in other servers, add lines to this file as follows: `"server": "your nick",`  
    The same goes for different password: `"server_password": "123456",`  
    Example: `"suna": "Admin", "suna_password": "12345678",`   
-  
+   - Google "my user agent", and replace the `headers` with the result.  
    > **IMPORTANT**:  By default, anyone in your channel can use the command `execute` (including revealing your password).  
    > If you want to change it, add to your config file thr pair: `"trusted_users_ids": [00000, 11111]` ("Copy User ID" within Discord).  
    > Only users in that list will be able to use `execute` (you can leave it empty)
-3. Run `bot.py`.
+3. Run `bot.py` (double-click on it and press F5, or type in your CMD `python3 PATH/TO/CURRENT/FOLDER/bot.py`)
 
   
 
