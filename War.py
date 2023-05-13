@@ -163,7 +163,7 @@ class War(Cog):
                 buffs_names.extend([f'{buff.split("_")[0]}_{elixir}_ELIXIR' for elixir in elixirs])
         results = []
         buffed = False
-        for buff_name in buffs_names:
+        for i, buff_name in enumerate(buffs_names):
             buff_name = buff_name.strip().replace(" ", "_")
             if buff_name == "VAC":
                 buff_name = "EXTRA_VACATIONS"
@@ -177,6 +177,7 @@ class War(Cog):
                 buff_name = buff_name.replace("PD", "PAIN_DEALER") + "_H"
             elif buff_name.endswith("_ELIXIR"):
                 buff_name = utils.fix_elixir(buff_name)
+            buffs_names[i] = buff_name
             buff_for_sell = buff_name in ("STEROIDS", "EXTRA_VACATIONS", "EXTRA_SPA", "TANK", "BUNKER", "SEWER_GUIDE")
             actions = ("BUY", "USE") if ctx.invoked_with.lower() == "buff" and buff_for_sell else ("USE", )
             for action in actions:
@@ -245,7 +246,7 @@ class War(Cog):
         data.update(cls.convert_to_dict("ip=" + "".join(script).split("&ip=")[1].split("'")[0]))
         return f"{base_url}{fight_page_id}", data
 
-    @command()
+    @command(aliases=["fight_fast"])
     async def fight(self, ctx, nick: IsMyNick, battle: Id, side: Side, weapon_quality: Quality = 5,
                     dmg_or_hits: Dmg = 200, ticket_quality: Quality = 5, consume_first="gift", medkits: int = 0) -> (bool, int):
         """
@@ -258,6 +259,7 @@ class War(Cog):
         * It will auto fly to bonus region.
         * if dmg_or_hits < 10000 - it's hits, otherwise - dmg.
         * set `consume_first` to `none` if you want to consume `1/1` (fast servers)
+        * Use `fight_fast` instead of `fight` if you don't want it to spec the battle for a few seconds.
         * If `nick` contains more than 1 word - it must be within quotes.
         """
 
@@ -298,6 +300,8 @@ class War(Cog):
         damage_done = 0
         update = 0
         fight_url, data = await self.get_fight_data(base_url, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
+        if ctx.invoked_with.lower() == "fight":
+            await sleep(uniform(3, 7))
         hits_or_dmg = "hits" if dmg <= 10000 else "dmg"
         round_ends = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
         start = time.time()
