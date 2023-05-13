@@ -60,7 +60,7 @@ class War(Cog):
         data = {"restores": restores, "battle_id": battle_id, "side": side, "wep": wep, "food": food,
                 "gift": gift, "ticket_quality": ticket_quality, "chance_to_skip_restore": chance_to_skip_restore}
         random_id = randint(1, 9999)
-        ctx.command = f"{ctx.command}-{random_id}"
+        ctx.command = f"auto_fight-{random_id}"
         if await utils.save_command(ctx, "auto", "fight", data):
             return  # Command already running
 
@@ -552,7 +552,7 @@ class War(Cog):
                 "weapon_quality": weapon_quality, "food": food, "gift": gift, "start_time": start_time}
 
         random_id = randint(1, 9999)
-        ctx.command = f"{ctx.command}-{random_id}"
+        ctx.command = f"hunt_battle-{random_id}"
         await utils.save_command(ctx, "auto", "hunt_battle", data)
 
         server = ctx.channel.name
@@ -905,7 +905,7 @@ class War(Cog):
                 "let_overkill": let_overkill, "weapon_quality": weapon_quality, "ticket_quality": ticket_quality,
                 "consume_first": consume_first, "medkits": medkits}
         random_id = randint(1, 9999)
-        ctx.command = f"{ctx.command}-{random_id}"
+        ctx.command = f"watch-{random_id}"
         await utils.save_command(ctx, "auto", "watch", data)
 
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
