@@ -103,6 +103,7 @@ class Mix(Cog):
             if self.bot.should_break(ctx):
                 break
             try:
+                await self.bot.get_content(base_url + "betaMissions.html", data={"action": "COMPLETE"})
                 tree = await self.bot.get_content(base_url + "home.html", return_tree=True)
                 my_id = utils.get_ids_from_path(tree, '//*[@id="userName"]')[0]
                 try:
@@ -110,194 +111,220 @@ class Mix(Cog):
                 except Exception:
                     if tree.xpath('//*[@id="missionDropdown"]//div[2]/text()'):
                         return await ctx.send(f"**{nick}** You have completed all your missions for today, come back tomorrow!")
-                    c = await self.bot.get_content(base_url + "betaMissions.html?action=COMPLETE", data={"submit": "Collect"})
-                    await ctx.send(f"**{nick}** <{c}>")
                     continue
                 if prv_num == num:
-                    c = await self.bot.get_content(base_url + "betaMissions.html",
-                                                   data={"action": "SKIP", "submit": "Skip"})
+                    c = await self.bot.get_content(base_url + "betaMissions.html", data={"action": "SKIP", "submit": "Skip"})
                     if "MISSION_SKIPPED" not in c:
                         return
                     await ctx.send(f"**{nick}** WARNING: Skipped mission {num}")
                     continue
                 await ctx.send(f"**{nick}** Mission number {num}")
-                c = await self.bot.get_content(base_url + "betaMissions.html?action=START", data={"submit": "Start mission"})
+                c = await self.bot.get_content(base_url + "betaMissions.html", data={"action": "START"})
                 if "MISSION_START_OK" not in c:
-                    c = await self.bot.get_content(base_url + "betaMissions.html?action=COMPLETE", data={"submit": "Collect"})
-                if "MISSION_REWARD_OK" not in c:
-                    """Day 1:
-                    Mission #1: First training.
-                    Mission #2: Your first job.
-                    Mission #3: First day of work.
-                    Mission #4: Fight 1 hit.
-                    Mission #5: Restore your health points.
-                    Mission #6: Travel to the capital.
-                    Mission #7: Check your notifications page.
-                    Mission #8: Buy some products
-                    Mission #9 Achievements."""
-                    if num == 1:
-                        await self.bot.get_content(base_url + "inboxMessages.html")
-                        await self.bot.get_content(base_url + "train/ajax", data={"action": "train"})
-                    elif num == 2:
-                        await ctx.invoke(self.bot.get_command("job"), nick=nick)
-                    elif num == 3:
-                        await ctx.invoke(self.bot.get_command("work"), nick=nick)
-                    elif num == 4:
-                        tree = await self.bot.get_content(f'{base_url}battle.html?id=0', return_tree=True)
-                        fight_url, data = await War.get_fight_data(base_url, tree, 0, "default", "Regular")
-                        await self.bot.get_content(fight_url, data=data)
-                    elif num == 5:
-                        await self.bot.get_content(f"{base_url}eat.html", data={'quality': 1})
-                    elif num == 6:
-                        citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
-                        capital = [row['id'] for row in await self.bot.get_content(base_url + "apiRegions.html") if row[
-                            'homeCountry'] == citizen['citizenshipId'] and row['capital']][0]
-                        await ctx.invoke(self.bot.get_command("fly"), capital, 5, nick=nick)
-                    elif num == 7:
-                        await self.bot.get_content(base_url + "notifications.html")
-                    elif num == 8:
-                        tree = await self.bot.get_content(f"{base_url}productMarket.html", return_tree=True)
-                        product_id = tree.xpath('//*[@class="buy"]/button')[0].attrib['data-id']
-                        payload = {'action': "buy", 'id': product_id, 'quantity': 1, "submit": "Buy"}
-                        await self.bot.get_content(base_url + "productMarket.html", data=payload)
-                    elif num == 9:
-                        # await self.bot.get_content(base_url + 'friends.html?action=PROPOSE&id=8')
-                        await self.bot.get_content(base_url + "citizenAchievements.html",
-                                                   data={"id": my_id, "submit": "Recalculate achievements"})
-                    # new avatar:
-                    #    await self.bot.get_content(base_url + "editCitizen.html")
-                    elif num == 10:
-                        await self.bot.get_content(base_url + "newMap.html")
+                    c = await self.bot.get_content(base_url + "betaMissions.html", data={"action": "COMPLETE"})
+                """Day 1:
+                Mission #1: First training.
+                Mission #2: Your first job.
+                Mission #3: First day of work.
+                Mission #4: Fight 1 hit.
+                Mission #5: Restore your health points.
+                Mission #6: Travel to the capital.
+                Mission #7: Check your notifications page.
+                Mission #8: Buy some products.
+                Mission #9 Achievements.
+                
+                Day 2:
+                Mission #10 Second work.
+                Mission #11 Second train.
+                Mission #12 Buy gold.
+                Mission #13 Bid auction.
+                Mission #14 Sell equipment on auction.
+                Mission #15 Sell 100 grain.
+                Mission #16 Fight with weps. (1 hit, Q1 wep).
+                Mission #17 Buy at least one Q1 weapon.
+                Mission #18 Change background.
+                Mission #19: Deal 10,000 damage.
+                
+                Day 3:
+                """
+                if num == 1:
+                    await self.bot.get_content(base_url + "inboxMessages.html")
+                    await self.bot.get_content(base_url + "train/ajax", data={"action": "train"})
+                elif num == 2:
+                    await ctx.invoke(self.bot.get_command("job"), nick=nick)
+                elif num in (3, 10, 11):
+                    await ctx.invoke(self.bot.get_command("work"), nick=nick)
+                elif num == 4:
+                    tree = await self.bot.get_content(f'{base_url}battle.html?id=0', return_tree=True)
+                    fight_url, data = await War.get_fight_data(base_url, tree, 0, "default", "Regular")
+                    await self.bot.get_content(fight_url, data=data)
+                elif num == 5:
+                    await self.bot.get_content(f"{base_url}eat.html", data={'quality': 1})
+                elif num == 6:
+                    citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
+                    capital = [row['id'] for row in await self.bot.get_content(base_url + "apiRegions.html") if row[
+                        'homeCountry'] == citizen['citizenshipId'] and row['capital']][0]
+                    await ctx.invoke(self.bot.get_command("fly"), capital, 5, nick=nick)
+                elif num == 7:
+                    await self.bot.get_content(base_url + "notifications.html")
+                elif num == 8:
+                    tree = await self.bot.get_content(f"{base_url}productMarket.html", return_tree=True)
+                    product_id = tree.xpath('//*[@class="buy"]/button')[0].attrib['data-id']
+                    payload = {'action': "buy", 'id': product_id, 'quantity': 1, "submit": "Buy"}
+                    await self.bot.get_content(base_url + "productMarket.html", data=payload)
+                elif num == 9:
+                    # await self.bot.get_content(base_url + 'friends.html?action=PROPOSE&id=8')
+                    await self.bot.get_content(base_url + "citizenAchievements.html",
+                                               data={"id": my_id, "submit": "Recalculate achievements"})
 
-                    elif num == 14:
-                        tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
-                        item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
-                        payload = {'action': "EQUIP", 'itemId': item_id.replace("#", "")}
-                        await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
-                    elif num == 15:
-                        await self.bot.get_content(f"{base_url}vote.html", data={"id": randint(1, 15)})
-                    # day 2
-                    elif num == 18:
-                        shout_body = choice(["Mission: Say hello", "Hi", "Hello", "Hi guys :)", "Mission"])
-                        payload = {'action': "POST_SHOUT", 'body': shout_body, 'sendToCountry': "on",
-                                   "sendToMilitaryUnit": "on", "sendToParty": "on", "sendToFriends": "on"}
-                        await self.bot.get_content(f"{base_url}shoutActions.html", data=payload)
-                    elif num == 19:
-                        citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
-                        tree = await self.bot.get_content(f"{base_url}monetaryMarket.html?buyerCurrencyId=0&sellerCurrencyId=" +
-                                                          str(citizen['citizenshipId']), return_tree=True)
-                        try:
-                            offer_id = tree.xpath("//*[@class='buy']/button")[0].attrib['data-id']
-                            payload = {'action': "buy", 'id': offer_id, 'ammount': 0.5, "submit": "OK"}
-                            await self.bot.get_content(base_url + "monetaryMarket.html", data=payload)
-                        except IndexError:
-                            await ctx.send(f"**{nick}** ERROR: couldn't buy 0.5 gold")
-                    elif num == 21:
-                        tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
-                        try:
-                            eq_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
-                            await ctx.invoke(self.bot.get_command("sell"), eq_id, 0.01, 48, nick=nick)
-                        except IndexError:
-                            await ctx.send(f"**{nick}** ERROR: no equipment in storage")
-                    elif num == 22:
-                        citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
-                        payload = {'product': "GRAIN", 'countryId': citizen['citizenshipId'], 'storageType': "PRODUCT",
-                                   "action": "POST_OFFER", "price": 0.1, "quantity": 100}
-                        sell_grain = await self.bot.get_content(base_url + "storage.html", data=payload)
-                        await ctx.send(f"**{nick}** <{sell_grain}>")
-                    elif num == 25:
-                        payload = {'setBg': "LIGHT_I", 'action': "CHANGE_BACKGROUND"}
-                        await self.bot.get_content(base_url + "editCitizen.html", data=payload)
-                    elif num in (26, 32, 35, 38, 40, 47, 51, 53, 64):
-                        if num == 31:
-                            restores = 3
-                            await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
-                        elif num == 46:
-                            restores = 2
-                            await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
-                        else:
-                            restores = 1
-                        await ctx.invoke(self.bot.get_command("auto_fight"), nick, restores)
-                    # day 3
-                    elif num == 29:
-                        for article_id in range(2, 7):
-                            await self.bot.get_content(f"{base_url}vote.html", data={"id": article_id})
-                    elif num == 30:
-                        await self.bot.get_content(f"{base_url}sub.html", data={"id": randint(1, 21)})
-                    elif num == 31:
-                        ctx.invoked_with = "mu"
-                        await ctx.invoke(self.bot.get_command("citizenship"), randint(1, 21), nick=nick)
-                    # day 4
-                    elif num == 37:
-                        shout_body = choice(["Mission: Get to know the community better", "Hi",
-                                             "Hello", "Hi guys :)", "Mission", "IRC / Skype / TeamSpeak"])
-                        payload = {'action': "POST_SHOUT", 'body': shout_body, 'sendToCountry': "on",
-                                   "sendToMilitaryUnit": "on", "sendToParty": "on", "sendToFriends": "on"}
-                        await self.bot.get_content(f"{base_url}shoutActions.html", data=payload)
-                    elif num == 39:
-                        await self.bot.get_content(base_url + 'friends.html?action=PROPOSE&id=1')
-                    elif num == 41:
-                        for _ in range(10):
-                            payload = {"action": "NEW", "key": f"Article {randint(1, 100)}", "submit": "Publish",
-                                       "body": choice(["Mission", "Hi", "Hello there", "hello", "Discord?"])}
-                            comment = await self.bot.get_content(base_url + "comment.html", data=payload)
-                            if "MESSAGE_POST_OK" in comment:
-                                break
-                    elif num == 42:
-                        try:
-                            tree = await self.bot.get_content(base_url + "partyStatistics.html?statisticType=MEMBERS", return_tree=True)
-                            party_id = utils.get_ids_from_path(tree, '//*[@id="esim-layout"]//table//tr[2]//td[3]/')[0]
-                            payload1 = {"action": "JOIN", "id": party_id, "submit": "Join"}
-                            b = await self.bot.get_content(base_url + "partyStatistics.html", data=payload1)
-                            await ctx.send(f"**{nick}** <{b}>")
-                        except Exception:
-                            pass
-                    # day 5
-                    elif num == 45:
-                        await self.bot.get_content(base_url + f"replyToShout.html?id={randint(1, 21)}",
-                                                   data={"body": choice(["OK", "Whatever", "Thanks", "Discord?"]),
-                                                         "submit": "Shout!"})
+                # day 2
+                elif num == 12:
+                    tree = await self.bot.get_content(f"{base_url}monetaryMarket.html?buyerCurrencyId=0", return_tree=True)
+                    try:
+                        offer_id = tree.xpath("//*[@class='buy']/button")[0].attrib['data-id']
+                        payload = {'action': "buy", 'id': offer_id, 'ammount': 0.01, "submit": "OK"}
+                        await self.bot.get_content(base_url + "monetaryMarket.html", data=payload)
+                    except IndexError:
+                        await ctx.send(f"**{nick}** ERROR: couldn't buy gold")
+                elif num == 13:
+                    await self.bot.get_content(f"{base_url}auctions.html")
+                elif num == 14:
+                    tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
+                    item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
+                    await ctx.invoke(self.bot.get_command("auction"), item_id, 0.01, 24, nick=nick)
+                elif num == 15:
+                    citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
+                    payload = {'product': "GRAIN", 'countryId': citizen['citizenshipId'], 'storageType': "PRODUCT",
+                               "action": "POST_OFFER", "price": 0.1, "quantity": 100}
+                    sell_grain = await self.bot.get_content(base_url + "storage.html", data=payload)
+                    await ctx.send(f"**{nick}** <{sell_grain}>")
+                elif num == 16:
+                    tree = await self.bot.get_content(f'{base_url}battle.html?id=0', return_tree=True)
+                    fight_url, data = await War.get_fight_data(base_url, tree, 1, "default", "Regular")
+                    await self.bot.get_content(fight_url, data=data)
+                elif num == 17:
+                    tree = await self.bot.get_content(f"{base_url}productMarket.html?resource=WEAPON&quality=1&countryId=-1", return_tree=True)
+                    product_id = tree.xpath('//*[@class="buy"]/button')[0].attrib['data-id']
+                    payload = {'action': "buy", 'id': product_id, 'quantity': 1, "submit": "Buy"}
+                    await self.bot.get_content(base_url + "productMarket.html", data=payload)
+                elif num == 18:
+                    payload = {'setBg': choice(["AR", "CL", "CH", "DN", "EE", "HUN"]), 'action': "CHANGE_BACKGROUND"}
+                    await self.bot.get_content(base_url + "editCitizen.html", data=payload)
+                elif num == 19:
+                    error, medkits = await ctx.invoke(self.bot.get_command("fight"), nick, 0,
+                                                      choice(["attacker", "defender"]), 1, 10000, 0, "food", 0)
+                    if error:
+                        await ctx.invoke(self.bot.get_command("fight"), nick, 0,
+                                         choice(["attacker", "defender"]), 0, 10000, 0, "food", 0)
+
+                # new avatar:
+                #    await self.bot.get_content(base_url + "editCitizen.html")
+                # Check map:
+                #    await self.bot.get_content(base_url + "newMap.html")
+                # Shout:
+                #    shout_body = choice(["Mission: Say hello", "Hi", "Hello", "Hi guys :)", "Mission"])
+                #    payload = {'action': "POST_SHOUT", 'body': shout_body, 'sendToCountry': "on",
+                #                "sendToMilitaryUnit": "on", "sendToParty": "on", "sendToFriends": "on"}
+                #    await self.bot.get_content(f"{base_url}shoutActions.html", data=payload)
+                # wear:
+                #    tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
+                #    item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
+                #    payload = {'action': "EQUIP", 'itemId': item_id}
+                #    await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
+                # Vote article:
+                #    await self.bot.get_content(f"{base_url}vote.html", data={"id": randint(1, 15)})
+
+                # Day 3:
+                elif num in (26, 32, 35, 38, 40, 47, 51, 53, 64):
+                    if num == 31:
+                        restores = 3
+                        await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
                     elif num == 46:
-                        payload = {'itemType': "STEROIDS", 'storageType': "SPECIAL_ITEM", 'action': "BUY",
-                                   "quantity": 1}
-                        await self.bot.get_content(base_url + "storage.html", data=payload)
-                    elif num == 49:
-                        tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
-                        item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
-                        payload = {'action': "EQUIP", 'itemId': item_id.replace("#", "")}
-                        await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
-                    elif num == 50:
-                        await self.bot.get_content(f"{base_url}shoutVote.html", data={"id": randint(1, 20), "vote": 1})
-                    elif num == 52:
-                        await ctx.invoke(self.bot.get_command("fly"), 1, 3, nick=nick)
-                    elif num in (61, 55):
-                        await ctx.invoke(self.bot.get_command("motivate"), nick=nick)
-                    elif num == 57:
-                        citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
-                        payload = {'receiverName': f"{citizen['citizenship']} Org", "title": "Hi",
-                                   "body": choice(["Hi", "Can you send me some gold?", "Hello there!", "Discord?"]),
-                                   "action": "REPLY", "submit": "Send"}
-                        await self.bot.get_content(base_url + "composeMessage.html", data=payload)
-
-                    elif num == 58:
-                        await self.bot.get_content(f"{base_url}sub.html", data={"id": randint(1, 20)})
-
-                    elif num == 60:
-                        await ctx.invoke(self.bot.get_command("friends"), nick=nick)
-                    elif num == 63:
-                        await self.bot.get_content(f"{base_url}medkit.html", data={})
-                        # if food & gift limits >= 10 it won't work.
+                        restores = 2
+                        await ctx.send(f"**{nick}** Hitting {restores} restores, it might take a while")
                     else:
-                        await ctx.send(f"**{nick}** ERROR: I don't know how to finish this mission ({num}).")
-                    await sleep(uniform(1, 5))
-                    c = await self.bot.get_content(base_url + "betaMissions.html?action=COMPLETE", data={"submit": "Collect"})
+                        restores = 1
+                    await ctx.invoke(self.bot.get_command("auto_fight"), nick, restores=restores)
+
+                elif num == 29:
+                    for article_id in range(2, 7):
+                        await self.bot.get_content(f"{base_url}vote.html", data={"id": article_id})
+                elif num == 30:
+                    await self.bot.get_content(f"{base_url}sub.html", data={"id": randint(1, 21)})
+                elif num == 31:
+                    ctx.invoked_with = "mu"
+                    await ctx.invoke(self.bot.get_command("citizenship"), randint(1, 21), nick=nick)
+                # day 4
+                elif num == 37:
+                    shout_body = choice(["Mission: Get to know the community better", "Hi",
+                                         "Hello", "Hi guys :)", "Mission", "IRC / Skype / TeamSpeak"])
+                    payload = {'action': "POST_SHOUT", 'body': shout_body, 'sendToCountry': "on",
+                               "sendToMilitaryUnit": "on", "sendToParty": "on", "sendToFriends": "on"}
+                    await self.bot.get_content(f"{base_url}shoutActions.html", data=payload)
+                elif num == 39:
+                    await self.bot.get_content(base_url + 'friends.html?action=PROPOSE&id=1')
+                elif num == 41:
+                    for _ in range(10):
+                        payload = {"action": "NEW", "key": f"Article {randint(1, 100)}", "submit": "Publish",
+                                   "body": choice(["Mission", "Hi", "Hello there", "hello", "Discord?"])}
+                        comment = await self.bot.get_content(base_url + "comment.html", data=payload)
+                        if "MESSAGE_POST_OK" in comment:
+                            break
+                elif num == 42:
+                    try:
+                        tree = await self.bot.get_content(base_url + "partyStatistics.html?statisticType=MEMBERS", return_tree=True)
+                        party_id = utils.get_ids_from_path(tree, '//*[@id="esim-layout"]//table//tr[2]//td[3]/')[0]
+                        payload1 = {"action": "JOIN", "id": party_id, "submit": "Join"}
+                        b = await self.bot.get_content(base_url + "partyStatistics.html", data=payload1)
+                        await ctx.send(f"**{nick}** <{b}>")
+                    except Exception:
+                        pass
+                # day 5
+                elif num == 45:
+                    await self.bot.get_content(base_url + f"replyToShout.html?id={randint(1, 21)}",
+                                               data={"body": choice(["OK", "Whatever", "Thanks", "Discord?"]),
+                                                     "submit": "Shout!"})
+                elif num == 46:
+                    payload = {'itemType': "STEROIDS", 'storageType': "SPECIAL_ITEM", 'action': "BUY",
+                               "quantity": 1}
+                    await self.bot.get_content(base_url + "storage.html", data=payload)
+                elif num == 49:
+                    tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
+                    item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
+                    payload = {'action': "EQUIP", 'itemId': item_id.replace("#", "")}
+                    await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
+                elif num == 50:
+                    await self.bot.get_content(f"{base_url}shoutVote.html", data={"id": randint(1, 20), "vote": 1})
+                elif num == 52:
+                    await ctx.invoke(self.bot.get_command("fly"), 1, 3, nick=nick)
+                elif num in (61, 55):
+                    await ctx.invoke(self.bot.get_command("motivate"), nick=nick)
+                elif num == 57:
+                    citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
+                    payload = {'receiverName': f"{citizen['citizenship']} Org", "title": "Hi",
+                               "body": choice(["Hi", "Can you send me some gold?", "Hello there!", "Discord?"]),
+                               "action": "REPLY", "submit": "Send"}
+                    await self.bot.get_content(base_url + "composeMessage.html", data=payload)
+
+                elif num == 58:
+                    await self.bot.get_content(f"{base_url}sub.html", data={"id": randint(1, 20)})
+
+                elif num == 60:
+                    await ctx.invoke(self.bot.get_command("friends"), nick=nick)
+                elif num == 63:
+                    await self.bot.get_content(f"{base_url}medkit.html", data={})
+                    # if food & gift limits >= 10 it won't work.
+                else:
+                    await ctx.send(f"**{nick}** ERROR: I don't know how to finish this mission ({num}).")
+                await sleep(uniform(1, 5))
+                c = await self.bot.get_content(base_url + "betaMissions.html?action=COMPLETE", data={"submit": "Collect"})
+                if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
+                    c = await self.bot.get_content(base_url + "betaMissions.html?action=COMPLETE", ata={"submit": "Collect"})
                     if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
-                        c = await self.bot.get_content(base_url + "betaMissions.html?action=COMPLETE", ata={"submit": "Collect"})
-                        if "MISSION_REWARD_OK" not in c and "?action=COMPLETE" not in c:
-                            c = await self.bot.get_content(base_url + "betaMissions.html", data={"action": "SKIP", "submit": "Skip"})
-                            if "MISSION_SKIPPED" not in c and "?action=SKIP" not in c:
-                                return
-                            await ctx.send(f"**{nick}** WARNING: Skipped mission {num}")
+                        c = await self.bot.get_content(base_url + "betaMissions.html", data={"action": "SKIP", "submit": "Skip"})
+                        if "MISSION_SKIPPED" not in c and "?action=SKIP" not in c:
+                            return
+                        await ctx.send(f"**{nick}** WARNING: Skipped mission {num}")
                 await ctx.send(f"**{nick}** <{c}>")
                 prv_num = num
             except Exception as error:

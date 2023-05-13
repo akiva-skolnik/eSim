@@ -283,7 +283,7 @@ class War(Cog):
         try:
             food_storage, gift_storage = utils.get_storage(tree)
         except IndexError:
-            await ctx.send(f"**{nick}** ERROR: You are not logged in. Type `.limits {nick}` and try again.")
+            await ctx.send(f"**{nick}** ERROR")
             return True, 0
         food_limit, gift_limit = utils.get_limits(tree)
         try:
