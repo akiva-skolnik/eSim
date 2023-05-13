@@ -114,7 +114,7 @@ class Mix(Cog):
                     return await ctx.send(f"**{nick}** You have completed all your missions for today, come back tomorrow!")
                 continue
             if prv_num == num:
-                return await ctx.send(f"**{nick}** ERROR: Couldn't complete mission #{num}.\n"
+                return await ctx.send(f"**{nick}** ERROR: Couldn't complete mission #{num}.\n" +
                                       f'Consider skipping it: `.click {nick} {base_url}betaMissions.html {"action": "SKIP", "submit": "Skip"}`')
             await ctx.send(f"**{nick}** Mission number {num}")
             c = await self.bot.get_content(base_url + "betaMissions.html", data={"action": "START"})
@@ -188,7 +188,7 @@ class Mix(Cog):
                 await self.bot.get_content(f"{base_url}auctions.html")
             elif num == 14:
                 tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
-                item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
+                item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[-1].replace("#", "")
                 await ctx.invoke(self.bot.get_command("auction"), item_id, 0.01, 24, nick=nick)
             elif num == 15:
                 citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
