@@ -222,7 +222,7 @@ def get_limits(tree) -> (int, int):
 async def update_limits(server: str, nick: str, limits: str) -> None:
     """update limits"""
     data = await find_one(server, "info", nick)
-    if data["limits"] != limits:
+    if data.get("limits") != limits:
         data["limits"] = limits
         await replace_one(server, "info", nick, data)
 
