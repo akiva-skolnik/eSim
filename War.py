@@ -59,10 +59,8 @@ class War(Cog):
 
         data = {"restores": restores, "battle_id": battle_id, "side": side, "wep": wep, "food": food,
                 "gift": gift, "ticket_quality": ticket_quality, "chance_to_skip_restore": chance_to_skip_restore}
-        random_id = randint(1, 9999)
-        ctx.command = f"auto_fight-{random_id}"
-        if await utils.save_command(ctx, "auto", "fight", data):
-            return  # Command already running
+        ctx.command = f"auto_fight-{ctx.message.id}"
+        await utils.save_command(ctx, "auto", "fight", data)
 
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
@@ -71,16 +69,10 @@ class War(Cog):
             restores -= 1
             if randint(1, 100) <= chance_to_skip_restore:
                 await sleep(600)
-
-            # update data from db
-            d = (await utils.find_one("auto", "fight", os.environ['nick']))[server]
-            restores, battle_id, side, wep, food = d["restores"], d["battle_id"], d["side"], d["wep"], d["food"]
-            gift, ticket_quality, chance_to_skip_restore = d["gift"], d["ticket_quality"], d["chance_to_skip_restore"]
-
             if not battle_id:
                 battle_id = await utils.get_battle_id(self.bot, str(nick), server, battle_id)
             await ctx.send(f'**{nick}** <{base_url}battle.html?id={battle_id}> side: {side}\n'
-                           f'If you want to stop it, type `.cancel auto_fight-{random_id} {nick}`')
+                           f'If you want to stop it, type `.cancel auto_fight-{ctx.message.id} {nick}`')
             if not battle_id:
                 await ctx.send(
                     f"**{nick}** WARNING: I can't fight in any battle right now, but I will check again after the next restore")
@@ -439,13 +431,12 @@ class War(Cog):
             return await ctx.send(f"**{nick}** `consume_first` parameter must be food, gift, or none (not {consume_first})")
         data = {"max_dmg_for_bh": max_dmg_for_bh, "weapon_quality": weapon_quality, "start_time": start_time,
                 "ticket_quality": ticket_quality, "consume_first": consume_first}
-        random_id = randint(1, 9999)
-        ctx.command = f"hunt-{random_id}"
+        ctx.command = f"hunt-{ctx.message.id}"
         await utils.save_command(ctx, "auto", "hunt", data)
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         await ctx.send(f"**{nick}** Starting to hunt at {server}.\n"
-                       f"If you want me to stop, type `.hold hunt-{random_id} {nick}`")
+                       f"If you want me to stop, type `.hold hunt-{ctx.message.id} {nick}`")
         should_break = False
         all_countries = [x["name"] for x in await self.bot.get_content(base_url + "apiCountries.html")]
         while not should_break:
@@ -484,10 +475,6 @@ class War(Cog):
                 if self.bot.should_break(ctx):
                     should_break = True
                     break
-                # update data if needed
-                d = (await utils.find_one("auto", "hunt", os.environ['nick']))[ctx.channel.name]
-                max_dmg_for_bh, weapon_quality = d["max_dmg_for_bh"], d["weapon_quality"]
-                start_time, ticket_quality, consume_first = d["start_time"], d["ticket_quality"], d["consume_first"]
 
                 defender, attacker = {}, {}
                 for hit_record in await self.bot.get_content(
@@ -552,8 +539,7 @@ class War(Cog):
         data = {"link": link, "side": side, "dmg_or_hits_per_bh": dmg_or_hits_per_bh,
                 "weapon_quality": weapon_quality, "food": food, "gift": gift, "start_time": start_time}
 
-        random_id = randint(1, 9999)
-        ctx.command = f"hunt_battle-{random_id}"
+        ctx.command = f"hunt_battle-{ctx.message.id}"
         await utils.save_command(ctx, "auto", "hunt_battle", data)
 
         server = ctx.channel.name
@@ -573,7 +559,7 @@ class War(Cog):
                     seconds_till_round_end - start_time + uniform(-5, 5))
             await ctx.send(f"**{nick}** {round(seconds_till_hit)} seconds from now (at T {timedelta(seconds=round(seconds_till_round_end-seconds_till_hit))}),"
                            f" I will hit {dmg} {hits_or_dmg} at <{link}> for the {side} side.\n"
-                           f"If you want to cancel it, type `.hold hunt_battle-{random_id} {nick}`")
+                           f"If you want to cancel it, type `.hold hunt_battle-{ctx.message.id} {nick}`")
             await sleep(seconds_till_hit)
             tree = await self.bot.get_content(link, return_tree=True)
             top = tree.xpath(f'//*[@id="top{side}1"]//div[3]/text()')
@@ -905,8 +891,7 @@ class War(Cog):
         data = {"battle": battle, "side": side, "start_time": start_time, "keep_wall": keep_wall,
                 "let_overkill": let_overkill, "weapon_quality": weapon_quality, "ticket_quality": ticket_quality,
                 "consume_first": consume_first, "medkits": medkits}
-        random_id = randint(1, 9999)
-        ctx.command = f"watch-{random_id}"
+        ctx.command = f"watch-{ctx.message.id}"
         await utils.save_command(ctx, "auto", "watch", data)
 
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
@@ -920,7 +905,7 @@ class War(Cog):
             sleep_time = r["hoursRemaining"] * 3600 + r["minutesRemaining"] * 60 + r["secondsRemaining"] - start_time + uniform(-5, 5)
             if sleep_time > 0:
                 await ctx.send(f"**{nick}** Sleeping for {round(sleep_time)} seconds :zzz:"
-                               f"\nIf you want me to stop, type `.hold watch-{random_id} {nick}`")
+                               f"\nIf you want me to stop, type `.hold watch-{ctx.message.id} {nick}`")
                 await sleep(sleep_time)
             if self.bot.should_break(ctx):
                 break

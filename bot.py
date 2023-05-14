@@ -68,6 +68,8 @@ async def start():
 
     # restart saved long functions
     for d in (await utils.find_one("auto", "work", os.environ['nick'])).values():
+        if isinstance(d, list):  # old version
+            d = d[0]
         channel = bot.get_channel(int(d["channel_id"]))
         message = await channel.fetch_message(int(d["message_id"]))
         ctx = await bot.get_context(message)
@@ -75,42 +77,48 @@ async def start():
             bot.get_command("auto_work"), d["work_sessions"], d["chance_to_skip_work"], nick=d["nick"]))
 
     for d in (await utils.find_one("auto", "motivate", os.environ['nick'])).values():
+        if isinstance(d, list):  # old version
+            d = d[0]
         channel = bot.get_channel(int(d["channel_id"]))
         message = await channel.fetch_message(int(d["message_id"]))
         ctx = await bot.get_context(message)
         bot.loop.create_task(ctx.invoke(bot.get_command("auto_motivate"), d["chance_to_skip_a_day"], nick=d["nick"]))
 
-    for d in (await utils.find_one("auto", "fight", os.environ['nick'])).values():
-        channel = bot.get_channel(int(d["channel_id"]))
-        message = await channel.fetch_message(int(d["message_id"]))
-        ctx = await bot.get_context(message)
-        bot.loop.create_task(ctx.invoke(
-            bot.get_command("auto_fight"), d["nick"], d["restores"], d["battle_id"],
-            d["side"], d["wep"], d["food"], d["gift"], d["ticket_quality"], d["chance_to_skip_restore"]))
+    for d1 in (await utils.find_one("auto", "fight", os.environ['nick'])).values():
+        for d in d1:
+            channel = bot.get_channel(int(d["channel_id"]))
+            message = await channel.fetch_message(int(d["message_id"]))
+            ctx = await bot.get_context(message)
+            bot.loop.create_task(ctx.invoke(
+                bot.get_command("auto_fight"), d["nick"], d["restores"], d["battle_id"],
+                d["side"], d["wep"], d["food"], d["gift"], d["ticket_quality"], d["chance_to_skip_restore"]))
 
-    for d in (await utils.find_one("auto", "hunt", os.environ['nick'])).values():
-        channel = bot.get_channel(int(d["channel_id"]))
-        message = await channel.fetch_message(int(d["message_id"]))
-        ctx = await bot.get_context(message)
-        bot.loop.create_task(ctx.invoke(
-            bot.get_command("hunt"), d["nick"], d["max_dmg_for_bh"], d["weapon_quality"], d["start_time"],
-            d["ticket_quality"], d.get("consume_first", "none")))
+    for d1 in (await utils.find_one("auto", "hunt", os.environ['nick'])).values():
+        for d in d1:
+            channel = bot.get_channel(int(d["channel_id"]))
+            message = await channel.fetch_message(int(d["message_id"]))
+            ctx = await bot.get_context(message)
+            bot.loop.create_task(ctx.invoke(
+                bot.get_command("hunt"), d["nick"], d["max_dmg_for_bh"], d["weapon_quality"], d["start_time"],
+                d["ticket_quality"], d.get("consume_first", "none")))
 
-    for d in (await utils.find_one("auto", "hunt_battle", os.environ['nick'])).values():
-        channel = bot.get_channel(int(d["channel_id"]))
-        message = await channel.fetch_message(int(d["message_id"]))
-        ctx = await bot.get_context(message)
-        bot.loop.create_task(ctx.invoke(
-            bot.get_command("hunt_battle"), d["nick"], d["link"], d["side"], d["dmg_or_hits_per_bh"],
-            d["weapon_quality"], d["food"], d["gift"], d["start_time"]))
+    for d1 in (await utils.find_one("auto", "hunt_battle", os.environ['nick'])).values():
+        for d in d1:
+            channel = bot.get_channel(int(d["channel_id"]))
+            message = await channel.fetch_message(int(d["message_id"]))
+            ctx = await bot.get_context(message)
+            bot.loop.create_task(ctx.invoke(
+                bot.get_command("hunt_battle"), d["nick"], d["link"], d["side"], d["dmg_or_hits_per_bh"],
+                d["weapon_quality"], d["food"], d["gift"], d["start_time"]))
 
-    for d in (await utils.find_one("auto", "watch", os.environ['nick'])).values():
-        channel = bot.get_channel(int(d["channel_id"]))
-        message = await channel.fetch_message(int(d["message_id"]))
-        ctx = await bot.get_context(message)
-        bot.loop.create_task(ctx.invoke(
-            bot.get_command("watch"), d["nick"], d["battle"], d["side"], d["start_time"], d["keep_wall"],
-            d["let_overkill"], d["weapon_quality"], d["ticket_quality"], d["consume_first"], d.get("medkits", 0)))
+    for d1 in (await utils.find_one("auto", "watch", os.environ['nick'])).values():
+        for d in d1:
+            channel = bot.get_channel(int(d["channel_id"]))
+            message = await channel.fetch_message(int(d["message_id"]))
+            ctx = await bot.get_context(message)
+            bot.loop.create_task(ctx.invoke(
+                bot.get_command("watch"), d["nick"], d["battle"], d["side"], d["start_time"], d["keep_wall"],
+                d["let_overkill"], d["weapon_quality"], d["ticket_quality"], d["consume_first"], d.get("medkits", 0)))
 
 
 def should_break(ctx):
