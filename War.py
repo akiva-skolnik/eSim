@@ -213,6 +213,19 @@ class War(Cog):
                 else:
                     await ctx.reply(f"**{nick}** ERROR: there are 0 Q{ticket_quality} tickets in storage.")
                     return False
+            health = tree.xpath('//*[@id="actualHealth"]/text()')
+            required_hp = 50 - ticket_quality * 10
+            if health < required_hp:
+                food_storage, gift_storage = utils.get_storage(tree)
+                food_limit, gift_limit = utils.get_limits(tree)
+                if food_limit and food_storage:
+                    await self.bot.get_content(f"{base_url}eat.html", data={'quality': 5})
+                elif gift_limit and gift_storage:
+                    await self.bot.get_content(f"{base_url}gift.html", data={'quality': 5})
+                else:
+                    await ctx.reply(f"**{nick}** ERROR: no health / limits.")
+                    return False
+
             payload = {'countryId': country_id[0], 'regionId': region_id, 'ticketQuality': ticket_quality}
             url = await self.bot.get_content(f"{base_url}travel.html", data=payload)
             await sleep(uniform(0, 1))
