@@ -439,12 +439,13 @@ class War(Cog):
             return await ctx.send(f"**{nick}** `consume_first` parameter must be food, gift, or none (not {consume_first})")
         data = {"max_dmg_for_bh": max_dmg_for_bh, "weapon_quality": weapon_quality, "start_time": start_time,
                 "ticket_quality": ticket_quality, "consume_first": consume_first}
-        if await utils.save_command(ctx, "auto", "hunt", data):
-            return  # Command already running
+        random_id = randint(1, 9999)
+        ctx.command = f"hunt-{random_id}"
+        await utils.save_command(ctx, "auto", "hunt", data):
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         await ctx.send(f"**{nick}** Starting to hunt at {server}.\n"
-                       f"If you want me to stop, type `.hold hunt {nick}`")
+                       f"If you want me to stop, type `.hold hunt-{random_id} {nick}`")
         should_break = False
         all_countries = [x["name"] for x in await self.bot.get_content(base_url + "apiCountries.html")]
         while not should_break:

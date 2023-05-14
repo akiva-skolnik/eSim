@@ -254,11 +254,15 @@ def get_ids_from_path(tree, path: str) -> list:
 async def save_command(ctx, server: str, collection: str, info: dict) -> bool:
     """returns True if the command is already running"""
     data = await find_one(server, collection, os.environ['nick'])
-    new_dict = {"channel_id": str(ctx.channel.id), "message_id": str(ctx.message.id), "nick": my_nick(ctx.channel.name)}
+    new_dict = {"channel_id": str(ctx.channel.id), "message_id": str(ctx.message.id),
+                "nick": my_nick(ctx.channel.name), "command": str(ctx.command)}
     new_dict.update(info)
-
-    if new_dict != data.get(ctx.channel.name):
-        data[ctx.channel.name] = new_dict
+    if ctx.channel.name not in data:
+        data[ctx.channel.name] = []
+    if not isinstance(data[ctx.channel.name], list):  # old version
+        data[ctx.channel.name] = [data[ctx.channel.name]]
+    if new_dict not in data[ctx.channel.name]:
+        data[ctx.channel.name].append(new_dict)
         await replace_one(server, collection, os.environ['nick'], data)
         await ctx.send(f"**{my_nick(ctx.channel.name)}** Alright.")
         if ctx.bot.should_break_dict.get(ctx.channel.name, {}).get(str(ctx.command)) is False:
@@ -270,7 +274,11 @@ async def remove_command(ctx, server: str, collection: str) -> None:
     """remove command"""
     data = await find_one(server, collection, os.environ['nick'])
     if ctx.channel.name in data:
-        del data[ctx.channel.name]
+        if not isinstance(data[ctx.channel.name], list):  # old version
+            data[ctx.channel.name] = [data[ctx.channel.name]]
+        for command in data[ctx.channel.name][:]:
+            if command["command"] == str(ctx.command):
+                data[ctx.channel.name].remove(str(ctx.command))
         await replace_one(server, collection, os.environ['nick'], data)
 
 
