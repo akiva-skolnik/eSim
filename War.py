@@ -441,7 +441,7 @@ class War(Cog):
                 "ticket_quality": ticket_quality, "consume_first": consume_first}
         random_id = randint(1, 9999)
         ctx.command = f"hunt-{random_id}"
-        await utils.save_command(ctx, "auto", "hunt", data):
+        await utils.save_command(ctx, "auto", "hunt", data)
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         await ctx.send(f"**{nick}** Starting to hunt at {server}.\n"
