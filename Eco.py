@@ -233,7 +233,7 @@ class Eco(Cog):
 
         Examples:
         .merge 36191,34271,33877 My Nick  ->   Merges eqs id 36191, 34271 and 33877
-        .merge 5 My Nick                  ->   Merges all Q1-6 eqs in your storage.
+        .merge 5 My Nick                  ->   Merges all Q1-Q5 eqs in your storage.
         .split 36191 My Nick              ->   Splits eq id 36191
         .merge mini_lucky My Nick         ->   Merges 3 mini elixirs into lucky
         .merge mili_bloody My Nick        ->   Merges 3 mili bloody mess elixirs into mini

@@ -153,20 +153,29 @@ class Mix(Cog):
             Mission #24 Send application to Military Unit 
             Mission #25 Bid auction.
             Mission #26 BERSERK.
+            
+            Day 4:
+            Mission #27 work + train.
+            Mission #28 Deal 2 critical hits.
+            Mission #29 Add a friend.
+            Mission #30 Deal berserk with weapons
+            Mission #31 Comment an article
+            Mission #32 Join a party
             """
             if num == 1:
                 await self.bot.get_content(base_url + "inboxMessages.html")
                 await self.bot.get_content(base_url + "train/ajax", data={"action": "train"})
             elif num == 2:
                 await ctx.invoke(self.bot.get_command("job"), nick=nick)
-            elif num in (3, 10, 20):
+            elif num in (3, 10, 20, 27):
                 await ctx.invoke(self.bot.get_command("work"), nick=nick)
             elif num in (11, 21):
                 pass
-            elif num == 4:
+            elif num in (4, 16, 28):
                 tree = await self.bot.get_content(f'{base_url}battle.html?id=0', return_tree=True)
-                fight_url, data = await War.get_fight_data(base_url, tree, 0, "default", "Regular")
-                await self.bot.get_content(fight_url, data=data)
+                for _ in range(1 if num != 28 else 5):
+                    fight_url, data = await War.get_fight_data(base_url, tree, 0 if num != 16 else 1, choice(["default", "attacker"]), "Regular")
+                    await self.bot.get_content(fight_url, data=data)
             elif num == 5:
                 await self.bot.get_content(f"{base_url}eat.html", data={'quality': 1})
             elif num == 6:
@@ -211,10 +220,6 @@ class Mix(Cog):
                            "action": "POST_OFFER", "price": 0.1, "quantity": 100}
                 sell_grain = await self.bot.get_content(base_url + "storage.html", data=payload)
                 await ctx.send(f"**{nick}** <{sell_grain}>")
-            elif num == 16:
-                tree = await self.bot.get_content(f'{base_url}battle.html?id=0', return_tree=True)
-                fight_url, data = await War.get_fight_data(base_url, tree, 1, "default", "Regular")
-                await self.bot.get_content(fight_url, data=data)
             elif num == 17:
                 tree = await self.bot.get_content(f"{base_url}productMarket.html?resource=WEAPON&quality=1&countryId=-1", return_tree=True)
                 product_id = tree.xpath('//*[@class="buy"]/button')[0].attrib['data-id']
@@ -237,7 +242,30 @@ class Mix(Cog):
                 await ctx.invoke(self.bot.get_command("citizenship"), randint(1, 21), nick=nick)
 
             # Day 4:
-
+            elif num == 29:
+                await self.bot.get_content(base_url + f'friends.html?action=PROPOSE&id={randint(1, my_id)}')
+                await ctx.invoke(self.bot.get_command("friends"), nick=nick)
+            elif num == 30:
+                tree = await self.bot.get_content(f'{base_url}battle.html?id=0', return_tree=True)
+                fight_url, data = await War.get_fight_data(base_url, tree, 1, choice(["default", "attacker"]), "Berserk")
+                await self.bot.get_content(fight_url, data=data)
+            elif num == 31:
+                for _ in range(10):
+                    payload = {"action": "NEW", "key": f"Article {randint(1, 40)}", "submit": "Publish",
+                               "body": choice(["Mission", "Hi", "Hello there", "hello", "Discord?"])}
+                    comment = await self.bot.get_content(base_url + "comment.html", data=payload)
+                    if "MESSAGE_POST_OK" in comment:
+                        break
+            elif num == 32:
+                try:
+                    tree = await self.bot.get_content(base_url + "partyStatistics.html?statisticType=MEMBERS",
+                                                      return_tree=True)
+                    party_id = utils.get_ids_from_path(tree, '//*[@id="esim-layout"]//table//tr[2]//td[3]/')[0]
+                    payload1 = {"action": "JOIN", "id": party_id, "submit": "Join"}
+                    b = await self.bot.get_content(base_url + "partyStatistics.html", data=payload1)
+                    await ctx.send(f"**{nick}** <{b}>")
+                except Exception:
+                    await ctx.send(f"**{nick}** couldn't join a party")
             # Old missions:
             # new avatar:
             #    await self.bot.get_content(base_url + "editCitizen.html")
@@ -269,24 +297,7 @@ class Mix(Cog):
                 payload = {'action': "POST_SHOUT", 'body': shout_body, 'sendToCountry': "on",
                            "sendToMilitaryUnit": "on", "sendToParty": "on", "sendToFriends": "on"}
                 await self.bot.get_content(f"{base_url}shoutActions.html", data=payload)
-            elif num == 39:
-                await self.bot.get_content(base_url + 'friends.html?action=PROPOSE&id=1')
-            elif num == 41:
-                for _ in range(10):
-                    payload = {"action": "NEW", "key": f"Article {randint(1, 100)}", "submit": "Publish",
-                               "body": choice(["Mission", "Hi", "Hello there", "hello", "Discord?"])}
-                    comment = await self.bot.get_content(base_url + "comment.html", data=payload)
-                    if "MESSAGE_POST_OK" in comment:
-                        break
-            elif num == 42:
-                try:
-                    tree = await self.bot.get_content(base_url + "partyStatistics.html?statisticType=MEMBERS", return_tree=True)
-                    party_id = utils.get_ids_from_path(tree, '//*[@id="esim-layout"]//table//tr[2]//td[3]/')[0]
-                    payload1 = {"action": "JOIN", "id": party_id, "submit": "Join"}
-                    b = await self.bot.get_content(base_url + "partyStatistics.html", data=payload1)
-                    await ctx.send(f"**{nick}** <{b}>")
-                except Exception:
-                    pass
+
             # day 5
             elif num == 45:
                 await self.bot.get_content(base_url + f"replyToShout.html?id={randint(1, 21)}",
