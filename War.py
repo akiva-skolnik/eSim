@@ -451,6 +451,14 @@ class War(Cog):
         base_url = f"https://{server}.e-sim.org/"
         await ctx.send(f"**{nick}** Starting to hunt at {server}.\n"
                        f"If you want me to stop, type `.hold hunt-{ctx.message.id} {nick}`")
+        avg_hit = 0
+        if max_dmg_for_bh == 1:
+            try:
+                api = await self.bot.get_content(base_url + 'apiCitizenByName.html?name=' + nick.lower())
+                tree = await self.bot.get_content(f"{base_url}profile.html?id={api['id']}", return_tree=True)
+                avg_hit = float(tree.xpath("//*[@id='hitHelp']/text()")[0].strip().split("-")[-1].replace(",", ""))
+            except:
+                pass
         should_break = False
         all_countries = [x["name"] for x in await self.bot.get_content(base_url + "apiCountries.html")]
         while not should_break:
@@ -525,16 +533,16 @@ class War(Cog):
                     if 0 <= enemy_dmg - ally_dmg <= max_dmg_for_bh and d_dmg > max_d_dmg:
                         d_dmg = enemy_dmg - ally_dmg
 
-                if a_dmg < max_a_dmg:
+                if a_dmg < max(max_a_dmg, avg_hit):
                     if 10 < a_dmg < 10000:
                         a_dmg = 10000
                     should_break, _ = await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "attacker",
-                                                       weapon_quality, a_dmg+1, ticket_quality, consume_first, 0)
-                if d_dmg < max_d_dmg:
+                                                       weapon_quality, 1 if a_dmg < avg_hit else (a_dmg+1), ticket_quality, consume_first, 0)
+                if d_dmg < max(max_d_dmg, avg_hit):
                     if 10 < d_dmg < 10000:
                         d_dmg = 10000
                     should_break, _ = await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "defender",
-                                                       weapon_quality, d_dmg+1, ticket_quality, consume_first, 0)
+                                                       weapon_quality, 1 if d_dmg < avg_hit else (d_dmg+1), ticket_quality, consume_first, 0)
                 if should_break:
                     break
             await sleep(30)
