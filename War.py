@@ -601,7 +601,7 @@ class War(Cog):
                     break
                 tree = await self.bot.get_content(link, return_tree=True)
                 my_id = utils.get_ids_from_path(tree, '//*[@id="userName"]')[0]
-                attacker, battle, defender = tree.xpath("//*[@class='highlighted']//@href")
+                attacker, battle, defender = tree.xpath("//*[@class='highlighted']//@href")[:3]
                 side = "attacker" if attacker.endswith(f"={my_id}") else "defender"
                 await ctx.invoke(self.bot.get_command("hunt_battle"), nick, base_url+battle, side, max_hits_per_round,
                                  weapon_quality, food, gift, start_time)
