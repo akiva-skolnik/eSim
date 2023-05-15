@@ -213,7 +213,7 @@ class War(Cog):
                 else:
                     await ctx.reply(f"**{nick}** ERROR: there are 0 Q{ticket_quality} tickets in storage.")
                     return False
-            health = tree.xpath('//*[@id="actualHealth"]/text()')
+            health = float(tree.xpath('//*[@id="actualHealth"]/text()')[0].split()[0])
             required_hp = 50 - ticket_quality * 10
             if health < required_hp:
                 food_storage, gift_storage = utils.get_storage(tree)
