@@ -483,6 +483,8 @@ class War(Cog):
 
             for battle_id, round_ends in sorted(battles_time.items(), key=lambda x: x[1]):
                 api_battles = await self.bot.get_content(f'{base_url}apiBattles.html?battleId={battle_id}')
+                if api_battles['currentRound'] == 1 and server not in ("secura", "suna", "primera"):
+                    break  # first round is longer in some servers
                 t = api_battles["hoursRemaining"] * 3600 + api_battles["minutesRemaining"] * 60 + api_battles[
                     "secondsRemaining"]
                 if t > round_ends:  # some error
