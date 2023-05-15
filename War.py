@@ -586,16 +586,17 @@ class War(Cog):
                 if self.bot.should_break(ctx):
                     break
                 url = await self.bot.get_content(link, data={"action": "ENLIST"})
-                await ctx.send(f'**{nick}** <{url}>\nYou can cancel with: ' +
-                               f'`.click "{nick}" {link} ' + '{"action": "CANCEL_ENLIST"}`')
+                if not url.endswith("BATTLE_IN_PROGRESS"):
+                    await ctx.send(f'**{nick}** <{url}>\nYou can cancel with: ' +
+                                   f'`.click "{nick}" {link} ' + '{"action": "CANCEL_ENLIST"}`')
 
-                tree = await self.bot.get_content(link.replace("duelTournament.html", "duelTournamentSchedules.html"), return_tree=True)
-                starts_in = tree.xpath("//tr[2]//td[2]//span[1]/text()")[0].replace("Starts: ", "")
-                now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%H:%M:%s %d-%m-%Y")
-                seconds = (datetime.strptime(starts_in, "%H:%M %d-%m-%Y") - datetime.strptime(now, "%H:%M:%s %d-%m-%Y")).total_seconds()
+                    tree = await self.bot.get_content(link.replace("duelTournament.html", "duelTournamentSchedules.html"), return_tree=True)
+                    starts_in = tree.xpath("//tr[2]//td[2]//span[1]/text()")[0].replace("Starts: ", "")
+                    now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%H:%M:%S %d-%m-%Y")
+                    seconds = (datetime.strptime(starts_in, "%H:%M %d-%m-%Y") - datetime.strptime(now, "%H:%M:%S %d-%m-%Y")).total_seconds()
 
-                await ctx.send(f"Round starts in {timedelta(seconds=seconds)}")
-                await sleep(seconds+uniform(40, 60))
+                    await ctx.send(f"Round starts in {timedelta(seconds=seconds)}")
+                    await sleep(seconds+uniform(60, 80))
                 if self.bot.should_break(ctx):
                     break
                 tree = await self.bot.get_content(link, return_tree=True)
