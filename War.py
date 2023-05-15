@@ -608,9 +608,9 @@ class War(Cog):
                         break
 
                 if (dmg < 5 and health == 0) or (dmg >= 5 and health < 50):
-                    if (not food or food_storage == 0) and (not gift or gift_storage == 0):
+                    if (food and food_storage == 0) and (gift and gift_storage == 0):
                         return await ctx.send(f"**{nick}** ERROR: food/gift storage error")
-                    if (not food or food_limit == 0) and (not gift or gift_limit == 0):
+                    if (food and food_limit == 0) and (gift and gift_limit == 0):
                         return await ctx.send(f"**{nick}** ERROR: food/gift limits error")
                     if food and food_storage > 0 and food_limit > 0:
                         food_storage -= 1
