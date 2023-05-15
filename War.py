@@ -472,7 +472,11 @@ class War(Cog):
                     counters = [i.split(");\n")[0] for i in
                                 tree.xpath('//*[@id="battlesTable"]//div//div//script/text()') for i in
                                 i.split("() + ")[1:]]
-                    for round_ends, battle_link, sides in zip(await utils.chunker(counters, 3), battle_links, sides):
+                    types = tree.xpath('//*[@class="battleHeader"]//i/@data-hover')
+                    for round_ends, battle_link, sides, battle_type in zip(
+                            await utils.chunker(counters, 3), battle_links, sides, types):
+                        if battle_type not in ('Normal battle', 'Resistance war'):
+                            continue
                         defender, attacker = sides.split(" vs ")
                         if attacker in all_countries and defender in all_countries:
                             battles_time[battle_link.split("=")[-1]] = int(
