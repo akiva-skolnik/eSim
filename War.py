@@ -606,8 +606,10 @@ class War(Cog):
                     health = float(tree.xpath('//*[@id="actualHealth"]')[0].text)
                     if not any([health, food, gift]):
                         break
-
-                if (dmg < 5 and health == 0) or (dmg >= 5 and health < 50):
+                restore_needed = (dmg < 5 and health == 0) or (dmg >= 5 and health < 50)
+                if not (food or gift) and restore_needed:
+                    break
+                if (food or gift) and restore_needed:
                     if (food and food_storage == 0) and (gift and gift_storage == 0):
                         return await ctx.send(f"**{nick}** ERROR: food/gift storage error")
                     if (food and food_limit == 0) and (gift and gift_limit == 0):
