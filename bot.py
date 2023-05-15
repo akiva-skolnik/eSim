@@ -23,7 +23,7 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
-bot.VERSION = "12/05/2023"
+bot.VERSION = "15/05/2023"
 bot.config_file = config_file
 bot.sessions = {}
 bot.should_break_dict = {}
@@ -83,6 +83,16 @@ async def start():
         message = await channel.fetch_message(int(d["message_id"]))
         ctx = await bot.get_context(message)
         bot.loop.create_task(ctx.invoke(bot.get_command("auto_motivate"), d["chance_to_skip_a_day"], nick=d["nick"]))
+
+    for d in (await utils.find_one("auto", "duel", os.environ['nick'])).values():
+        if isinstance(d, list):  # old version
+            d = d[0]
+        channel = bot.get_channel(int(d["channel_id"]))
+        message = await channel.fetch_message(int(d["message_id"]))
+        ctx = await bot.get_context(message)
+        bot.loop.create_task(ctx.invoke(bot.get_command("duel"), d["nick"], d["link"], d["max_hits_per_round"],
+                                        d["weapon_quality"], d["food"], d["gift"], d["start_time"],
+                                        d["chance_for_sleep"], d["sleep_duration"], d["chance_for_nap"]))
 
     for d1 in (await utils.find_one("auto", "fight", os.environ['nick'])).values():
         for d in d1:

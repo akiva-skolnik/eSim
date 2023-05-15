@@ -401,7 +401,7 @@ class War(Cog):
         if server not in self.bot.should_break_dict:
             self.bot.should_break_dict[server] = {}
         self.bot.should_break_dict[server][cmd] = True
-        if any(x in ctx.command for x in ("hunt-", "hunt_battle", "watch")):
+        if any(x in ctx.command for x in ("hunt-", "hunt_battle", "watch", "duel")):
             cmd = "auto_" + cmd
         if "auto_" in cmd:
             await utils.remove_command(ctx, "auto", "_".join(cmd.split("_")[1:]))
@@ -547,6 +547,60 @@ class War(Cog):
             await sleep(30)
 
         await utils.remove_command(ctx, "auto", "hunt")
+
+    @command()
+    async def duel(self, ctx, nick: IsMyNick, link, max_hits_per_round: Dmg = 100, weapon_quality: Quality = 0,
+                   food: Quality = 0, gift: Quality = 0, start_time: int = 0,
+                   chance_for_sleep: int = 3, sleep_duration: int = 7, chance_for_nap: int = 27):
+        """Auto register and fights in duel tournament.
+        By default, every ~33 duels (100/3), it will skip 5-9 hours (7+-2).
+        It will also skip ~27% from the rest of the duels.
+
+        * start_time=0 means random.
+        """
+        server = ctx.channel.name
+        base_url = f"https://{server}.e-sim.org/"
+        if "duelTournament" not in link:
+            return await ctx.send("Not a duel link")
+        data = {"link": link, "max_hits_per_round": max_hits_per_round, "weapon_quality": weapon_quality,
+                "food": food, "gift": gift, "start_time": start_time, "chance_for_sleep": chance_for_sleep,
+                "sleep_duration": sleep_duration, "chance_for_nap": chance_for_nap}
+        ctx.command = f"duel-{ctx.message.id}"
+        await utils.save_command(ctx, "auto", "duel", data)
+        await ctx.send(
+            f"**{nick}** If you want to cancel it, type `.cancel duel-{ctx.message.id} {nick}`")
+        while not self.bot.should_break(ctx):
+            if uniform(0, 100) < chance_for_sleep:
+                rand = uniform(sleep_duration-2, sleep_duration+2)*2
+                await ctx.send(f"**{nick}** Sleeping for {timedelta(seconds=round(rand*30*60))}h")
+                await sleep(rand*30*60)
+            elif uniform(0, 100) < chance_for_nap:
+                rand = uniform(1, 2)
+                await ctx.send(f"**{nick}** Sleeping for {timedelta(seconds=round(rand*30*60))}h")
+                await sleep(rand*30*60)
+            else:
+                if self.bot.should_break(ctx):
+                    break
+                url = await self.bot.get_content(link, data={"action": "ENLIST"})
+                await ctx.send(f'**{nick}** <{url}>\nYou can cancel with: ' +
+                               f'`.click "{nick}" {link} ' + '{"action": "CANCEL_ENLIST"}`')
+
+                tree = await self.bot.get_content(link.replace("duelTournament.html", "duelTournamentSchedules.html"), return_tree=True)
+                starts_in = tree.xpath("//tr[2]//td[2]//span[1]/text()")[0].replace("Starts: ", "")
+                now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%H:%M:%s %d-%m-%Y")
+                seconds = (datetime.strptime(starts_in, "%H:%M %d-%m-%Y") - datetime.strptime(now, "%H:%M:%s %d-%m-%Y")).total_seconds()
+
+                await ctx.send(f"Round starts in {timedelta(seconds=seconds)}")
+                await sleep(seconds+uniform(40, 60))
+                if self.bot.should_break(ctx):
+                    break
+                tree = await self.bot.get_content(link, return_tree=True)
+                my_id = utils.get_ids_from_path(tree, '//*[@id="userName"]')[0]
+                attacker, battle, defender = tree.xpath("//*[@class='highlighted']//@href")
+                side = "attacker" if attacker.endswith(f"={my_id}") else "defender"
+                await ctx.invoke(self.bot.get_command("hunt_battle"), nick, base_url+battle, side, max_hits_per_round,
+                                 weapon_quality, food, gift, start_time)
+        await utils.remove_command(ctx, "auto", "duel")
 
     @command()
     async def hunt_battle(self, ctx, nick: IsMyNick, link, side: Side, dmg_or_hits_per_bh: Dmg = 1,

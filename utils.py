@@ -278,7 +278,7 @@ async def remove_command(ctx, server: str, collection: str) -> None:
             data[ctx.channel.name] = [data[ctx.channel.name]]
         for command in data[ctx.channel.name][:]:
             if command["command"] == str(ctx.command):
-                data[ctx.channel.name].remove(str(ctx.command))
+                data[ctx.channel.name].remove(command)
         await replace_one(server, collection, os.environ['nick'], data)
 
 
