@@ -118,7 +118,7 @@ class Eco(Cog):
 
     @command()
     async def buy(self, ctx, market: Country, amount: int, quality: Optional[Quality], product: Product, *, nick: IsMyNick):
-        """Buy products at the given market (auto fly with Q5 ticket)."""
+        """Buy products at the given market."""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
 
         if not quality:

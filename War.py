@@ -126,6 +126,7 @@ class War(Cog):
                    'battleId' if key != 1 else 'battleOrderId': f"{battle}_{'true' if side == 'attacker' else 'false'}",
                    'submit': "Set orders"}
         links = {0: "militaryUnitsActions.html", 1: "countryLaws.html", 2: "coalitionManagement.html"}
+        await self.bot.get_content(base_url + links[key])
         url = await self.bot.get_content(base_url + links[key], data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
@@ -305,7 +306,7 @@ class War(Cog):
         damage_done = 0
         update = 0
         fight_url, data = await self.get_fight_data(base_url, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
-        if ctx.invoked_with.lower() == "fight":
+        if ctx.invoked_with.lower() != "fight_fast":
             await sleep(uniform(3, 7))
         hits_or_dmg = "hits" if dmg <= 10000 else "dmg"
         round_ends = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
