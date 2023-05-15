@@ -83,7 +83,7 @@ class Social(Cog):
                         except IndexError:
                             break
                     if "has requested to add you as a friend" in alert:
-                        await self.bot.get_content(base_url + str(links[0]))
+                        await self.bot.get_content(base_url + str(links[-1]))
                     elif "has offered you to sign" in alert:
                         alert = alert.replace("contract", f'[contract]({base_url}{links[-1]})').replace(
                             "Please read it carefully before accepting it, make sure that citizen doesn't want to cheat you!",

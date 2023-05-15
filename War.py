@@ -67,7 +67,7 @@ class War(Cog):
         specific_battle = (battle_id != 0)
         while restores > 0 and not self.bot.should_break(ctx):
             restores -= 1
-            if randint(1, 100) <= chance_to_skip_restore:
+            if randint(0, 100) <= chance_to_skip_restore:
                 await sleep(600)
             if not battle_id:
                 battle_id = await utils.get_battle_id(self.bot, str(nick), server, battle_id)
@@ -263,7 +263,7 @@ class War(Cog):
             .fight nick 1 a 5 1kk 5 none 1
 
         * It will auto fly to bonus region.
-        * if dmg_or_hits < 10000 - it's hits, otherwise - dmg.
+        * if dmg_or_hits < 1000 - it's hits, otherwise - dmg.
         * set `consume_first` to `none` if you want to consume `1/1` (fast servers)
         * Use `fight_fast` instead of `fight` if you don't want it to spec the battle for a few seconds.
         * If `nick` contains more than 1 word - it must be within quotes.
@@ -308,7 +308,7 @@ class War(Cog):
         fight_url, data = await self.get_fight_data(base_url, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
         if ctx.invoked_with.lower() != "fight_fast":
             await sleep(uniform(3, 7))
-        hits_or_dmg = "hits" if dmg <= 10000 else "dmg"
+        hits_or_dmg = "hits" if dmg <= 1000 else "dmg"
         round_ends = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
         start = time.time()
         while not self.bot.should_break(ctx) and damage_done < dmg and (time.time() - start < round_ends):
@@ -376,7 +376,7 @@ class War(Cog):
             health = float(tree.xpath("//*[@id='healthUpdate']")[0].text.split()[0])
             if dmg < 5:
                 damage_done += 1
-            elif dmg <= 10000:
+            elif dmg <= 1000:
                 damage_done += 5
             else:
                 damage_done += int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
@@ -397,17 +397,14 @@ class War(Cog):
         """Cancel command (it might take a while before it actually cancel)"""
         server = ctx.channel.name
         cmd = cmd.lower()
+        ctx.command = cmd
         if server not in self.bot.should_break_dict:
             self.bot.should_break_dict[server] = {}
         self.bot.should_break_dict[server][cmd] = True
-        original = cmd
-        if cmd in ("hunt", "hunt_battle", "watch"):
+        if any(x in ctx.command for x in ("hunt-", "hunt_battle", "watch")):
             cmd = "auto_" + cmd
         if "auto_" in cmd:
-            data = await utils.find_one("auto", "_".join(cmd.split("_")[1:]), os.environ['nick'])
-            if server in data and original in data[server]:
-                del data[server][original]
-                await utils.replace_one("auto", "_".join(cmd.split("_")[1:]), os.environ['nick'], data)
+            await utils.remove_command(ctx, "auto", "_".join(cmd.split("_")[1:]))
 
         await ctx.send(f"**{nick}** I have forwarded your instruction. (it might take a while until it actually cancel {cmd})")
 
@@ -536,13 +533,13 @@ class War(Cog):
                         d_dmg = enemy_dmg - ally_dmg
 
                 if a_dmg < max(max_a_dmg, avg_hit):
-                    if 10 < a_dmg < 10000:
-                        a_dmg = 10000
+                    if 10 < a_dmg < 1000:
+                        a_dmg = 1000
                     should_break, _ = await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "attacker",
                                                        weapon_quality, 1 if a_dmg < avg_hit else (a_dmg+1), ticket_quality, consume_first, 0)
                 if d_dmg < max(max_d_dmg, avg_hit):
-                    if 10 < d_dmg < 10000:
-                        d_dmg = 10000
+                    if 10 < d_dmg < 1000:
+                        d_dmg = 1000
                     should_break, _ = await ctx.invoke(self.bot.get_command("fight"), nick, battle_id, "defender",
                                                        weapon_quality, 1 if d_dmg < avg_hit else (d_dmg+1), ticket_quality, consume_first, 0)
                 if should_break:
@@ -557,7 +554,7 @@ class War(Cog):
         """Hunting BH at a specific battle.
         (Good for practice battle / leagues / civil war)
 
-        * if dmg_or_hits < 10000 - it's hits, otherwise - dmg.
+        * if dmg_or_hits < 1000 - it's hits, otherwise - dmg.
         If `nick` contains more than 1 word - it must be within quotes."""
 
         data = {"link": link, "side": side, "dmg_or_hits_per_bh": dmg_or_hits_per_bh,
@@ -569,7 +566,7 @@ class War(Cog):
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         dmg = dmg_or_hits_per_bh
-        hits_or_dmg = "hits" if dmg <= 10000 else "dmg"
+        hits_or_dmg = "hits" if dmg <= 1000 else "dmg"
         should_break = False
         while not should_break:  # For each round
             api = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
@@ -640,7 +637,7 @@ class War(Cog):
                     break
                 if dmg < 5:
                     damage_done += 1
-                elif dmg <= 10000:
+                elif dmg <= 1000:
                     damage_done += 5
                 else:
                     damage_done += int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
