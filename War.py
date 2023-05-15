@@ -570,7 +570,8 @@ class War(Cog):
         base_url = f"https://{server}.e-sim.org/"
         dmg = dmg_or_hits_per_bh
         hits_or_dmg = "hits" if dmg <= 10000 else "dmg"
-        while not self.bot.should_break(ctx):  # For each round
+        should_break = False
+        while not should_break:  # For each round
             api = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
             if 8 in (api['defenderScore'], api['attackerScore']):
                 await ctx.send(f"**{nick}** <{link}> is over")
@@ -595,8 +596,8 @@ class War(Cog):
             food_storage, gift_storage = utils.get_storage(tree)
             damage_done = 0
             fight_url, data = await self.get_fight_data(base_url, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
-
-            while damage_done < dmg and not self.bot.should_break(ctx):
+            should_break = self.bot.should_break(ctx)
+            while damage_done < dmg and not should_break:
                 health = tree.xpath('//*[@id="actualHealth"]/text()') or tree.xpath("//*[@id='healthUpdate']/text()")
                 if health:
                     health = float(health[0].split()[0])
@@ -644,7 +645,7 @@ class War(Cog):
                 await sleep(uniform(0, 2))
 
             await ctx.send(f"**{nick}** done {damage_done:,} {hits_or_dmg} at <{link}>")
-            if not self.bot.should_break(ctx):
+            if not should_break:
                 await sleep(seconds_till_round_end - seconds_till_hit + 15)
 
         await utils.remove_command(ctx, "auto", "hunt_battle")
