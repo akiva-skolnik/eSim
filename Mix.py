@@ -161,20 +161,30 @@ class Mix(Cog):
             Mission #30 Deal berserk with weapons
             Mission #31 Comment an article
             Mission #32 Join a party
-            """
+            
+            Day 5:
+            Mission #33 work + train.
+            Mission #34 Get total 450 XP.
+            Mission #35: Comment a shout
+            Mission #36: Buy steroids
+            Mission #37: Fight five times
+            Mission #38: Deplete limits
+            Mission #39: Wear EQ.
+            Mission #40: Vote a shout"""
             if num == 1:
                 await self.bot.get_content(base_url + "inboxMessages.html")
                 await self.bot.get_content(base_url + "train/ajax", data={"action": "train"})
             elif num == 2:
                 await ctx.invoke(self.bot.get_command("job"), nick=nick)
-            elif num in (3, 10, 20, 27):
+            elif num in (3, 10, 20, 27, 33):
                 await ctx.invoke(self.bot.get_command("work"), nick=nick)
-            elif num in (11, 21):
+            elif num in (11, 21):  # train
                 pass
-            elif num in (4, 16, 28):
+            elif num in (4, 16, 28, 37):
                 tree = await self.bot.get_content(f'{base_url}battle.html?id=0', return_tree=True)
                 for _ in range(1 if num != 28 else 5):
-                    fight_url, data = await War.get_fight_data(base_url, tree, 0 if num != 16 else 1, choice(["default", "attacker"]), "Regular")
+                    fight_url, data = await War.get_fight_data(base_url, tree, 0 if num != 16 else 1, choice(["default", "attacker"]),
+                                                               "Regular" if num != 37 else "Berserk")
                     await self.bot.get_content(fight_url, data=data)
             elif num == 5:
                 await self.bot.get_content(f"{base_url}eat.html", data={'quality': 1})
@@ -266,6 +276,38 @@ class Mix(Cog):
                     await ctx.send(f"**{nick}** <{b}>")
                 except Exception:
                     await ctx.send(f"**{nick}** couldn't join a party")
+
+            # Day 5:
+            elif num == 34:  # 450 xp
+                pass
+            elif num == 35:
+                await self.bot.get_content(base_url + f"replyToShout.html?id={randint(1, 101)}",
+                                           data={"body": choice(["OK", "Whatever", "Thanks", "Discord?", "Mission"]),
+                                                 "submit": "Shout!"})
+            elif num == 36:
+                payload = {'itemType': "STEROIDS", 'storageType': "SPECIAL_ITEM", 'action': "BUY", "quantity": 1}
+                await self.bot.get_content(base_url + "storage.html", data=payload)
+            elif num == 38:
+                tree = await self.bot.get_content(f'{base_url}battle.html?id=0', return_tree=True)
+                fight_url, data = await War.get_fight_data(base_url, tree, 0, choice(["default", "attacker"]), "Berserk")
+                for _ in range(5):
+                    await self.bot.get_content(fight_url, data=data)
+                for _ in range(10):
+                    await self.bot.get_content(f"{base_url}eat.html", data={'quality': 1})
+                for _ in range(5):
+                    await self.bot.get_content(fight_url, data=data)
+                for _ in range(10):
+                    await self.bot.get_content(f"{base_url}gift.html", data={'quality': 1})
+                for _ in range(5):
+                    await self.bot.get_content(fight_url, data=data)
+            elif num == 39:
+                tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
+                item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
+                payload = {'action': "EQUIP", 'itemId': item_id}
+                await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
+            elif num == 40:
+                await self.bot.get_content(f"{base_url}shoutVote.html", data={"id": randint(1, 100), "vote": 1})
+
             # Old missions:
             # new avatar:
             #    await self.bot.get_content(base_url + "editCitizen.html")
@@ -276,11 +318,6 @@ class Mix(Cog):
             #    payload = {'action': "POST_SHOUT", 'body': shout_body, 'sendToCountry': "on",
             #                "sendToMilitaryUnit": "on", "sendToParty": "on", "sendToFriends": "on"}
             #    await self.bot.get_content(f"{base_url}shoutActions.html", data=payload)
-            # wear:
-            #    tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
-            #    item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
-            #    payload = {'action': "EQUIP", 'itemId': item_id}
-            #    await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
             # Vote article:
             #    await self.bot.get_content(f"{base_url}vote.html", data={"id": randint(1, 15)})
                 """
@@ -290,30 +327,11 @@ class Mix(Cog):
             elif num == 30:
                 await self.bot.get_content(f"{base_url}sub.html", data={"id": randint(1, 21)})
 
-            # day 4
-            elif num == 37:
-                shout_body = choice(["Mission: Get to know the community better", "Hi",
-                                     "Hello", "Hi guys :)", "Mission", "IRC / Skype / TeamSpeak"])
-                payload = {'action': "POST_SHOUT", 'body': shout_body, 'sendToCountry': "on",
-                           "sendToMilitaryUnit": "on", "sendToParty": "on", "sendToFriends": "on"}
-                await self.bot.get_content(f"{base_url}shoutActions.html", data=payload)
-
-            # day 5
-            elif num == 45:
-                await self.bot.get_content(base_url + f"replyToShout.html?id={randint(1, 21)}",
-                                           data={"body": choice(["OK", "Whatever", "Thanks", "Discord?"]),
-                                                 "submit": "Shout!"})
-            elif num == 46:
-                payload = {'itemType': "STEROIDS", 'storageType': "SPECIAL_ITEM", 'action': "BUY",
-                           "quantity": 1}
-                await self.bot.get_content(base_url + "storage.html", data=payload)
             elif num == 49:
                 tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
                 item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
                 payload = {'action': "EQUIP", 'itemId': item_id.replace("#", "")}
                 await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
-            elif num == 50:
-                await self.bot.get_content(f"{base_url}shoutVote.html", data={"id": randint(1, 20), "vote": 1})
             elif num == 52:
                 await ctx.invoke(self.bot.get_command("fly"), 1, 3, nick=nick)
             elif num in (61, 55):
