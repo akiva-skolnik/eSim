@@ -420,7 +420,7 @@ class War(Cog):
         if server not in d:
             d[server] = []
 
-        if country not in d:
+        if country not in d[server]:
             d[server].append(country)
             await ctx.send(f"**{nick}** added country id {country} to your {ctx.invoked_with} list.\n"
                            f"Current list: {', '.join(str(x) for x in d[server])}")
