@@ -405,8 +405,7 @@ class War(Cog):
         if any(x in ctx.command for x in ("hunt-", "hunt_battle", "watch", "duel")):
             cmd = "auto_" + cmd
         if "auto_" in cmd:
-            await utils.remove_command(ctx, "auto", "_".join(cmd.split("_")[1:]))
-
+            await utils.remove_command(ctx, "auto", cmd.split("_", 1)[-1])
 
     @command(aliases=["ally"])
     async def enemy(self, ctx, country: Country, *, nick: IsMyNick):
@@ -1009,10 +1008,12 @@ class War(Cog):
                 wall = keep_wall * (battle_score[f"{enemy}sOnline"] + 1) if battle_score["spectatorsOnline"] != 1 else 1
                 if enemy_side - my_side < let_overkill and my_side - enemy_side < wall:
                     error, medkits = await ctx.invoke(self.bot.get_command("fight"), nick, battle, side, weapon_quality,
-                                                      max(enemy_side - my_side + wall, 10001), ticket_quality, consume_first, medkits)
+                                                      max(enemy_side - my_side + wall, 10001),
+                                                      ticket_quality if ctx.invoked_with == "watch" else 0, consume_first, medkits)
+                    ctx.invoked_with = "fight_fast"
                 error = error or self.bot.should_break(ctx)
                 await sleep(uniform(6, 13))
-
+            ctx.invoked_with = "watch"
             for _ in range(randint(3, 7)):  # keep the bot online for a while after the fight
                 await sleep(uniform(25, 35))
                 await self.bot.get_content(battle_link, return_tree=True)
