@@ -594,8 +594,9 @@ class War(Cog):
                     starts_in = tree.xpath("//tr[2]//td[2]//span[1]/text()")[0].replace("Starts: ", "")
                     now = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%H:%M:%S %d-%m-%Y")
                     seconds = (datetime.strptime(starts_in, "%H:%M %d-%m-%Y") - datetime.strptime(now, "%H:%M:%S %d-%m-%Y")).total_seconds()
-
-                    await ctx.send(f"Round starts in {timedelta(seconds=seconds)}")
+                    if seconds < 0:
+                        await ctx.send(f"**{nick}** {link} is over")
+                    await ctx.send(f"**{nick}** Round starts in {timedelta(seconds=seconds)}")
                     await sleep(seconds+uniform(60, 80))
                 if self.bot.should_break(ctx):
                     break
