@@ -401,12 +401,12 @@ class War(Cog):
         if server not in self.bot.should_break_dict:
             self.bot.should_break_dict[server] = {}
         self.bot.should_break_dict[server][cmd] = True
+        await ctx.send(f"**{nick}** I have forwarded your instruction. (it might take a while until it actually cancel {cmd})")
         if any(x in ctx.command for x in ("hunt-", "hunt_battle", "watch", "duel")):
             cmd = "auto_" + cmd
         if "auto_" in cmd:
             await utils.remove_command(ctx, "auto", "_".join(cmd.split("_")[1:]))
 
-        await ctx.send(f"**{nick}** I have forwarded your instruction. (it might take a while until it actually cancel {cmd})")
 
     @command(aliases=["ally"])
     async def enemy(self, ctx, country: Country, *, nick: IsMyNick):
