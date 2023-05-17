@@ -126,7 +126,7 @@ class War(Cog):
                    'battleId' if key != 1 else 'battleOrderId': f"{battle}_{'true' if side == 'attacker' else 'false'}",
                    'submit': "Set orders"}
         links = {0: "militaryUnitsActions.html", 1: "countryLaws.html", 2: "coalitionManagement.html"}
-        await self.bot.get_content(base_url + links[key])
+        await self.bot.get_content(base_url + "myMilitaryUnit.html")
         url = await self.bot.get_content(base_url + links[key], data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
