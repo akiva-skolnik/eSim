@@ -224,7 +224,7 @@ class Info(Cog):
                 embed = Embed()
                 embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
                 embed.add_field(name="Limits Worked At", value="\n".join([row.get(
-                    "limits", "-/-") + "\u2800"*2 + row.get("Worked at", "-") for row in values]))
+                    "limits", "-/-").center(5, "\u2800") + "\u2800"*2 + row.get("Worked at", "-") for row in values]))
                 embed.add_field(name="Buffed at", value="\n".join([row.get("Buffed at", "-") for row in values]))
                 embed.set_footer(text="Type .info <nick> for more info on a nick")
                 await ctx.send(embed=embed)
