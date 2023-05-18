@@ -6,7 +6,7 @@ from asyncio import sleep
 from datetime import datetime
 from datetime import time as dt_time
 from datetime import timedelta
-from random import randint, uniform
+from random import randint, uniform, shuffle
 from typing import Optional
 
 from discord.ext.commands import Cog, command
@@ -147,7 +147,8 @@ class War(Cog):
             .buff  Q1_elixirs  my nick"""
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
-        elixirs = ("BLOODY_MESS", "FINESE", "JINXED", "LUCKY")
+        elixirs = ["BLOODY_MESS", "FINESE", "JINXED", "LUCKY"]
+        shuffle(elixirs)
 
         buffs_names = buffs_names.upper().split(",")
         for buff in buffs_names[:]:
@@ -775,9 +776,11 @@ class War(Cog):
 
         storage = get_storage(tree)
         if not storage:
-            await ctx.invoke(self.bot.get_command("supply"), 15, "1", "WEAPON", nick=nick)
-            await ctx.invoke(self.bot.get_command("supply"), 10, "3", "FOOD", nick=nick)
-            await ctx.invoke(self.bot.get_command("supply"), 5, "3", "GIFT", nick=nick)
+            data = [(randint(3, 15)*5, "1", "WEAPON"), (randint(1, 7)*5, "3", "FOOD"), (randint(1, 5)*5, "3", "GIFT")]
+            shuffle(data)
+            for entry in data:
+                await ctx.invoke(self.bot.get_command("supply"), entry[0], entry[1], entry[2], nick=nick)
+                await sleep(1, 4)
             tree = await self.bot.get_content(base_url + 'storage.html?storageType=PRODUCT', return_tree=True)
             storage = get_storage(tree)
         if not storage:
@@ -917,17 +920,12 @@ class War(Cog):
             .pack "my nick" Q1                    (it will send the default amounts: 15/15 and 200 Q1 weps)
             .pack "my nick" Q5 150 20 15 Q1 20    (it will send: 20/15 food/gift, 150 Q5 weps, 20 Q1 tickets)
         """
-        if food:
-            await ctx.invoke(self.bot.get_command("supply"), food, 5, "FOOD", nick=nick)
-            await sleep(uniform(1, 5))
-        if gift:
-            await ctx.invoke(self.bot.get_command("supply"), gift, 5, "GIFT", nick=nick)
-            await sleep(uniform(1, 5))
-        if wep_quality and weps:
-            await ctx.invoke(self.bot.get_command("supply"), weps, wep_quality, "WEAPON", nick=nick)
-            await sleep(uniform(1, 5))
-        if tickets_quality and tickets:
-            await ctx.invoke(self.bot.get_command("supply"), tickets, tickets_quality, "TICKET", nick=nick)
+        data = [(food, 5, "FOOD"), (gift, 5, "GIFT"), (weps, wep_quality, "WEAPON"), (tickets, tickets_quality, "TICKET")]
+        shuffle(data)
+        for entry in data:
+            if entry[0] and entry[1]:
+                await ctx.invoke(self.bot.get_command("supply"), entry[0], entry[1], entry[2], nick=nick)
+                await sleep(uniform(1, 5))
 
     @command()
     async def supply(self, ctx, amount: int, quality: Optional[Quality], product: Product, *, nick: IsMyNick):
