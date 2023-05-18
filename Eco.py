@@ -478,6 +478,8 @@ class Eco(Cog):
 
             # Updated the data once a day (allow the user to change chance_to_skip_work or work_sessions)
             data = (await utils.find_one("auto", "work", os.environ['nick']))[ctx.channel.name]
+            if isinstance(data, list):
+                data = data[0]
             chance_to_skip_work = data["chance_to_skip_work"]
             work_sessions = data["work_sessions"]
 

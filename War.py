@@ -731,6 +731,8 @@ class War(Cog):
             await sleep((midnight - now).seconds + 20)
 
             data = (await utils.find_one("auto", "motivate", os.environ['nick']))[ctx.channel.name]
+            if isinstance(data, list):
+                data = data[0]
             chance_to_skip_a_day = data["chance_to_skip_a_day"]
         await utils.remove_command(ctx, "auto", "motivate")
 
