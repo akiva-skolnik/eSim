@@ -264,7 +264,6 @@ async def save_command(ctx, server: str, collection: str, info: dict) -> bool:
     if new_dict not in data[ctx.channel.name]:
         data[ctx.channel.name].append(new_dict)
         await replace_one(server, collection, os.environ['nick'], data)
-        await ctx.send(f"**{my_nick(ctx.channel.name)}** Alright.")
         if ctx.bot.should_break_dict.get(ctx.channel.name, {}).get(str(ctx.command)) is False:
             return True
     return False

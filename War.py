@@ -574,6 +574,7 @@ class War(Cog):
         await ctx.send(
             f"**{nick}** If you want to cancel it, type `.cancel duel-{ctx.message.id} {nick}`")
         while not self.bot.should_break(ctx):
+            ctx.command = f"duel-{ctx.message.id}"
             if uniform(0, 100) < chance_for_sleep:
                 rand = uniform(sleep_duration-2, sleep_duration+2)*2
                 await ctx.send(f"**{nick}** Sleeping for {timedelta(seconds=round(rand*30*60))}h")
