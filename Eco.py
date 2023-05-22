@@ -453,7 +453,7 @@ class Eco(Cog):
         if await utils.save_command(ctx, "auto", "work", data):
             await ctx.send(f"**{nick}** The command already running. I will update the data if needed.")
             return  # Command already running
-        await ctx.send(f"**{nick}** I will work from now on {work_sessions} times every day, with {chance_to_skip_work}% chance to skip work."
+        await ctx.send(f"**{nick}** I will work from now on {work_sessions} times every day, with {chance_to_skip_work}% chance to skip a work.\n"
                        f"If you wish to stop it, type `.cancel auto_work`")
 
         tz = timezone('Europe/Berlin')

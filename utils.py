@@ -219,11 +219,15 @@ def get_limits(tree) -> (int, int):
     return int(food_limit), int(gift_limit)
 
 
-async def update_limits(server: str, nick: str, limits: str) -> None:
+async def update_info(server: str, nick: str, d: dict) -> None:
     """update limits"""
     data = await find_one(server, "info", nick)
-    if data.get("limits") != limits:
-        data["limits"] = limits
+    changed = False
+    for k, v in d.items():
+        if data.get(k) != v:
+            data[k] = v
+            changed = True
+    if changed:
         await replace_one(server, "info", nick, data)
 
 

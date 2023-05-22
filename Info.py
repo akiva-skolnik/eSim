@@ -51,7 +51,8 @@ class Info(Cog):
     @command(aliases=["inventory"])
     async def inv(self, ctx, *, nick: IsMyNick):
         """Shows your inventory."""
-        base_url = f"https://{ctx.channel.name}.e-sim.org/"
+        server = ctx.channel.name
+        base_url = f"https://{server}.e-sim.org/"
 
         special = {}
         products = {}
@@ -78,22 +79,29 @@ class Info(Cog):
             if item.xpath('span/text()'):
                 s_item = item.xpath('b/text()')[0]
                 if "elixir" not in s_item:
-                    special[s_item] = item.xpath('span/text()')[0]
+                    special[s_item.replace("Equipment parameter ", "")] = item.xpath('span/text()')[0]
                 else:
                     s_item = s_item.replace(" elixir", "").split()
                     tier, elixir = s_item[0], s_item[1]
                     elixirs[elixir][tiers.index(tier)] = item.xpath('span/text()')[0].replace("x", "")
 
-        embed = Embed(title=nick, description=money_tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0] + " Gold")
+        gold = money_tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0]
+        embed = Embed(title=nick, description=gold + " Gold")
+        medkits = special.get("Medkit", "0").replace("x", "")
+        products, coins, special = sorted(products.items())[-20:], list(coins.items())[:20], sorted(special.items())[-20:]
         for name, data in zip(("Products", "Coins", "Special Items"), (products, coins, special)):
-            embed.add_field(name=f"**{name}:**", value="\n".join(f"**{k}**: {v}" for k, v in sorted(data.items())[-20:]) or "-")
+            embed.add_field(name=f"**{name}:**", value="\n".join(f"**{k}**: {v}" for k, v in data) or "-")
         embed.add_field(name="**Elixir**", value="\n".join(tiers))
         embed.add_field(name="**:blue_circle: Jinxed	:green_circle: Finesse**", value="\n".join(
             x.center(8, "\u2800") + y.center(8, "\u2800") for x, y in zip(elixirs['jinxed'], elixirs['finesse'])))
         embed.add_field(name="**:red_circle: Bloody	:yellow_circle: Lucky**", value="\n".join(
             x.center(7, "\u2800") + y.center(9, "\u2800") for x, y in zip(elixirs['bloody'], elixirs['lucky'])))
-
         await ctx.send(embed=embed)
+        try:
+            food_limit, gift_limit = utils.get_limits(money_tree)
+        except IndexError:
+            food_limit, gift_limit = "-", "-"
+        await utils.update_info(server, nick, {"limits": f"{food_limit}/{gift_limit}", "gold": round(float(gold)), "medkits": medkits})
 
     @command()
     async def muinv(self, ctx, *, nick: IsMyNick):
@@ -133,9 +141,12 @@ class Info(Cog):
         gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
         food_storage, gift_storage = utils.get_storage(tree)
         food_limit, gift_limit = utils.get_limits(tree)
-        await ctx.send(f"**{nick}** Limits: {food_limit}/{gift_limit}, "
-                       f"storage: {food_storage}/{gift_storage}, {gold} Gold.")
-        await utils.update_limits(server, nick, f"{food_limit}/{gift_limit}")
+        medkits = (tree.xpath('//*[@id="medkitButton"]/small/text()') or ["0"])[0].replace("(you have ", "").replace(")", "")
+        output = f"**{nick}** Limits: {food_limit}/{gift_limit}, storage: {food_storage}/{gift_storage}, {gold} Gold, {medkits} Medkits."
+        if food_limit < food_storage or gift_limit < gift_storage:
+            output += f"\nWARNING: you need to refill your storage. See `.help supply`, `.help pack`, `.help buy`"
+        await ctx.send(output)
+        await utils.update_info(server, nick, {"limits": f"{food_limit}/{gift_limit}", "gold": round(float(gold)), "medkits": medkits})
 
     @command()
     @check(utils.is_helper)
@@ -223,9 +234,11 @@ class Info(Cog):
                 values.sort(key=lambda x: datetime.strptime(x.get('Buffed at', "01/01  00:00"), "%d/%m  %H:%M"))
                 embed = Embed()
                 embed.add_field(name="Nick", value="\n".join([row["_id"] for row in values]))
-                embed.add_field(name="Limits Worked At", value="\n".join([row.get(
-                    "limits", "-/-").center(5, "\u2800") + "\u2800"*2 + row.get("Worked at", "-") for row in values]))
-                embed.add_field(name="Buffed at", value="\n".join([row.get("Buffed at", "-") for row in values]))
+                embed.add_field(name="Limits	Worked At", value="\n".join([row.get(
+                    "limits", "-/-").center(5, "\u2800") + "\u2800"*2 + row.get("Worked at", "00/00 00:00") for row in values]))
+                embed.add_field(name="Medkits		Buffed at		Gold", value="\n".join(
+                    [str(row.get("medkits", "-")).center(7, "\u2800") + "\u2800" +
+                     row.get("Buffed at", "00/00 00:00") + "\u2800" + str(row.get("gold", "-")) for row in values]))
                 embed.set_footer(text="Type .info <nick> for more info on a nick")
                 await ctx.send(embed=embed)
             else:

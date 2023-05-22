@@ -196,7 +196,7 @@ class War(Cog):
         if "EXTRA_SPA" in buffs_names or "EXTRA_VACATIONS" in buffs_names:
             tree = await self.bot.get_content(base_url, return_tree=True)
             food_limit, gift_limit = utils.get_limits(tree)
-            await utils.update_limits(server, nick, f"{food_limit}/{gift_limit}")
+            await utils.update_info(server, nick, {"limits": f"{food_limit}/{gift_limit}"})
 
     @command(aliases=["travel"])
     async def fly(self, ctx, region_id: Id, ticket_quality: Optional[int] = 5, *, nick: IsMyNick) -> bool:
@@ -303,6 +303,8 @@ class War(Cog):
         output = f"**{nick}** Fighting at: <{link}&round={api['currentRound']}> for the {side}\n" \
                  f"Limits: {food_limit}/{gift_limit}. Storage: {food_storage}/{gift_storage}/{wep} Q{weapon_quality} weps.\n" \
                  f"If you want me to stop, type `.cancel {ctx.command} {nick}`"
+        if food_limit < food_storage or gift_limit < gift_storage or (food_limit+gift_limit)*5 < wep:
+            output += f"\nWARNING: you need to refill your storage. See `.help supply`, `.help pack`, `.help buy`"
         msg = await ctx.send(output)
         damage_done = 0
         update = 0
@@ -336,8 +338,6 @@ class War(Cog):
                         gift_limit += 10
                     else:
                         break
-                if food_storage == 0 or gift_storage == 0:
-                    output += f"\nWARNING: 0 {'food' if food_storage == 0 else 'gift'} in storage"
 
                 use = None
                 if consume_first == "gift" or (consume_first == "none" and gift_limit > food_limit):
@@ -394,7 +394,7 @@ class War(Cog):
                 await msg.edit(content=output)
         await msg.edit(content=output)
         await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
-        await utils.update_limits(server, nick, f"{food_limit}/{gift_limit}")
+        await utils.update_info(server, nick, {"limits": f"{food_limit}/{gift_limit}"})
         return should_break or "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
 
     @command(hidden=True)
@@ -835,7 +835,7 @@ class War(Cog):
                 checking.clear()
 
         food_limit, gift_limit = utils.get_limits(tree)
-        await utils.update_limits(server, nick, f"{food_limit}/{gift_limit}")
+        await utils.update_info(server, nick, {"limits": f"{food_limit}/{gift_limit}"})
 
     @command(aliases=["dow", "mpp"])
     async def attack(self, ctx, country_or_region_id: Id, delay: Optional[int], *, nick: IsMyNick):
@@ -866,9 +866,14 @@ class War(Cog):
     @command()
     async def medkit(self, ctx, *, nick: IsMyNick):
         """Using a medkit"""
-        url = await self.bot.get_content(
-            f"https://{ctx.channel.name}.e-sim.org/medkit.html", data={})
+        server = ctx.channel.name
+        url = await self.bot.get_content(f"https://{server}.e-sim.org/medkit.html", data={})
         await ctx.send(f"**{nick}** <{url}>")
+        if url.endswith("MESSAGE_OK"):  # update db
+            data = await utils.find_one(server, "info", nick)
+            medkits = int(data.get("medkits", 0))
+            data["medkits"] = str(medkits - 1)
+            await utils.replace_one(server, "info", nick, data)
 
     @command(aliases=["upgrade"])
     async def reshuffle(self, ctx, eq_id_or_link: Id, parameter, *, nick: IsMyNick):
