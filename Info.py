@@ -143,7 +143,7 @@ class Info(Cog):
         food_limit, gift_limit = utils.get_limits(tree)
         medkits = (tree.xpath('//*[@id="medkitButton"]/small/text()') or ["0"])[0].replace("(you have ", "").replace(")", "")
         output = f"**{nick}** Limits: {food_limit}/{gift_limit}, storage: {food_storage}/{gift_storage}, {gold} Gold, {medkits} Medkits."
-        if food_limit < food_storage or gift_limit < gift_storage:
+        if food_storage < food_limit or gift_storage < gift_limit:
             output += f"\nWARNING: you need to refill your storage. See `.help supply`, `.help pack`, `.help buy`"
         await ctx.send(output)
         await utils.update_info(server, nick, {"limits": f"{food_limit}/{gift_limit}", "gold": round(float(gold)), "medkits": medkits})
