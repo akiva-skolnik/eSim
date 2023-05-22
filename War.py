@@ -312,7 +312,11 @@ class War(Cog):
         hits_or_dmg = "hits" if dmg <= 1000 else "dmg"
         round_ends = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
         start = time.time()
-        while not self.bot.should_break(ctx) and damage_done < dmg and (time.time() - start < round_ends):
+        should_break = False
+        while damage_done < dmg and (time.time() - start < round_ends):
+            should_break = self.bot.should_break(ctx)
+            if should_break:
+                break
             if len(output) > 1900:
                 output = "(Message is too long)"
             if weapon_quality > 0 and ((dmg >= 5 > wep) or (dmg < 5 and wep == 0)):
@@ -391,7 +395,7 @@ class War(Cog):
         await msg.edit(content=output)
         await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
         await utils.update_limits(server, nick, f"{food_limit}/{gift_limit}")
-        return "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
+        return should_break or "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
 
     @command(aliases=["cancel"], hidden=True)
     async def hold(self, ctx, cmd, *, nick: IsMyNick):
@@ -1012,7 +1016,6 @@ class War(Cog):
                                                       max(enemy_side - my_side + wall, 10001),
                                                       ticket_quality if ctx.invoked_with == "watch" else 0, consume_first, medkits)
                     ctx.invoked_with = "fight_fast"
-                error = error or self.bot.should_break(ctx)
                 await sleep(uniform(6, 13))
             ctx.invoked_with = "watch"
             for _ in range(randint(3, 7)):  # keep the bot online for a while after the fight
