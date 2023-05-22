@@ -101,7 +101,7 @@ class Mix(Cog):
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
 
-        await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.hold missions {nick}`")
+        await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.cancel missions {nick}`")
         prv_num = 0
         for _ in range(30):
             if self.bot.should_break(ctx):

@@ -302,7 +302,7 @@ class War(Cog):
 
         output = f"**{nick}** Fighting at: <{link}&round={api['currentRound']}> for the {side}\n" \
                  f"Limits: {food_limit}/{gift_limit}. Storage: {food_storage}/{gift_storage}/{wep} Q{weapon_quality} weps.\n" \
-                 f"If you want me to stop, type `.hold {ctx.command} {nick}`"
+                 f"If you want me to stop, type `.cancel {ctx.command} {nick}`"
         msg = await ctx.send(output)
         damage_done = 0
         update = 0
@@ -397,8 +397,8 @@ class War(Cog):
         await utils.update_limits(server, nick, f"{food_limit}/{gift_limit}")
         return should_break or "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
 
-    @command(aliases=["cancel"], hidden=True)
-    async def hold(self, ctx, cmd, *, nick: IsMyNick):
+    @command(hidden=True)
+    async def cancel(self, ctx, cmd, *, nick: IsMyNick):
         """Cancel command (it might take a while before it actually cancel)"""
         server = ctx.channel.name
         cmd = cmd.lower()
@@ -410,7 +410,7 @@ class War(Cog):
         if any(x in ctx.command for x in ("hunt-", "hunt_battle", "watch", "duel")):
             cmd = "auto_" + cmd
         if "auto_" in cmd:
-            await utils.remove_command(ctx, "auto", cmd.split("_", 1)[-1])
+            await utils.remove_command(ctx, "auto", cmd.split("_", 1)[-1].split("-")[0])
 
     @command(aliases=["ally"])
     async def enemy(self, ctx, country: Country, *, nick: IsMyNick):
@@ -451,7 +451,7 @@ class War(Cog):
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         await ctx.send(f"**{nick}** Starting to hunt at {server}.\n"
-                       f"If you want me to stop, type `.hold hunt-{ctx.message.id} {nick}`")
+                       f"If you want me to stop, type `.cancel hunt-{ctx.message.id} {nick}`")
         avg_hit = 0
         if max_dmg_for_bh == 1:
             try:
@@ -646,7 +646,7 @@ class War(Cog):
                     seconds_till_round_end - start_time + uniform(-5, 5))
             await ctx.send(f"**{nick}** {round(seconds_till_hit)} seconds from now (at T {timedelta(seconds=round(seconds_till_round_end-seconds_till_hit))}),"
                            f" I will hit {dmg} {hits_or_dmg} at <{link}> for the {side} side.\n"
-                           f"If you want to cancel it, type `.hold hunt_battle-{ctx.message.id} {nick}`")
+                           f"If you want to cancel it, type `.cancel hunt_battle-{ctx.message.id} {nick}`")
             await sleep(seconds_till_hit)
             tree = await self.bot.get_content(link, return_tree=True)
             top = tree.xpath(f'//*[@id="top{side}1"]//div[3]/text()')
@@ -993,7 +993,7 @@ class War(Cog):
             sleep_time = r["hoursRemaining"] * 3600 + r["minutesRemaining"] * 60 + r["secondsRemaining"] - start_time + uniform(-5, 5)
             if sleep_time > 0:
                 await ctx.send(f"**{nick}** Sleeping for {round(sleep_time)} seconds :zzz:"
-                               f"\nIf you want me to stop, type `.hold watch-{ctx.message.id} {nick}`")
+                               f"\nIf you want me to stop, type `.cancel watch-{ctx.message.id} {nick}`")
                 await sleep(sleep_time)
             if self.bot.should_break(ctx):
                 break
