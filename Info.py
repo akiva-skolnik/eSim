@@ -84,9 +84,12 @@ class Info(Cog):
                     s_item = s_item.replace(" elixir", "").split()
                     tier, elixir = s_item[0], s_item[1]
                     elixirs[elixir][tiers.index(tier)] = item.xpath('span/text()')[0].replace("x", "")
-
+        try:
+            food_limit, gift_limit = utils.get_limits(money_tree)
+        except IndexError:
+            food_limit, gift_limit = "-", "-"
         gold = money_tree.xpath('//div[@class="sidebar-money"][1]/b/text()')[0]
-        embed = Embed(title=nick, description=gold + " Gold")
+        embed = Embed(title=nick, description=gold + f" Gold, {food_limit}/{gift_limit} limits")
         medkits = special.get("Medkit", "0").replace("x", "")
         products, coins, special = sorted(products.items())[-20:], list(coins.items())[:20], sorted(special.items())[-20:]
         for name, data in zip(("Products", "Coins", "Special Items"), (products, coins, special)):
@@ -97,10 +100,7 @@ class Info(Cog):
         embed.add_field(name="**:red_circle: Bloody	:yellow_circle: Lucky**", value="\n".join(
             x.center(7, "\u2800") + y.center(9, "\u2800") for x, y in zip(elixirs['bloody'], elixirs['lucky'])))
         await ctx.send(embed=embed)
-        try:
-            food_limit, gift_limit = utils.get_limits(money_tree)
-        except IndexError:
-            food_limit, gift_limit = "-", "-"
+
         await utils.update_info(server, nick, {"limits": f"{food_limit}/{gift_limit}", "gold": round(float(gold)), "medkits": medkits})
 
     @command()

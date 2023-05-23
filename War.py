@@ -303,7 +303,7 @@ class War(Cog):
         output = f"**{nick}** Fighting at: <{link}&round={api['currentRound']}> for the {side}\n" \
                  f"Limits: {food_limit}/{gift_limit}. Storage: {food_storage}/{gift_storage}/{wep} Q{weapon_quality} weps.\n" \
                  f"If you want me to stop, type `.cancel {ctx.command} {nick}`"
-        if food_storage < food_limit or gift_storage < gift_limit or (food_limit+gift_limit)*5 < wep:
+        if food_storage < food_limit or gift_storage < gift_limit or wep < (food_limit+gift_limit)*5:
             output += f"\nWARNING: you need to refill your storage. See `.help supply`, `.help pack`, `.help buy`"
         msg = await ctx.send(output)
         damage_done = 0
