@@ -3,7 +3,7 @@ import json
 import os
 from asyncio import sleep
 from datetime import datetime
-from random import uniform
+from random import choice, randint, uniform
 
 client = None
 
@@ -294,3 +294,10 @@ def fix_elixir(elixir: str) -> str:
     tier = tier_lookup.get(tier if not tier.isdigit() else "q"+tier, tier)
     elixir = elixir_lookup.get(elixir, elixir)
     return f"{tier}_{elixir}_ELIXIR".upper()
+
+
+async def idle(bot, links: list) -> None:
+    """keep the bot online for a while"""
+    for _ in range(randint(3, 7)):
+        await sleep(uniform(25, 35))
+        await bot.get_content(choice(links), return_tree=True)

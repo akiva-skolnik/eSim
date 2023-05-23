@@ -395,6 +395,7 @@ class War(Cog):
         await msg.edit(content=output)
         await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
         await utils.update_info(server, nick, {"limits": f"{food_limit}/{gift_limit}"})
+        self.bot.loop.create_task(utils.idle(self.bot, [link, base_url, base_url + "battles.html"]))
         return should_break or "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
 
     @command(hidden=True)
@@ -718,7 +719,9 @@ class War(Cog):
     async def auto_motivate(self, ctx, chance_to_skip_a_day: Optional[int] = 7, *, nick: IsMyNick):
         """Motivates at random times throughout every day"""
         if await utils.save_command(ctx, "auto", "motivate", {"chance_to_skip_a_day": chance_to_skip_a_day}):
-            return  # Command already running
+            await ctx.send(f"**{nick}** The command already running. I will update the data if needed.")
+            return
+        await ctx.send(f"**{nick}** Ok")
 
         while not self.bot.should_break(ctx):  # for every day:
             tz = timezone('Europe/Berlin')
@@ -992,6 +995,7 @@ class War(Cog):
         battle_link = f"{base_url}battle.html?id={battle}"
         error = False
         while not error:
+            ctx.invoked_with = "watch"
             r = await self.bot.get_content(battle_link.replace("battle", "apiBattles").replace("id", "battleId"))
             if 8 in (r['defenderScore'], r['attackerScore']):
                 break
@@ -1022,10 +1026,8 @@ class War(Cog):
                                                       ticket_quality if ctx.invoked_with == "watch" else 0, consume_first, medkits)
                     ctx.invoked_with = "fight_fast"
                 await sleep(uniform(6, 13))
-            ctx.invoked_with = "watch"
-            for _ in range(randint(3, 7)):  # keep the bot online for a while after the fight
-                await sleep(uniform(25, 35))
-                await self.bot.get_content(battle_link, return_tree=True)
+
+            await utils.idle(self.bot, [battle_link, base_url, base_url+"battles.html"])
 
         await utils.remove_command(ctx, "auto", "watch")
 

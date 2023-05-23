@@ -170,7 +170,17 @@ class Mix(Cog):
             Mission #37: Fight five times
             Mission #38: Deplete limits
             Mission #39: Wear EQ.
-            Mission #40: Vote a shout"""
+            Mission #40: Vote a shout
+            
+            Day 6:
+            Mission #41: Train and fight (1 hit)
+            Mission #42: Travel abroad
+            Mission #43: Fight for foreign country
+            Mission #44: Come back home
+            Mission #45: Send reflink to a friend
+            Mission #46: Motivate someone
+            Mission #47: Write a private message
+            Mission #48: Subscribe a newspaper"""
             if num == 1:
                 await self.bot.get_content(base_url + "inboxMessages.html")
                 await self.bot.get_content(base_url + "train/ajax", data={"action": "train"})
@@ -308,6 +318,33 @@ class Mix(Cog):
             elif num == 40:
                 await self.bot.get_content(f"{base_url}shoutVote.html", data={"id": randint(1, 100), "vote": 1})
 
+            elif num == 41:
+                await ctx.invoke(self.bot.get_command("work"), nick=nick)
+                tree = await self.bot.get_content(f"{base_url}battles.html?countryId=-1", return_tree=True)
+                battle_ids = utils.get_ids_from_path(tree, '//*[@class="battleHeader"]//a')
+                await ctx.invoke(self.bot.get_command("fight"), nick, battle_ids[0], choice(["defender", "attacker"]), 0, 1, 5)
+            elif num in (42, 43):
+                pass
+            elif num == 44:
+                citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
+                region = [x["id"] for x in await self.bot.get_content(f'{base_url}apiRegions.html') if x["homeCountry"] == citizen["citizenshipIs"]]
+                await ctx.invoke(self.bot.get_command("fly"), choice(region), 5, nick=nick)
+            elif num == 45:
+                async with ClientSession(headers={"User-Agent": environ["headers"]}) as session:
+                    async with session.get(f"{base_url}lan.{my_id}/", ssl=True) as _:
+                        pass
+            elif num == 46:
+                await ctx.invoke(self.bot.get_command("motivate"), nick=nick)
+
+            elif num == 47:
+                citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
+                payload = {'receiverName': f"{citizen['citizenship']} Org", "title": "Hi",
+                           "body": choice(["Hi", "Can you send me some gold?", "Hello there!", "Discord?"]),
+                           "action": "REPLY", "submit": "Send"}
+                await self.bot.get_content(base_url + "composeMessage.html", data=payload)
+            elif num == 48:
+                await self.bot.get_content(f"{base_url}sub.html", data={"id": randint(1, 21)})
+
             # Old missions:
             # new avatar:
             #    await self.bot.get_content(base_url + "editCitizen.html")
@@ -324,27 +361,13 @@ class Mix(Cog):
             elif num == 29:
                 for article_id in range(2, 7):
                     await self.bot.get_content(f"{base_url}vote.html", data={"id": article_id})
-            elif num == 30:
-                await self.bot.get_content(f"{base_url}sub.html", data={"id": randint(1, 21)})
 
             elif num == 49:
                 tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
                 item_id = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')[0].replace("#", "")
                 payload = {'action': "EQUIP", 'itemId': item_id.replace("#", "")}
                 await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
-            elif num == 52:
-                await ctx.invoke(self.bot.get_command("fly"), 1, 3, nick=nick)
-            elif num in (61, 55):
-                await ctx.invoke(self.bot.get_command("motivate"), nick=nick)
-            elif num == 57:
-                citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
-                payload = {'receiverName': f"{citizen['citizenship']} Org", "title": "Hi",
-                           "body": choice(["Hi", "Can you send me some gold?", "Hello there!", "Discord?"]),
-                           "action": "REPLY", "submit": "Send"}
-                await self.bot.get_content(base_url + "composeMessage.html", data=payload)
 
-            elif num == 58:
-                await self.bot.get_content(f"{base_url}sub.html", data={"id": randint(1, 20)})
 
             elif num == 60:
                 await ctx.invoke(self.bot.get_command("friends"), nick=nick)
