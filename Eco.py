@@ -106,11 +106,14 @@ class Eco(Cog):
         else:
             with open(file_name, "w", encoding="utf-8") as file:
                 json.dump(prices, file)
-            await ctx.send(f"**{nick}** I have created a file named `{file_name}` containing those prices. You can edit it any time.")
+            await ctx.send(f"**{nick}** I have created a file named `{file_name}` containing those prices.\n"
+                           f"You can edit it any time, or invoke the command again with all prices.\n"
+                           f'You can now use `.bid_all_auctions {nick}`')
 
     @command()
     async def bid_all_auctions(self, ctx, *, nick: IsMyNick):
-        """Bidding on all auctions"""
+        """Bidding on all auctions.
+        Type `.help set_auctions_prices` to see how to set the prices."""
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         file_name = f"auctions_prices_{server}.json"
@@ -154,11 +157,12 @@ class Eco(Cog):
                 payload = {'action': "BID", 'id': auction_id, 'price': price}
                 await self.bot.get_content(base_url + "auctionAction.html", data=payload)
                 results.append(f"{base_url}auction.html?id={auction_id}, type: {item}, price: {price}")
-                await sleep(randint(1, 4))
+                await sleep(randint(2, 7))
             if results:
                 await ctx.send(f"**{nick}**\n" + "\n".join(results))
             page += 1
-        await ctx.send(f"**{nick}** Done bidding all auctions.")
+        if not should_break:
+            await ctx.send(f"**{nick}** Done bidding all auctions.")
 
     @command()
     async def cc(self, ctx, countries, max_price: float, amount: float, *, nick: IsMyNick):
