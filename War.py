@@ -615,7 +615,7 @@ class War(Cog):
         await utils.remove_command(ctx, "auto", "duel")
 
     @command()
-    async def hunt_battle(self, ctx, nick: IsMyNick, link, side: Side, dmg_or_hits_per_bh: Dmg = 1,
+    async def hunt_battle(self, ctx, nick: IsMyNick, battle: Id, side: Side, dmg_or_hits_per_bh: Dmg = 1,
                           weapon_quality: Quality = 0, food: Quality = 5, gift: Quality = 5, start_time: int = 0):
         """Hunting BH at a specific battle.
         (Good for practice battle / leagues / civil war)
@@ -623,7 +623,7 @@ class War(Cog):
         * if dmg_or_hits < 1000 - it's hits, otherwise - dmg.
         If `nick` contains more than 1 word - it must be within quotes."""
 
-        data = {"link": link, "side": side, "dmg_or_hits_per_bh": dmg_or_hits_per_bh,
+        data = {"link": battle, "side": side, "dmg_or_hits_per_bh": dmg_or_hits_per_bh,
                 "weapon_quality": weapon_quality, "food": food, "gift": gift, "start_time": start_time}
 
         ctx.command = f"hunt_battle-{ctx.message.id}"
@@ -631,6 +631,7 @@ class War(Cog):
 
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
+        link = f"{base_url}battle.html?id={battle}" if not str(battle).startswith("http") else battle
         dmg = dmg_or_hits_per_bh
         hits_or_dmg = "hits" if dmg <= 1000 else "dmg"
         should_break = False

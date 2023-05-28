@@ -36,17 +36,6 @@ class Side(Converter):
         raise BadArgument(f'ERROR: "side" must be "defender" or "attacker" (not {side})')
 
 
-class Bool(Converter):
-    """Bool Converter"""
-    async def convert(self, ctx, answer: str) -> bool:
-        answer = answer.lower()
-        if "y" in answer or "t" in answer:
-            return True
-        if "n" in answer or "f" in answer:
-            return False
-        raise BadArgument(f'ERROR: please choose yes/no or true/false (not {answer})')
-
-
 class Quality(Converter):
     """Quality Converter"""
     async def convert(self, ctx, q: str) -> int:

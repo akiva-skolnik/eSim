@@ -1,8 +1,9 @@
 """Eco.py"""
 import os
+import json
 from asyncio import sleep
 from datetime import datetime, time, timedelta
-from random import randint, uniform
+from random import choice, randint, uniform
 from typing import Optional
 
 from discord import Embed
@@ -10,7 +11,7 @@ from discord.ext.commands import Cog, command
 from pytz import timezone
 
 import utils
-from Converters import Bool, Country, Id, IsMyNick, Product, Quality
+from Converters import Country, Id, IsMyNick, Product, Quality
 
 
 class Eco(Cog):
@@ -40,7 +41,7 @@ class Eco(Cog):
             await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def bid(self, ctx, auction: Id, price: float, delay: Optional[Bool] = False, *, nick: IsMyNick):
+    async def bid(self, ctx, auction: Id, price: float, delay: Optional[bool] = False, *, nick: IsMyNick):
         """Bidding an auction few seconds before its end"""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(f"{base_url}auction.html?id={auction}", return_tree=True)
@@ -60,6 +61,104 @@ class Eco(Cog):
             payload = {'action': "BID", 'id': auction, 'price': f"{float(price):.2f}"}
             url = await self.bot.get_content(base_url + "auctionAction.html", data=payload)
             await ctx.send(f"**{nick}** <{url}>")
+
+    @command(hidden=True)
+    async def set_auctions_prices(self, ctx, nick: IsMyNick, *, prices: str = "{}"):
+        """For each item, you can specify prices in the following formats:
+        1. A single price, for example: `"helmet3": 1.1`. In this case, the bot will bid 1.1 gold on all Q3 helmets.
+        2. Multimple prices, for example `"helmet3": "1, 1.1, 1.2"`. In this case, the bot will bid any price from that list randomly.
+        3. Range of prices, for example `"helmet3": "1-1.2"`. In this case, the bot will bid any price from that range (min 1, max 1.2).
+        4. Any combination of the above, for example `"helmet3": "2, 1-1.2, 1.5-1.8"`. In this case, the bot will bid 2g on third of the auctions, another third will be from the range 1-1.2, and the rest from the range 1.5-1.8
+
+        - Leave `prices` untouched if you want to see the current prices.
+        - You can also bid companies by qualities: `{"q1": "0", "q2": "0", "q3": "0", "q4": "0", "q5": "0"}
+        """
+        server = ctx.channel.name
+        file_name = f"auctions_prices_{server}.json"
+        prices = json.loads(prices.replace("'", '"'))
+        if not prices:
+            if file_name in os.listdir():
+                with open(file_name, "r", encoding="utf-8") as file:
+                    await ctx.send("Current prices:\n" + file.read())
+            else:
+                await ctx.send(
+                    "Here's a draft:\n"
+                    f'.set_auctions_prices "{nick}" ' +
+                    '```json\n{"helmet1": "0.1-0.3", "helmet2": "0.6,0.7", "helmet3": "0", "helmet4": "0", "helmet5": "0", "helmet6": "0", "helmet7": "0",\n'
+                    '"vision1": "0", "vision2": "0", "vision3": "0", "vision4": "0", "vision5": "0", "vision6": "0", "vision7": "0",\n'
+                    '"weapon1": "0", "weapon2": "0", "weapon3": "0", "weapon4": "0", "weapon5": "0", "weapon6": "0", "weapon7": "0",\n'
+                    '"offhand1": "0", "offhand2": "0", "offhand3": "0", "offhand4": "0", "offhand5": "0", "offhand6": "0", "offhand7": "0",\n'
+                    '"armor1": "0", "armor2": "0", "armor3": "0", "armor4": "0", "armor5": "0", "armor6": "0", "armor7": "0",\n'
+                    '"pants1": "0", "pants2": "0", "pants3": "0", "pants4": "0", "pants5": "0", "pants6": "0", "pants7": "0",\n'
+                    '"shoes1": "0", "shoes2": "0", "shoes3": "0", "shoes4": "0", "shoes5": "0", "shoes6": "0", "shoes7": "0",\n'
+                    '"charm1": "0", "charm2": "0", "charm3": "0", "charm4": "0", "charm5": "0", "charm6": "0", "charm7": "0",\n\n'
+
+                    '"jinxedElixirMili": "0", "jinxedElixirMini": "0", "jinxedElixirStandard": "0", "jinxedElixirMajor": "0", "jinxedElixirHuge": "0", "jinxedElixirExceptional": "0",\n'
+                    '"fineseElixirMili": "0", "fineseElixirMini": "0", "fineseElixirStandard": "0", "fineseElixirMajor": "0", "fineseElixirHuge": "0", "fineseElixirExceptional": "0",\n'
+                    '"bloodyMessElixirMili": "0", "bloodyMessElixirMini": "0", "bloodyMessElixirStandard": "0", "bloodyMessElixirMajor": "0", "bloodyMessElixirHuge": "0", "bloodyMessElixirExceptional": "0",\n'
+                    '"luckyElixirMili": "0", "luckyElixirMini": "0", "luckyElixirStandard": "0", "luckyElixirMajor": "0", "luckyElixirHuge": "0", "luckyElixirExceptional": "0",\n\n'
+
+                    '"reshuffle": "0", "upgrade": "0", "vacations": "0", "spa": "0", "resistance": "0", "bunker": "0", "steroids": "0", "tank": "0",\n'
+                    '"camouflage_first_class": "0", "camouflage_second_class": "0", "camouflage_third_class": "0",\n'
+                    '"bandagea": "0","bandageb": "0","bandagec": "0","bandaged": "0","bandagee": "0","bandagef": "0",\n'
+                    '"painDealer1h": "0", "painDealer10h": 0, "painDealer25h": ""}```')
+                await ctx.send_help("set_auctions_prices")
+        else:
+            with open(file_name, "w", encoding="utf-8") as file:
+                json.dump(prices, file)
+            await ctx.send(f"**{nick}** I have created a file named `{file_name}` containing those prices. You can edit it any time.")
+
+    @command()
+    async def bid_all_auctions(self, ctx, *, nick: IsMyNick):
+        """Bidding on all auctions"""
+        server = ctx.channel.name
+        base_url = f"https://{server}.e-sim.org/"
+        file_name = f"auctions_prices_{server}.json"
+        if file_name not in os.listdir():
+            return await ctx.invoke(self.bot.get_command("set_auctions_prices"), nick=nick)
+        else:
+            with open(file_name, "r", encoding="utf-8") as file:
+                prices = json.load(file)
+        await ctx.send(f"**{nick}** Ok. You can cancel with `.cancel bid_all_auctions {nick}`")
+
+        page = 1
+        should_break = False
+        while not should_break:
+            tree = await self.bot.get_content(f"{base_url}auctions.html?page={page}", return_tree=True)
+            buttons = tree.xpath("//*[@class='auctionButtons']/button[last()]")
+            items = tree.xpath("//*[@class='auctionItem']//img[last()]//@src")
+            current_prices = tree.xpath("//*[@class='auctionBidder']//b/text()")
+            if not buttons:  # last page
+                break
+            results = []
+            for item, price, button in zip(items, current_prices, buttons):
+                item = item.split("/")[-1].split(".png")[0].replace("-", "_").replace("bandage_", "bandage")
+                if item.count("_") == 1:
+                    item = item.split("_")[0]
+                elif item.count("_") == 2:  # eq_reshuffle_big.png
+                    item = item.split("_")[1].split("-")[0]
+                auction_id = button.attrib['data-id']
+                min_bid = button.attrib['data-minimal-outbid']
+                buyer = button.attrib['data-top-bidder']
+
+                price = str(prices.get(item, "0")) or "0"
+                price = choice(price.split(","))
+                if "-" in price:
+                    min_price, max_price = price.split("-")
+                    price = round(uniform(float(min_price), float(max_price)), 2)
+                if float(min_bid) > float(price) or buyer.lower() == nick.lower():
+                    continue
+                if self.bot.should_break(ctx):
+                    should_break = True
+                    break
+                payload = {'action': "BID", 'id': auction_id, 'price': price}
+                await self.bot.get_content(base_url + "auctionAction.html", data=payload)
+                results.append(f"{base_url}auction.html?id={auction_id}, type: {item}, price: {price}")
+                await sleep(randint(1, 4))
+            if results:
+                await ctx.send(f"**{nick}**\n" + "\n".join(results))
+            page += 1
+        await ctx.send(f"**{nick}** Done bidding all auctions.")
 
     @command()
     async def cc(self, ctx, countries, max_price: float, amount: float, *, nick: IsMyNick):
@@ -236,7 +335,7 @@ class Eco(Cog):
         .merge 5 My Nick                  ->   Merges all Q1-Q5 eqs in your storage.
         .split 36191 My Nick              ->   Splits eq id 36191
         .merge mini_lucky My Nick         ->   Merges 3 mini elixirs into lucky
-        .merge mili_bloody My Nick        ->   Merges 3 mili bloody mess elixirs into mini
+        .merge mini_bloody My Nick        ->   Merges 3 mili bloody mess elixirs into mini
 
         * You can also use blue/green/red/yellow instead of Jinxed/Finesse/bloody_mess/lucky
         * You can also use Q1-6 instead of mili/mini/standard/major/huge/exceptional
