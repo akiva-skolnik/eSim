@@ -259,7 +259,7 @@ class Mix(Cog):
             # Day 3:
             elif num == 24:
                 ctx.invoked_with = "mu"
-                await ctx.invoke(self.bot.get_command("citizenship"), randint(1, 21), nick=nick)
+                await ctx.invoke(self.bot.get_command("citizenship"), "Mission " * randint(10, 15), randint(1, 21), nick=nick)
 
             # Day 4:
             elif num == 29:

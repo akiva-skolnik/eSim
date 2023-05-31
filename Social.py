@@ -114,17 +114,13 @@ class Social(Cog):
             await ctx.send(f"**{nick}:** There are no new alerts or messages!")
 
     @command(aliases=["MU"])
-    async def citizenship(self, ctx, country_or_mu: Union[Country, Id], *, nick: IsMyNick):
-        """Send application to a MU / country."""
+    async def citizenship(self, ctx, country_or_mu: Union[Country, Id], message: str, *, nick: IsMyNick):
+        """Send application to a MU / country.
+        The message should be within quotes."""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
-        messages = ["The application will be reviewed by congress members",
-                    "[currency]GOLD[/currency][currency]GOLD[/currency]",
-                    "[citizen][citizen] [citizen][citizen] [/citizen][/citizen]",
-                    # feel free to add more in the same format: "item1", "item2"
-                    ]
 
         if ctx.invoked_with.lower() == "citizenship":
-            payload = {'action': "APPLY", 'countryId': country_or_mu, "message": choice(messages), "submit": "Apply for citizenship"}
+            payload = {'action': "APPLY", 'countryId': country_or_mu, "message": message, "submit": "Apply for citizenship"}
             link = "citizenshipApplicationAction.html"
             await self.bot.get_content(base_url + "countryLaws.html")
             await self.bot.get_content(base_url + "countryLaws.html", data={"action": "LEAVE_CONGRESS", "submit": "Leave congress"})
@@ -135,8 +131,9 @@ class Social(Cog):
                 await self.bot.get_content(base_url + "citizenshipApplicationAction.html",
                                            data={"action": "CANCEL", "applicationId": application_ids[0], "submit": "Cancel"})
         else:
-            payload = {'action': "SEND_APPLICATION", 'id': country_or_mu, "message": choice(messages + ["Hello there! Im the new player, please join me!"]), "submit": "Send application"}
+            payload = {'action': "SEND_APPLICATION", 'id': country_or_mu, "message": message, "submit": "Send application"}
             link = "militaryUnitsActions.html"
+            await self.bot.get_content(base_url + link, data={"action": "LEAVE_MILITARY_UNIT", "submit": "Leave military unit"})
             await self.bot.get_content(base_url + link, data={"action": "CANCEL_APPLICATION", "submit": "Cancel application"})
             await self.bot.get_content(base_url + link, data={"action": "LEAVE_MILITARY_UNIT", "submit": "Leave military unit"})
 
