@@ -1,6 +1,7 @@
 """Eco.py"""
 import os
 import json
+import random
 from asyncio import sleep
 from datetime import datetime, time, timedelta
 from random import choice, randint, uniform
@@ -547,6 +548,48 @@ class Eco(Cog):
         if randint(1, 100) < 37:  # 37%
             await sleep(uniform(1, 3))
             await ctx.invoke(self.bot.get_command("read"), nick=nick)
+
+    @command()
+    async def auto_fly(self, ctx, ticket_quality: int, country: Optional[Country] = 26, total_days: Optional[int] = 1, *, nick: IsMyNick):
+        """Fly at random times throughout every day (for drops)
+        Currently, max drops per 24h = 6. 80% of them are Q1 shoes/pants, 16 Q2 and 4% Q3.
+        There's 2% chance to get a drop when you use Q5 ticket, and 3% if you use Q1."""
+
+        base_url = f"https://{ctx.channel.name}.e-sim.org/"
+        regions = [row['id'] for row in await self.bot.get_content(base_url + "apiRegions.html") if row['homeCountry'] == country]
+        max_flights_per_day = 300
+        flights_per_restore = (10 // (5 - ticket_quality)) if ticket_quality != 5 else 10
+        should_break = False
+        for day in range(total_days):
+            found = 0
+            last_region = 0
+            flights = 0
+            output = f"**{nick}** "
+            for i in range(max_flights_per_day // flights_per_restore):
+                for j in range(flights_per_restore):
+                    region = last_region
+                    while region == last_region:
+                        region = choice(regions)
+                    last_region = region
+                    payload = {'countryId': 26, 'regionId': region, 'ticketQuality': ticket_quality}
+                    tree = await self.bot.get_content(f"https://{ctx.channel.name}.e-sim.org/travel.html", data=payload, return_tree=True)
+                    flights += 1
+                    if tree.xpath("//*[@class='travelEquipmentDrop']"):
+                        output += f"found drop after {(i+1)*(j+1)} flights\n"
+                        found += 1
+                    await sleep(uniform(3, 7))
+                    should_break = self.bot.should_break(ctx)
+                    if found == 6 or should_break:
+                        break
+                if found == 6 or should_break:
+                    break
+                await utils.random_sleep()
+
+            await ctx.send(output + f"Found total {found} drops for today. Total flights: {flights}")
+            if should_break:
+                break
+            await sleep(uniform(24, 30)*60*60)
+
 
     @command()
     async def auto_work(self, ctx, work_sessions: Optional[int] = 1, chance_to_skip_work: Optional[int] = 3, *, nick: IsMyNick):
