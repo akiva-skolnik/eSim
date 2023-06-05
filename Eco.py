@@ -229,8 +229,7 @@ class Eco(Cog):
         if not product:
             return await ctx.send(f"**{nick}** ERROR: Invalid input")
 
-        products_bought = 0
-        while products_bought < amount and not self.bot.should_break(ctx):
+        while 0 < amount and not self.bot.should_break(ctx):
             tree = await self.bot.get_content(f"{base_url}productMarket.html?resource={product}&quality={quality}&countryId={market}", return_tree=True)
             data = tree.xpath("//*[@class='buy']/button")
             try:
@@ -252,7 +251,7 @@ class Eco(Cog):
             await ctx.send(f"**{nick}** Quantity: {quantity}. Price: {cost} each. <{url}>")
             if "POST_PRODUCT_BUY_OK" not in url:
                 break
-            products_bought += quantity
+            amount -= quantity
 
     @command()
     async def donate(self, ctx, donation_type, data, receiver_name: str, *, nick: IsMyNick):
@@ -550,7 +549,7 @@ class Eco(Cog):
             await ctx.invoke(self.bot.get_command("read"), nick=nick)
 
     @command()
-    async def auto_work(self, ctx, work_sessions: Optional[int] = 1, chance_to_skip_work: Optional[int] = 7, *, nick: IsMyNick):
+    async def auto_work(self, ctx, work_sessions: Optional[int] = 1, chance_to_skip_work: Optional[int] = 3, *, nick: IsMyNick):
         """Works at random times throughout every day"""
         data = {"work_sessions": work_sessions, "chance_to_skip_work": chance_to_skip_work}
         if await utils.save_command(ctx, "auto", "work", data):
