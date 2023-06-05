@@ -479,7 +479,7 @@ class Mix(Cog):
         for tr in range(2, 100):
             try:
                 name = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]//td[2]/a/text()')[0].strip()
-            except Exception:
+            except IndexError:
                 return await ctx.send(f"**{nick}** ERROR: No such candidate ({your_candidate})")
             if name.lower() == your_candidate.lower():
                 try:
@@ -493,9 +493,10 @@ class Mix(Cog):
                 break
 
         if payload:
+            print(payload)
             tree = await self.bot.get_content(base_url + link, data=payload, return_tree=True)
             msg = tree.xpath('//*[@id="esim-layout"]//div[1]/text()')
-            await ctx.send(f"**{nick}** {' '.join(msg).strip() or 'done'}")
+            await ctx.send(f"**{nick}** {' '.join(msg).strip() or 'voted'}")
         else:
             await ctx.send(f"**{nick}** candidate {your_candidate} was not found")
 

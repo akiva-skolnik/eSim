@@ -150,7 +150,7 @@ class Info(Cog):
 
     @command()
     @check(utils.is_helper)
-    async def regions(self, ctx, country: Country):
+    async def regions(self, ctx, *, country: Country):
         """Lists the core regions of the given country"""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         api_regions = await self.bot.get_content(base_url + "apiRegions.html")
@@ -164,7 +164,7 @@ class Info(Cog):
 
     @command()
     @check(utils.is_helper)
-    async def country(self, ctx, country):
+    async def country(self, ctx, *, country):
         """Provides some info about the given country."""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         api_countries = await self.bot.get_content(base_url + "apiCountries.html")
@@ -190,26 +190,23 @@ class Info(Cog):
         col1 = []
         col2 = []
         col3 = []
-        for tr in range(2, 13):
-            try:
-                seller = tree.xpath(f'//tr[{tr}]//td[1]/a/text()')[0].strip()
-            except IndexError:  # No more auctions
-                break
-            buyer = (tree.xpath(f'//tr[{tr}]//td[2]/a/text()') or ["None"])[0].strip()
-            item = tree.xpath(f'//tr[{tr}]//td[3]/b/text()')
-            parameters = tree.xpath(f'//tr[{tr}]//td[3]/text()')
-            if not item:
-                parameters = parameters[1]
-            else:
-                item = item[0].lower().replace("personal", "").replace("charm", "").replace("weapon upgrade", "WU").title()
-                parameters = f"{item} " + ", ".join(par_val[1] for par_val in (utils.get_parameter(p) for p in parameters[5:]))
-
-            price = tree.xpath(f'//tr[{tr}]//td[4]/b/text()')[0]
-            link = utils.get_ids_from_path(tree, f'//tr[{tr}]//td[5]/a')[0]
-            time = tree.xpath(f'//tr[{tr}]//td[6]/span/text()')[0]
+        buttons = tree.xpath("//*[@class='auctionButtons']/button[last()]")
+        items = tree.xpath("//*[@class='auctionItem']//img[last()]//@src")
+        current_prices = tree.xpath("//*[@class='auctionBidder']//b/text()")
+        time_reminding = tree.xpath("//*[@class='auctionTime']//span/text()")
+        for item, price, button, time in zip(items, current_prices, buttons, time_reminding):
+            item = item.split("/")[-1].split(".png")[0].replace("-", "_").replace("bandage_", "bandage")
+            if item.count("_") == 1:
+                item = item.split("_")[0]
+            elif item.count("_") == 2:  # eq_reshuffle_big.png
+                item = item.split("_")[1].split("-")[0]
+            auction_id = button.attrib['data-id']
+            buyer = button.attrib['data-top-bidder']
+            seller = button.attrib['data-seller']
             col1.append(f"{seller} : {buyer}"[:30])
-            col2.append(parameters[:30])
-            col3.append(f"{float(price):,}g : [{time}]({base_url}auction.html?id={link})")
+            col2.append(item[:30])
+            col3.append(f"{float(price):,}g : [{time}]({base_url}auction.html?id={auction_id})")
+
         embed = Embed(title="First 10 auctions")
         embed.add_field(name="Seller : Buyer", value="\n".join(col1))
         embed.add_field(name="Item", value="\n".join(col2))

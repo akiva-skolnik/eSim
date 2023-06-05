@@ -462,7 +462,6 @@ class War(Cog):
             except:
                 pass
         should_break = False
-        all_countries = [x["name"] for x in await self.bot.get_content(base_url + "apiCountries.html")]
         while not should_break:
             battles_time = {}
             for battle_filter in ("NORMAL", "RESISTANCE"):
@@ -482,10 +481,7 @@ class War(Cog):
                             await utils.chunker(counters, 3), battle_links, sides, types):
                         if battle_type not in ('Normal battle', 'Resistance war'):
                             continue
-                        defender, attacker = sides.split(" vs ")
-                        if attacker in all_countries and defender in all_countries:
-                            battles_time[battle_link.split("=")[-1]] = int(
-                                round_ends[0])*3600 + int(round_ends[1])*60 + int(round_ends[2])
+                        battles_time[battle_link.split("=")[-1]] = int(round_ends[0])*3600 + int(round_ends[1])*60 + int(round_ends[2])
 
             for battle_id, round_ends in sorted(battles_time.items(), key=lambda x: x[1]):
                 api_battles = await self.bot.get_content(f'{base_url}apiBattles.html?battleId={battle_id}')
@@ -850,7 +846,7 @@ class War(Cog):
         action = ctx.invoked_with.lower()
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         if delay:
-            await ctx.send(f"**{nick}** Ok. Sleeping for {delay} seconds. You can cancel with `.cancel attack {nick}`")
+            await ctx.send(f"**{nick}** Ok. Sleeping for {delay} seconds. You can cancel with `.cancel {ctx.command} {nick}`")
             await sleep(delay)
             if self.bot.should_break(ctx):
                 return
@@ -862,7 +858,7 @@ class War(Cog):
         elif action == "dow":
             payload = {'action': "DECLARE_WAR", 'countryId': country_or_region_id, 'submit': "Declare war"}
         else:
-            return await ctx.send(f"**{nick}** ERROR: parameter 'action' must be one of those: mpp/dow/attack (not {action})")
+            return
 
         url = await self.bot.get_content(base_url + "countryLaws.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")

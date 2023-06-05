@@ -180,7 +180,7 @@ class Social(Cog):
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         await ctx.send(f"**{nick}** on it")
         blacklist = set()
-        blacklist = await Eco.remove_rejected(self.bot, base_url, blacklist, "OTHER", "has removed you")
+        await Eco.get_rejected_contracts(self.bot, base_url, blacklist, "OTHER", "has removed you")
         results = []
         if ctx.invoked_with.lower() == "friends":
             for index, row in enumerate(await self.bot.get_content(f"{base_url}apiOnlinePlayers.html")):
