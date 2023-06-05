@@ -204,13 +204,13 @@ class Info(Cog):
             buyer = button.attrib['data-top-bidder']
             seller = button.attrib['data-seller']
             col1.append(f"{seller} : {buyer}"[:30])
-            col2.append(item[:30])
-            col3.append(f"{float(price):,}g : [{time}]({base_url}auction.html?id={auction_id})")
+            col2.append(f"{item} : {float(price):,}g")
+            col3.append(f"[{time}]({base_url}auction.html?id={auction_id})")
 
-        embed = Embed(title="First 10 auctions")
-        embed.add_field(name="Seller : Buyer", value="\n".join(col1))
-        embed.add_field(name="Item", value="\n".join(col2))
-        embed.add_field(name="Gold : Time Reminding", value="\n".join(col3))
+        embed = Embed(title="First 15 auctions")
+        embed.add_field(name="Seller : Buyer", value="\n".join(col1[:15]))
+        embed.add_field(name="Item: Gold", value="\n".join(col2[:15]))
+        embed.add_field(name="Time Reminding", value="\n".join(col3[:15]))
         await ctx.send(embed=embed)
 
     @command()
