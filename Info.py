@@ -205,7 +205,7 @@ class Info(Cog):
             seller = button.attrib['data-seller']
             col1.append(f"{seller} : {buyer}"[:30])
             col2.append(f"{item} : {float(price):,}g")
-            col3.append(f"[{time}]({base_url}auction.html?id={auction_id})")
+            col3.append(f"[{time.strip()}]({base_url}auction.html?id={auction_id})")
 
         embed = Embed(title="First 15 auctions")
         embed.add_field(name="Seller : Buyer", value="\n".join(col1[:15]))
