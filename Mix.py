@@ -104,7 +104,7 @@ class Mix(Cog):
         await ctx.send(f"**{nick}** Ok sir! If you want to stop it, type `.cancel missions {nick}`")
         prv_num = 0
         for _ in range(30):
-            if self.bot.should_break(ctx):
+            if utils.should_break(ctx):
                 break
             await self.bot.get_content(base_url + "betaMissions.html", data={"action": "COMPLETE"})
             tree = await self.bot.get_content(base_url, return_tree=True)
@@ -649,6 +649,31 @@ Examples:
         else:
             await ctx.send(f"**{nick}** shutting down...")
         await self.bot.close()
+
+    @command(hidden=True)
+    async def cancel(self, ctx, cmd: str, *, nick: IsMyNick):
+        """Cancel command (it might take a while before it actually cancel)"""
+        server = ctx.channel.name
+        cmd = cmd.lower()
+        if server not in self.bot.should_break_dict:
+            self.bot.should_break_dict[server] = {}
+        self.bot.should_break_dict[server][cmd] = True
+        await ctx.send(f"**{nick}** I have forwarded your instruction. (it might take a while until it actually cancel {cmd}). See also: `.running_commands {nick}`")
+        if any(x in cmd for x in ("hunt-", "hunt_battle", "watch", "duel")):
+            cmd = "auto_" + cmd
+        if "auto_" in cmd:
+            collection = cmd.split("_", 1)[-1].split("-")[0]
+            data = await utils.find_one("auto", collection, environ['nick'])
+            for command in data.get(ctx.channel.name, [])[:]:
+                if command.get("command", cmd) == cmd:
+                    data[ctx.channel.name].remove(command)
+            await utils.replace_one("auto", collection, environ['nick'], data)
+
+    @command(hidden=True)
+    async def running_commands(self, ctx, *, nick: IsMyNick):
+        await ctx.send(f"**{nick}**\n" + "\n".join(cmd + (" (awaiting cancellation)" if status else "")
+                                                   for cmd, status in ctx.bot.should_break_dict.get(
+            ctx.channel.name, {}).items() if cmd not in ("cancel", "running_commands")))
 
 
 def setup(bot):

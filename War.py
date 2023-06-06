@@ -65,7 +65,7 @@ class War(Cog):
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         specific_battle = (battle_id != 0)
-        while restores > 0 and not self.bot.should_break(ctx):
+        while restores > 0 and not utils.should_break(ctx):
             restores -= 1
             if randint(0, 100) <= chance_to_skip_restore:
                 await sleep(600)
@@ -175,7 +175,7 @@ class War(Cog):
             buff_for_sell = buff_name in ("STEROIDS", "EXTRA_VACATIONS", "EXTRA_SPA", "TANK", "BUNKER", "SEWER_GUIDE")
             actions = ("BUY", "USE") if ctx.invoked_with.lower() == "buff" and buff_for_sell else ("USE", )
             for action in actions:
-                if self.bot.should_break(ctx):
+                if utils.should_break(ctx):
                     return
                 if action == "USE":
                     payload = {'item': buff_name, 'storageType': "SPECIAL_ITEM", 'action': action, 'submit': 'Use'}
@@ -303,7 +303,7 @@ class War(Cog):
         output = f"**{nick}** Fighting at: <{link}&round={api['currentRound']}> for the {side}\n" \
                  f"Limits: {food_limit}/{gift_limit}. Storage: {food_storage}/{gift_storage}/{wep} Q{weapon_quality} weps.\n" \
                  f"If you want me to stop, type `.cancel {ctx.command} {nick}`"
-        if food_storage < food_limit or gift_storage < gift_limit or wep < (food_limit+gift_limit)*5:
+        if food_storage < food_limit or gift_storage < gift_limit or (weapon_quality and wep < (food_limit+gift_limit)*5/0.6):
             output += f"\nWARNING: you need to refill your storage. See `.help supply`, `.help pack`, `.help buy`"
         msg = await ctx.send(output)
         damage_done = 0
@@ -314,11 +314,7 @@ class War(Cog):
         hits_or_dmg = "hits" if dmg <= 1000 else "dmg"
         round_ends = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
         start = time.time()
-        should_break = False
-        while damage_done < dmg and (time.time() - start < round_ends):
-            should_break = self.bot.should_break(ctx)
-            if should_break:
-                break
+        while damage_done < dmg and (time.time() - start < round_ends) and not utils.should_break(ctx):
             if len(output) > 1900:
                 output = "(Message is too long)"
             if weapon_quality > 0 and ((dmg >= 5 > wep) or (dmg < 5 and wep == 0)):
@@ -396,22 +392,7 @@ class War(Cog):
         await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
         await utils.update_info(server, nick, {"limits": f"{food_limit}/{gift_limit}"})
         self.bot.loop.create_task(utils.idle(self.bot, [link, base_url, base_url + "battles.html"]))
-        return should_break or "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
-
-    @command(hidden=True)
-    async def cancel(self, ctx, cmd, *, nick: IsMyNick):
-        """Cancel command (it might take a while before it actually cancel)"""
-        server = ctx.channel.name
-        cmd = cmd.lower()
-        ctx.command = cmd
-        if server not in self.bot.should_break_dict:
-            self.bot.should_break_dict[server] = {}
-        self.bot.should_break_dict[server][cmd] = True
-        await ctx.send(f"**{nick}** I have forwarded your instruction. (it might take a while until it actually cancel {cmd})")
-        if any(x in ctx.command for x in ("hunt-", "hunt_battle", "watch", "duel")):
-            cmd = "auto_" + cmd
-        if "auto_" in cmd:
-            await utils.remove_command(ctx, "auto", cmd.split("_", 1)[-1].split("-")[0])
+        return utils.should_break(ctx) or "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
 
     @command(aliases=["ally"])
     async def enemy(self, ctx, country: Country, *, nick: IsMyNick):
@@ -498,7 +479,7 @@ class War(Cog):
                     await ctx.send(f"**{nick}** Time until <{base_url}battle.html?id={battle_id}&round="
                                    f"{api_battles['currentRound']}>: {timedelta(seconds=round(till_next))}")
                     await sleep(till_next)
-                if self.bot.should_break(ctx):
+                if utils.should_break(ctx):
                     should_break = True
                     break
 
@@ -574,7 +555,7 @@ class War(Cog):
         await utils.save_command(ctx, "auto", "duel", data)
         await ctx.send(
             f"**{nick}** If you want to cancel it, type `.cancel duel-{ctx.message.id} {nick}`")
-        while not self.bot.should_break(ctx):
+        while not utils.should_break(ctx):
             ctx.command = f"duel-{ctx.message.id}"
             if uniform(0, 100) < chance_for_sleep:
                 rand = uniform(sleep_duration-2, sleep_duration+2)*2
@@ -585,11 +566,11 @@ class War(Cog):
                 await ctx.send(f"**{nick}** Sleeping for {timedelta(seconds=round(rand*30*60))}h")
                 await sleep(rand*30*60)
             else:
-                if self.bot.should_break(ctx):
+                if utils.should_break(ctx):
                     break
                 url = await self.bot.get_content(link, data={"action": "ENLIST"})
                 if not url.endswith("BATTLE_IN_PROGRESS"):
-                    await ctx.send(f'**{nick}** <{url}>\nYou can cancel with: ' +
+                    await ctx.send(f'**{nick}** <{url}>\nYou can cancel with: `.cancel duel-{ctx.message.id} {nick}` or ' +
                                    f'`.click "{nick}" {link} ' + '{"action": "CANCEL_ENLIST"}`')
 
                     tree = await self.bot.get_content(link.replace("duelTournament.html", "duelTournamentSchedules.html"), return_tree=True)
@@ -598,9 +579,10 @@ class War(Cog):
                     seconds = (datetime.strptime(starts_in, "%H:%M %d-%m-%Y") - datetime.strptime(now, "%H:%M:%S %d-%m-%Y")).total_seconds()
                     if seconds < 0:
                         await ctx.send(f"**{nick}** {link} is over")
+                        break
                     await ctx.send(f"**{nick}** Round starts in {timedelta(seconds=seconds)}")
                     await sleep(seconds+uniform(60, 80))
-                if self.bot.should_break(ctx):
+                if utils.should_break(ctx):
                     break
                 tree = await self.bot.get_content(link, return_tree=True)
                 my_id = utils.get_ids_from_path(tree, '//*[@id="userName"]')[0]
@@ -630,8 +612,7 @@ class War(Cog):
         link = f"{base_url}battle.html?id={battle}" if not str(battle).startswith("http") else battle
         dmg = dmg_or_hits_per_bh
         hits_or_dmg = "hits" if dmg <= 1000 else "dmg"
-        should_break = False
-        while not should_break:  # For each round
+        while not utils.should_break(ctx):  # For each round
             api = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
             if 8 in (api['defenderScore'], api['attackerScore']):
                 await ctx.send(f"**{nick}** <{link}> is over")
@@ -656,8 +637,7 @@ class War(Cog):
             food_storage, gift_storage = utils.get_storage(tree)
             damage_done = 0
             fight_url, data = await self.get_fight_data(base_url, tree, weapon_quality, side, value=("Berserk" if dmg >= 5 else ""))
-            should_break = self.bot.should_break(ctx)
-            while damage_done < dmg and not should_break:
+            while damage_done < dmg and not utils.should_break(ctx):
                 health = tree.xpath('//*[@id="actualHealth"]/text()') or tree.xpath("//*[@id='healthUpdate']/text()")
                 if health:
                     health = float(health[0].split()[0])
@@ -707,26 +687,26 @@ class War(Cog):
                 await sleep(uniform(0, 2))
 
             await ctx.send(f"**{nick}** done {damage_done:,} {hits_or_dmg} at <{link}>")
-            if not should_break:
+            if not utils.should_break(ctx):
                 await sleep(seconds_till_round_end - seconds_till_hit + 15)
 
         await utils.remove_command(ctx, "auto", "hunt_battle")
 
     @command()
-    async def auto_motivate(self, ctx, chance_to_skip_a_day: Optional[int] = 7, *, nick: IsMyNick):
+    async def auto_motivate(self, ctx, chance_to_skip_a_day: Optional[int] = 5, *, nick: IsMyNick):
         """Motivates at random times throughout every day"""
-        if await utils.save_command(ctx, "auto", "motivate", {"chance_to_skip_a_day": chance_to_skip_a_day}):
-            await ctx.send(f"**{nick}** The command already running. I will update the data if needed.")
-            return
-        await ctx.send(f"**{nick}** Ok")
+        await utils.save_command(ctx, "auto", "motivate", {"chance_to_skip_a_day": chance_to_skip_a_day})
 
-        while not self.bot.should_break(ctx):  # for every day:
+        await ctx.send(f"**{nick}** Starting to motivate every day with {chance_to_skip_a_day} chance to skip a day.\n"
+                       f"Cancel with `.cancel auto_motivate {nick}`")
+
+        while not utils.should_break(ctx):  # for every day:
             tz = timezone('Europe/Berlin')
             now = datetime.now(tz)
             midnight = tz.localize(datetime.combine(now + timedelta(days=1), dt_time(0, 0, 0, 0)))
             sec_til_midnight = (midnight - now).seconds
             await sleep(uniform(0, sec_til_midnight - 600))
-            if not self.bot.should_break(ctx) and randint(1, 100) > chance_to_skip_a_day:
+            if not utils.should_break(ctx) and randint(1, 100) > chance_to_skip_a_day:
                 await ctx.invoke(self.bot.get_command("motivate"), nick=nick)
 
             # sleep till midnight
@@ -800,7 +780,7 @@ class War(Cog):
         checking = []
         sent_count = 0
         errors = 0
-        while not self.bot.should_break(ctx):
+        while not utils.should_break(ctx):
             try:
                 if sent_count == 5:
                     await ctx.send(f"**{nick}**\n" + "\n".join(checking) + "\n- Successfully motivated 5 players.")
@@ -848,7 +828,7 @@ class War(Cog):
         if delay:
             await ctx.send(f"**{nick}** Ok. Sleeping for {delay} seconds. You can cancel with `.cancel {ctx.command} {nick}`")
             await sleep(delay)
-            if self.bot.should_break(ctx):
+            if utils.should_break(ctx):
                 return
 
         if action == "attack":
@@ -915,7 +895,7 @@ class War(Cog):
         if delay > 0:
             await ctx.send(f"**{nick}** Ok. If you changed your mind, type `.cancel rw {nick}`")
         await sleep(delay)
-        if not self.bot.should_break(ctx):
+        if not utils.should_break(ctx):
             base_url = f"https://{ctx.channel.name}.e-sim.org/"
             region_link = f"{base_url}region.html?id={region_id_or_link}"
             if not await ctx.invoke(self.bot.get_command("fly"), region_id_or_link, ticket_quality, nick=nick):
@@ -1001,7 +981,7 @@ class War(Cog):
                 await ctx.send(f"**{nick}** Sleeping for {round(sleep_time)} seconds :zzz:"
                                f"\nIf you want me to stop, type `.cancel watch-{ctx.message.id} {nick}`")
                 await sleep(sleep_time)
-            if self.bot.should_break(ctx):
+            if utils.should_break(ctx):
                 break
             await ctx.send(f"**{nick}** T{round(start_time / 60, 1)} at <{battle_link}&round={r['currentRound']}>")
             tree = await self.bot.get_content(battle_link, return_tree=True)
@@ -1038,7 +1018,7 @@ class War(Cog):
         results = []
         ids = [int(x.replace("#", "").replace(f"{base_url}showEquipment.html?id=", "").strip()) for x in ids.split(",") if x.strip()]
         for eq_id in ids:
-            if self.bot.should_break(ctx):
+            if utils.should_break(ctx):
                 break
             payload = {'action': "PUT_OFF" if ctx.invoked_with.lower() == "unwear" else "EQUIP", 'itemId': eq_id}
             url = await self.bot.get_content(f"{base_url}equipmentAction.html", data=payload)

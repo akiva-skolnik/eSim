@@ -1,7 +1,6 @@
 """Social.py"""
 from asyncio import sleep
 from json import loads
-from random import choice
 from typing import Union
 
 from discord import Embed
@@ -184,7 +183,7 @@ class Social(Cog):
         results = []
         if ctx.invoked_with.lower() == "friends":
             for index, row in enumerate(await self.bot.get_content(f"{base_url}apiOnlinePlayers.html")):
-                if self.bot.should_break(ctx):
+                if utils.should_break(ctx):
                     break
                 if (index+1) % 10 == 0 and results:
                     await ctx.send(f"**{nick}**\n" + "\n".join(results))
@@ -211,7 +210,7 @@ class Social(Cog):
                 friends = tree.xpath("//td/a/text()")
                 links = utils.get_ids_from_path(tree, "//td/a")
                 for friend, link in zip(friends, links):
-                    if self.bot.should_break(ctx):
+                    if utils.should_break(ctx):
                         return
                     friend = friend.strip()
                     if friend not in blacklist:

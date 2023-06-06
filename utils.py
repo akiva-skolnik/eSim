@@ -26,39 +26,39 @@ def initiate_db() -> None:
         client = None
 
 
-async def find(server: str, collection: str) -> list:
+async def find(database: str, collection: str) -> list:
     """find first 50 documents"""
     if client is not None:
-        database = client[server][collection]
+        database = client[database][collection]
         return await database.find().to_list(50)
     else:
-        filename = f"{server}_{collection}.json"
+        filename = f"{database}_{collection}.json"
         if filename in os.listdir():
             with open(filename, "r", encoding='utf-8', errors='ignore') as file:
                 return [{**v, **{"_id": k}} for k, v in json.load(file).items()][:50]
         return []
 
 
-async def find_one(server: str, collection: str, document: str) -> dict:
+async def find_one(database: str, collection: str, document: str) -> dict:
     """find one document"""
     if client is not None:
-        database = client[server][collection]
+        database = client[database][collection]
         return await database.find_one({"_id": document.lower()}, {"_id": 0}) or {}
     else:
-        filename = f"{server}_{collection}.json"
+        filename = f"{database}_{collection}.json"
         if filename in os.listdir():
             with open(filename, "r", encoding='utf-8', errors='ignore') as file:
                 return json.load(file).get(document.lower(), {})
         return {}
 
 
-async def replace_one(server: str, collection: str, document: str, data: dict) -> None:
+async def replace_one(database: str, collection: str, document: str, data: dict) -> None:
     """replace one document"""
     if client is not None:
-        database = client[server][collection]
+        database = client[database][collection]
         await database.replace_one({'_id': document.lower()}, data, True)
     else:
-        filename = f"{server}_{collection}.json"
+        filename = f"{database}_{collection}.json"
         if filename in os.listdir():
             with open(filename, "r", encoding='utf-8', errors='ignore') as file:
                 big_dict = json.load(file)
@@ -255,11 +255,26 @@ def get_ids_from_path(tree, path: str) -> list:
     return ids
 
 
-async def save_command(ctx, server: str, collection: str, info: dict) -> bool:
-    """returns True if the command is already running"""
+def add_command(ctx):
+    server = ctx.channel.name
+    cmd = str(ctx.command)
+    if server not in ctx.bot.should_break_dict:
+        ctx.bot.should_break_dict[server] = {}
+    ctx.bot.should_break_dict[server][cmd] = False
+
+
+def remove_finished_command(ctx):
+    server = ctx.channel.name
+    if str(ctx.command) in ctx.bot.should_break_dict.get(server, {}):
+        del ctx.bot.should_break_dict[server][str(ctx.command)]
+
+
+async def save_command(ctx, server: str, collection: str, info: dict) -> None:
+    """saves the command in the database, so that it can be re-invoked after reboot"""
+    cmd = str(ctx.command)
     data = await find_one(server, collection, os.environ['nick'])
     new_dict = {"channel_id": str(ctx.channel.id), "message_id": str(ctx.message.id),
-                "nick": my_nick(ctx.channel.name), "command": str(ctx.command)}
+                "nick": my_nick(ctx.channel.name), "command":cmd}
     new_dict.update(info)
     if ctx.channel.name not in data:
         data[ctx.channel.name] = []
@@ -268,21 +283,23 @@ async def save_command(ctx, server: str, collection: str, info: dict) -> bool:
     if new_dict not in data[ctx.channel.name]:
         data[ctx.channel.name].append(new_dict)
         await replace_one(server, collection, os.environ['nick'], data)
-        if ctx.bot.should_break_dict.get(ctx.channel.name, {}).get(str(ctx.command)) is False:
-            return True
-    return False
+    add_command(ctx)
+    if "-" in cmd and cmd.split("-")[0] in ctx.bot.should_break_dict.get(server, {}):
+        del ctx.bot.should_break_dict[server][cmd.split("-")[0]]
 
 
-async def remove_command(ctx, server: str, collection: str) -> None:
+async def remove_command(ctx, database: str, collection: str) -> None:
     """remove command"""
-    data = await find_one(server, collection, os.environ['nick'])
+    remove_finished_command(ctx)
+    data = await find_one(database, collection, os.environ['nick'])
     if ctx.channel.name in data:
         if not isinstance(data[ctx.channel.name], list):  # old version
             data[ctx.channel.name] = [data[ctx.channel.name]]
         for command in data[ctx.channel.name][:]:
-            if command["command"] == str(ctx.command):
+            # the get is for old version which has no "command" in it
+            if command.get("command", str(ctx.command)) == str(ctx.command):
                 data[ctx.channel.name].remove(command)
-        await replace_one(server, collection, os.environ['nick'], data)
+        await replace_one(database, collection, os.environ['nick'], data)
 
 
 def fix_elixir(elixir: str) -> str:
@@ -301,3 +318,10 @@ async def idle(bot, links: list) -> None:
     for _ in range(randint(3, 7)):
         await sleep(uniform(25, 35))
         await bot.get_content(choice(links), return_tree=True)
+
+
+def should_break(ctx) -> bool:
+    """returns whether the user wants to stop the command"""
+    server = ctx.channel.name
+    cmd = str(ctx.command)
+    return ctx.bot.should_break_dict.get(server, {}).get(cmd)

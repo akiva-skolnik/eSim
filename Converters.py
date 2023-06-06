@@ -18,7 +18,7 @@ class IsMyNick(Converter):
         nicks = [x.strip().lower() for x in nick.replace('"', "").replace("'", "").replace("\n", ",").split(",")]
         if nick.lower() == "all":
             nicks.append(my_nick.lower())
-            await sleep(uniform(1, 20))
+            await sleep(uniform(3, 25))
         elif len(nicks) > 1:
             await sleep(uniform(0, len(nicks) * 2))
         if my_nick.lower() in nicks:

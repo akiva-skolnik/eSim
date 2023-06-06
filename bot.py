@@ -23,10 +23,10 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
-bot.VERSION = "05/06/2023"
+bot.VERSION = "06/06/2023"
 bot.config_file = config_file
 bot.sessions = {}
-bot.should_break_dict = {}
+bot.should_break_dict = {}  # format: {server: {command: True if it should be canceled, else False if it's running}}
 categories = ("Eco", "Mix", "Social", "War", "Info")
 
 
@@ -131,20 +131,6 @@ async def start():
                 d["let_overkill"], d["weapon_quality"], d["ticket_quality"], d["consume_first"], d.get("medkits", 0)))
 
 
-def should_break(ctx):
-    """tells the command if it should stop (after sleep)"""
-    server = ctx.channel.name
-    cmd = str(ctx.command)
-    if server not in bot.should_break_dict:
-        bot.should_break_dict[server] = {}
-    if cmd not in bot.should_break_dict[server]:
-        bot.should_break_dict[server][cmd] = False
-    res = bot.should_break_dict[server][cmd]
-    if res:
-        del bot.should_break_dict[server][cmd]
-    return res
-
-
 async def inner_get_content(link: str, server: str, data=None, return_tree=False, return_type=""):
     """inner get content"""
     method = "get" if data is None else "post"
@@ -228,6 +214,16 @@ async def on_message(message):
         await bot.invoke(ctx)
 
 
+@bot.before_invoke
+async def add_command(ctx):
+    utils.add_command(ctx)
+
+
+@bot.after_invoke
+async def remove_finished_command(ctx):
+    utils.remove_finished_command(ctx)
+
+
 @bot.command()
 async def update(ctx, *, nick: Converters.IsMyNick):
     """Updates the code from the source.
@@ -247,7 +243,7 @@ async def update(ctx, *, nick: Converters.IsMyNick):
         bot.VERSION = (await r.json())["commit"]["commit"]["author"]["date"]
     importlib.reload(utils)
     importlib.reload(Converters)
-    utils.initiate_db()
+    utils.initiate_db()  # global variable reloaded
     for extension in categories:
         bot.reload_extension(extension)
 
@@ -277,7 +273,6 @@ async def on_command_error(ctx, error):
             await ctx.reply(error)
 
 bot.get_content = get_content
-bot.should_break = should_break
 if os.environ["TOKEN"] != "PASTE YOUR TOKEN HERE":
     bot.loop.create_task(start())  # startup function
     bot.run(os.environ["TOKEN"])

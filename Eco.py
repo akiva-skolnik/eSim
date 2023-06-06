@@ -1,7 +1,6 @@
 """Eco.py"""
 import os
 import json
-import random
 from asyncio import sleep
 from datetime import datetime, time, timedelta
 from random import choice, randint, uniform
@@ -58,7 +57,7 @@ class Eco(Cog):
             delay_in_seconds = int(h) * 3600 + int(m) * 60 + int(s) - t
             await ctx.send(f"**{nick}** Ok, I will bid ~{t} seconds before the auction ends")
             await sleep(delay_in_seconds)
-        if not delay or not self.bot.should_break(ctx):
+        if not delay or not utils.should_break(ctx):
             payload = {'action': "BID", 'id': auction, 'price': f"{float(price):.2f}"}
             url = await self.bot.get_content(base_url + "auctionAction.html", data=payload)
             await ctx.send(f"**{nick}** <{url}>")
@@ -126,8 +125,7 @@ class Eco(Cog):
         await ctx.send(f"**{nick}** Ok. You can cancel with `.cancel bid_all_auctions {nick}`")
 
         page = 1
-        should_break = False
-        while not should_break:
+        while not utils.should_break(ctx):
             tree = await self.bot.get_content(f"{base_url}auctions.html?page={page}", return_tree=True)
             buttons = tree.xpath("//*[@class='auctionButtons']/button[last()]")
             items = tree.xpath("//*[@class='auctionItem']//img[last()]//@src")
@@ -152,8 +150,7 @@ class Eco(Cog):
                     price = round(uniform(float(min_price), float(max_price)), 2)
                 if float(min_bid) > float(price) or buyer.lower() == nick.lower():
                     continue
-                if self.bot.should_break(ctx):
-                    should_break = True
+                if utils.should_break(ctx):
                     break
                 payload = {'action': "BID", 'id': auction_id, 'price': price}
                 await self.bot.get_content(base_url + "auctionAction.html", data=payload)
@@ -162,7 +159,7 @@ class Eco(Cog):
             if results:
                 await ctx.send(f"**{nick}**\n" + "\n".join(results))
             page += 1
-        if not should_break:
+        if not utils.should_break(ctx):
             await ctx.send(f"**{nick}** Done bidding all auctions.")
 
     @command()
@@ -185,7 +182,7 @@ class Eco(Cog):
                     await ctx.send(f"**{nick}** country {country} - no offers found.")
                     break
                 for offer_id, offer_amount, ratio in zip(offers_ids, amounts, ratios):
-                    if self.bot.should_break(ctx):
+                    if utils.should_break(ctx):
                         return
                     try:
                         offer_amount, ratio = float(offer_amount), float(ratio)
@@ -230,7 +227,7 @@ class Eco(Cog):
         if not product:
             return await ctx.send(f"**{nick}** ERROR: Invalid input")
 
-        while 0 < amount and not self.bot.should_break(ctx):
+        while 0 < amount and not utils.should_break(ctx):
             tree = await self.bot.get_content(f"{base_url}productMarket.html?resource={product}&quality={quality}&countryId={market}", return_tree=True)
             data = tree.xpath("//*[@class='buy']/button")
             try:
@@ -362,7 +359,7 @@ class Eco(Cog):
             await ctx.invoke(self.bot.get_command("eqs"), nick=nick)
 
         elif ids_or_quality.isdigit():
-            await ctx.send(f"**{nick}** On it!")
+            await ctx.send(f"**{nick}** On it! You can cancel with `.cancel merge {nick}`")
             max_q_to_merge = int(ids_or_quality.lower().replace("q", ""))  # max_q_to_merge - including
             results = []
             error = False
@@ -379,7 +376,7 @@ class Eco(Cog):
                         eqs_dict[quality].append(int(eq_id.replace("#", "")))
                 for i in range(1, max_q_to_merge + 1):
                     for z in range(len(eqs_dict.get(i, [])) // 3):
-                        if self.bot.should_break(ctx):
+                        if utils.should_break(ctx):
                             error = True
                             break
                         eq1, eq2, eq3 = eqs_dict[i][z * 3:z * 3 + 3]
@@ -425,7 +422,7 @@ class Eco(Cog):
         if "Gold" in coins:
             del coins["Gold"]
         for currency, amount in coins.items():
-            if self.bot.should_break(ctx):
+            if utils.should_break(ctx):
                 return
             currency_id = [i["id"] for i in api if i["currencyName"] == currency][0]
             tree = await self.bot.get_content(f'{base_url}monetaryMarket.html?buyerCurrencyId={currency_id}&sellerCurrencyId=0', return_tree=True)
@@ -442,7 +439,7 @@ class Eco(Cog):
         ids = money_tree.xpath('//*[@id="command"]//input[1]')
         currencies = [x.strip() for x in money_tree.xpath(f"//*[@class='amount']//text()") if x.strip()][1::2]
         for i in range(len(currencies)):
-            if self.bot.should_break(ctx):
+            if utils.should_break(ctx):
                 return
             currency_id = [x["id"] for x in api if x["currencyName"] == currencies[i]][0]
             tree = await self.bot.get_content(f'{base_url}monetaryMarketOffers?buyerCurrencyId={currency_id}&sellerCurrencyId=0&page=1', return_tree=True)
@@ -476,7 +473,7 @@ class Eco(Cog):
         else:
             ids = [x.strip() for x in ids.split(",") if x.strip()]
         for eq_id in ids:
-            if self.bot.should_break(ctx):
+            if utils.should_break(ctx):
                 return
             eq_id = eq_id.replace(base_url + "showEquipment.html?id=", "").replace("#", "").strip()
             if eq_id == "reshuffle":
@@ -545,9 +542,8 @@ class Eco(Cog):
             await sleep(uniform(3, 30))
             await self.bot.get_content(base_url + "train/ajax", data={"action": "train"})
             await ctx.send(f"**{nick}** Trained successfully")
-        if randint(1, 100) < 37:  # 37%
-            await sleep(uniform(1, 3))
-            await ctx.invoke(self.bot.get_command("read"), nick=nick)
+        await sleep(uniform(1, 3))
+        await ctx.invoke(self.bot.get_command("read"), nick=nick)
 
     @command()
     async def auto_fly(self, ctx, ticket_quality: int, country: Optional[Country] = 26, total_days: Optional[int] = 1, *, nick: IsMyNick):
@@ -559,7 +555,6 @@ class Eco(Cog):
         regions = [row['id'] for row in await self.bot.get_content(base_url + "apiRegions.html") if row['homeCountry'] == country]
         max_flights_per_day = 300
         flights_per_restore = (10 // (5 - ticket_quality)) if ticket_quality != 5 else 10
-        should_break = False
         for day in range(total_days):
             found = 0
             last_region = 0
@@ -571,38 +566,34 @@ class Eco(Cog):
                     while region == last_region:
                         region = choice(regions)
                     last_region = region
-                    payload = {'countryId': 26, 'regionId': region, 'ticketQuality': ticket_quality}
+                    payload = {'countryId': country, 'regionId': region, 'ticketQuality': ticket_quality}
                     tree = await self.bot.get_content(f"https://{ctx.channel.name}.e-sim.org/travel.html", data=payload, return_tree=True)
                     flights += 1
                     if tree.xpath("//*[@class='travelEquipmentDrop']"):
                         output += f"found drop after {(i+1)*(j+1)} flights\n"
                         found += 1
                     await sleep(uniform(3, 7))
-                    should_break = self.bot.should_break(ctx)
-                    if found == 6 or should_break:
+                    if found == 6 or utils.should_break(ctx):
                         break
-                if found == 6 or should_break:
+                if found == 6 or utils.should_break(ctx):
                     break
                 await utils.random_sleep()
 
             await ctx.send(output + f"Found total {found} drops for today. Total flights: {flights}")
-            if should_break:
+            if utils.should_break(ctx):
                 break
             await sleep(uniform(24, 30)*60*60)
-
 
     @command()
     async def auto_work(self, ctx, work_sessions: Optional[int] = 1, chance_to_skip_work: Optional[int] = 3, *, nick: IsMyNick):
         """Works at random times throughout every day"""
         data = {"work_sessions": work_sessions, "chance_to_skip_work": chance_to_skip_work}
-        if await utils.save_command(ctx, "auto", "work", data):
-            await ctx.send(f"**{nick}** The command already running. I will update the data if needed.")
-            return  # Command already running
+        await utils.save_command(ctx, "auto", "work", data)
         await ctx.send(f"**{nick}** I will work from now on {work_sessions} times every day, with {chance_to_skip_work}% chance to skip a work.\n"
                        f"If you wish to stop it, type `.cancel auto_work`")
 
         tz = timezone('Europe/Berlin')
-        while not self.bot.should_break(ctx):  # for every day:
+        while not utils.should_break(ctx):  # for every day:
             sec_between_works = (24 * 60 * 60) // work_sessions
             now = datetime.now(tz)
             midnight = tz.localize(datetime.combine(now + timedelta(days=1), time(0, 0, 0, 0)))
@@ -614,7 +605,7 @@ class Eco(Cog):
                 if work_session_start < min(work_session_end, sec_til_midnight-20):
                     await sleep(uniform(work_session_start, min(work_session_end, sec_til_midnight - 20)))
                 now = datetime.now(tz)
-                if self.bot.should_break(ctx):
+                if utils.should_break(ctx):
                     break
                 if randint(1, 100) > chance_to_skip_work:
                     await ctx.invoke(self.bot.get_command("work"), nick=nick)
@@ -644,7 +635,7 @@ class Eco(Cog):
         await get_received_contracts(self.bot, base_url, blacklist, contract_name)
         await get_rejected_contracts(self.bot, base_url, blacklist)
         async for friend in get_friends_list(self.bot, nick, server):
-            if self.bot.should_break(ctx):
+            if utils.should_break(ctx):
                 break
             if friend not in blacklist:
                 payload = {'id': contract_id, 'action': "PROPOSE", 'citizenProposedTo': friend, 'submit': 'Propose'}
@@ -658,7 +649,7 @@ class Eco(Cog):
         await ctx.send(f"**{nick}** done.")
 
 
-async def get_rejected_contracts(bot, base_url: str, blacklist: set, alerts_filter: str = "CONTRACTS", text:str = "has rejected your") -> None:
+async def get_rejected_contracts(bot, base_url: str, blacklist: set, alerts_filter: str = "CONTRACTS", text: str = "has rejected your") -> None:
     """remove rejected contracts"""
     tree = await bot.get_content(base_url + 'notifications.html?filter=' + alerts_filter, return_tree=True)
     last_page = utils.get_ids_from_path(tree, "//ul[@id='pagination-digg']//li[last()-1]/") or ['1']
