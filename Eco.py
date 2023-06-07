@@ -590,7 +590,7 @@ class Eco(Cog):
         data = {"work_sessions": work_sessions, "chance_to_skip_work": chance_to_skip_work}
         await utils.save_command(ctx, "auto", "work", data)
         await ctx.send(f"**{nick}** I will work from now on {work_sessions} times every day, with {chance_to_skip_work}% chance to skip a work.\n"
-                       f"If you wish to stop it, type `.cancel auto_work`")
+                       f"If you wish to stop it, type `.cancel auto_work {nick}`")
 
         tz = timezone('Europe/Berlin')
         while not utils.should_break(ctx):  # for every day:

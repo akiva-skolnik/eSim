@@ -89,7 +89,7 @@ class Country(Converter):
             api = await session.get(f"https://{ctx.channel.name}.e-sim.org/apiCountries.html", ssl=True)
             country = next(x['id'] for x in await api.json(
                 content_type=None) if x["name"].lower() == country.strip().lower())
-        return country
+        return int(country)
 
 
 class Dmg(Converter):
