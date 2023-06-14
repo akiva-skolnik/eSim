@@ -398,6 +398,8 @@ class Mix(Cog):
             .config alpha_password 1234  my_nick
             .config help ""  my_nick
         """
+        if key == "trusted_users_ids":
+            return await ctx.send(f"**{nick}** this is a sensitive key, so you will have to set it manually")
         with open(self.bot.config_file, "r", encoding="utf-8") as file:
             big_dict = json.load(file)
         if not value and key in big_dict:
@@ -583,7 +585,10 @@ Examples:
     @command(hidden=True)
     async def execute(self, ctx, nick: IsMyNick, *, code) -> None:
         """Evaluates a given Python code.
-        This is limited to the bot's owner only for security reasons."""
+
+        > **IMPORTANT**:  By default, anyone in your channel can use the command `execute` (including revealing your password!).
+        > If you want to change it, add to your config file thr pair: `"trusted_users_ids": [00000, 11111],` ("Copy User ID" within Discord).
+        > Only users in that list will be able to use `execute` (you can leave it empty)"""
         # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/admin.py#L215
         if ctx.author.id not in environ.get("trusted_users_ids", [ctx.author.id]):
             return
