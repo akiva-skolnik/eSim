@@ -303,15 +303,14 @@ class Eco(Cog):
             region = utils.get_ids_from_path(tree, '//div[1]//div[2]//div[5]//div[1]//div//div[1]//div//div[4]//a')[0]
             if not await ctx.invoke(self.bot.get_command("fly"), region, ticket_quality, nick=nick):
                 return
-            job_ids = tree.xpath('//td[4]//input[1]')
+            job_ids = [job_id.value for job_id in tree.xpath('//tr//td[4]//form[1]/input[1]')]
             skills = [int(x) for x in tree.xpath('//td[1]/text()') if x.isdigit()]
             job_id = None
-            for job_id, skill in zip(job_ids, skills):
+            for _job_id, skill in zip(job_ids, skills):
                 if api_citizen["economySkill"] >= skill:
+                    job_id = _job_id
                     break
-            if job_id is not None:
-                job_id = job_id.value
-            else:
+            if job_id is None:
                 return await ctx.send(f"**{nick}** ERROR: There are no job offers in <{base_url}company.html?id={company_id}> for your skill.")
         else:
             tree = await self.bot.get_content(base_url + "jobMarket.html", return_tree=True)
