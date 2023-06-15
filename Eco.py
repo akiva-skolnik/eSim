@@ -326,7 +326,7 @@ class Eco(Cog):
         await ctx.invoke(self.bot.get_command("work"), nick=nick)
 
     @command(aliases=["split"])
-    async def merge(self, ctx, ids_or_quality: str, *, nick: IsMyNick):
+    async def merge(self, ctx, ids_or_quality: str, include_bound: Optional[bool] = False, *, nick: IsMyNick):
         """
         Merges a specific EQ IDs / all EQs up to specific Q (included) / elixirs.
 
@@ -366,10 +366,11 @@ class Eco(Cog):
                 tree = await self.bot.get_content(f'{base_url}storage.html?storageType=EQUIPMENT', return_tree=True)
                 ids = tree.xpath('//*[starts-with(@id, "cell")]/a/text()')
                 items = tree.xpath('//*[starts-with(@id, "cell")]/b/text()')
+                soul_bounds = ["id" in x.attrib for x in tree.xpath('//*[starts-with(@id, "cell")]/p[1]')]
                 eqs_dict = {}
-                for eq_id, item in zip(ids, items):
+                for eq_id, item, soul in zip(ids, items, soul_bounds):
                     quality = int(item.split()[0].replace("Q", ""))
-                    if quality < max_q_to_merge + 1:
+                    if quality < max_q_to_merge + 1 and (include_bound or not soul):
                         if quality not in eqs_dict:
                             eqs_dict[quality] = []
                         eqs_dict[quality].append(int(eq_id.replace("#", "")))

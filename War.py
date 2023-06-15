@@ -731,8 +731,6 @@ class War(Cog):
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
 
-        tree = await self.bot.get_content(base_url + 'storage.html?storageType=PRODUCT', return_tree=True)
-
         def get_storage(tree):
             food = gift = weps = 0
             for num in range(1, 52):
@@ -761,6 +759,7 @@ class War(Cog):
                 storage["Q3 gift"] = 3
             return storage
 
+        tree = await self.bot.get_content(base_url + 'storage.html?storageType=PRODUCT', return_tree=True)
         storage = get_storage(tree)
         if not storage:
             data = [(randint(3, 15)*5, "1", "WEAPON"), (randint(1, 7)*5, "3", "FOOD"), (randint(1, 5)*5, "3", "GIFT")]

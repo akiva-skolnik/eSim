@@ -30,7 +30,10 @@ class Info(Cog):
         """Shows the list of EQs in storage."""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         tree = await self.bot.get_content(base_url + 'storage.html?storageType=EQUIPMENT', return_tree=True)
+
+        soul_bounds = ["id" in x.attrib for x in tree.xpath('//*[starts-with(@id, "cell")]/p[1]')]
         items = tree.xpath('//*[starts-with(@id, "cell")]/b/text()')
+        items = [items[i] + " *" if soul_bounds[i] else items[i] for i in range(items)]
         original_ids = [ID.replace('#', '') for ID in tree.xpath('//*[starts-with(@id, "cell")]/a/text()')]
         parameters = [[utils.get_parameter(p) for p in tree.xpath(f'//*[@id="cell{ID}"]/text()')[3:]] for ID in original_ids]
         ids = [f"[{ID}]({base_url}showEquipment.html?id={ID})" for ID in original_ids]
@@ -40,7 +43,7 @@ class Info(Cog):
         length = 20
         if not ids:
             return await ctx.send(f"**{nick}** no eqs in storage.")
-        embed = Embed(title=nick)
+        embed = Embed(title=nick, description="(`*` means soulbound)" if any(soul_bounds) else "")
         embed.add_field(name="ID", value="\n".join(ids[:length]))
         embed.add_field(name="Item", value="\n".join(items[:length]))
         embed.add_field(name="Parameters", value="\n".join(", ".join(par_val[1] for par_val in eq) for eq in parameters[:length]))
