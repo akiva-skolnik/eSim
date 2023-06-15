@@ -660,8 +660,8 @@ Examples:
         """Cancel command (it might take a while before it actually cancel)"""
         server = ctx.channel.name
         cmd = cmd.lower()
-        if server not in self.bot.should_break_dict:
-            self.bot.should_break_dict[server] = {}
+        if cmd not in self.bot.should_break_dict.get(server, {}):
+            return await ctx.send(f"**{nick}** This command does not currently running. See `.running_commands {nick}`")
         self.bot.should_break_dict[server][cmd] = True
         await ctx.send(f"**{nick}** I have forwarded your instruction. (it might take a while until it actually cancel {cmd}). See also: `.running_commands {nick}`")
         if any(x in cmd for x in ("hunt-", "hunt_battle", "watch", "duel")):
@@ -676,7 +676,7 @@ Examples:
 
     @command(hidden=True)
     async def running_commands(self, ctx, *, nick: IsMyNick):
-        await ctx.send(f"**{nick}**\n" + "\n".join(cmd + (" (awaiting cancellation)" if status else "")
+        await ctx.send(f"**{nick}** cancel any with `.cancel command {nick}`\n" + "\n".join(cmd + (" (awaiting cancellation)" if status else "")
                                                    for cmd, status in ctx.bot.should_break_dict.get(
             ctx.channel.name, {}).items() if cmd not in ("cancel", "running_commands")))
 

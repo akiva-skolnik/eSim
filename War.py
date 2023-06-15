@@ -136,7 +136,7 @@ class War(Cog):
         """Buy and use buffs.
 
         The buff names should be formal (can be found via F12), but here are some shortcuts:
-        VAC = EXTRA_VACATIONS, SPA = EXTRA_SPA, SEWER = SEWER_GUIDE, STR = STEROIDS, PD 10 = PAIN_DEALER_10_H
+        VAC = EXTRA_VACATIONS, SPA = EXTRA_SPA, SEWER = SEWER_GUIDE, STR = STEROIDS, PD_10 = PAIN_DEALER_10_H
         More examples: BANDAGE_SIZE_C and CAMOUFLAGE_II, MILI_JINXED_ELIXIR, MINI_BLOODY_MESS_ELIXIR
 
         * You can also use blue/green/red/yellow instead of Jinxed/Finesse/bloody_mess/lucky
@@ -169,7 +169,7 @@ class War(Cog):
             elif "STR" in buff_name:
                 buff_name = "STEROIDS"
             elif "PD" in buff_name:
-                buff_name = buff_name.replace("PD", "PAIN_DEALER") + "_H"
+                buff_name = buff_name.replace("PD", "PAIN_DEALER") + ("_H" if not buff_name.endswith("_H") else "")
             elif buff_name.endswith("_ELIXIR"):
                 buff_name = utils.fix_elixir(buff_name)
             buffs_names[i] = buff_name
