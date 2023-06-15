@@ -33,7 +33,7 @@ class Info(Cog):
 
         soul_bounds = ["id" in x.attrib for x in tree.xpath('//*[starts-with(@id, "cell")]/p[1]')]
         items = tree.xpath('//*[starts-with(@id, "cell")]/b/text()')
-        items = [items[i] + " *" if soul_bounds[i] else items[i] for i in range(items)]
+        items = [items[i] + " *" if soul_bounds[i] else items[i] for i in range(len(items))]
         original_ids = [ID.replace('#', '') for ID in tree.xpath('//*[starts-with(@id, "cell")]/a/text()')]
         parameters = [[utils.get_parameter(p) for p in tree.xpath(f'//*[@id="cell{ID}"]/text()')[3:]] for ID in original_ids]
         ids = [f"[{ID}]({base_url}showEquipment.html?id={ID})" for ID in original_ids]

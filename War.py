@@ -9,6 +9,7 @@ from datetime import timedelta
 from random import randint, uniform, shuffle
 from typing import Optional
 
+from discord import Embed
 from discord.ext.commands import Cog, command
 from pytz import timezone
 
@@ -867,7 +868,8 @@ class War(Cog):
         action = ctx.invoked_with
         if action.lower() not in ("reshuffle", "upgrade"):
             return await ctx.send(f"**{nick}** ERROR: 'action' parameter can be reshuffle/upgrade only (not {action})")
-        base_url = f"https://{ctx.channel.name}.e-sim.org/"
+        server = ctx.channel.name
+        base_url = f"https://{server}.e-sim.org/"
 
         link = f"{base_url}showEquipment.html?id={eq_id_or_link}"
         tree = await self.bot.get_content(link, return_tree=True)
@@ -884,7 +886,15 @@ class War(Cog):
                 f"**{nick}** ERROR: I did not find the parameter {parameter} at <{link}>. Try copy & paste.")
         payload = {'parameterId': parameter_id, 'action': f"{action.upper()}_PARAMETER", "submit": action.capitalize()}
         url = await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
-        await ctx.send(f"**{nick}** <{url}>")
+        if not url.endswith("SPLIT_ITEM_OK"):
+            return await ctx.send(f"**{nick}** <{url}>")
+        link = f"https://{server}.e-sim.org/apiEquipmentById.html?id={eq_id_or_link}"
+        api = await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
+        embed = Embed(url=link, title=f"{nick} Q{api['EqInfo'][0]['quality']} {api['EqInfo'][0]['slot'].title()}")
+        embed.add_field(name="Parameters:", value="\n".join(
+            f"**{x['Name']}:** {round(x['Value'], 3)}" for x in api['Parameters']))
+        await ctx.send(embed=embed)
+
 
     @command()
     async def rw(self, ctx, region_id_or_link: Id, ticket_quality: Optional[int] = 5, delay: Optional[int] = 0, *, nick: IsMyNick):
