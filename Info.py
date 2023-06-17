@@ -57,19 +57,8 @@ class Info(Cog):
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
 
-        special = {}
-        products = {}
-
         storage_tree = await self.bot.get_content(f"{base_url}storage.html?storageType=PRODUCT", return_tree=True)
-        for item in storage_tree.xpath("//div[@class='storage']"):
-            name = item.xpath("div[2]/img/@src")[0].replace("//cdn.e-sim.org//img/productIcons/", "").replace(
-                "Rewards/", "").replace(".png", "")
-            if name.lower() in ["iron", "grain", "diamonds", "oil", "stone", "wood"]:
-                quality = ""
-            else:
-                quality = item.xpath("div[2]/img/@src")[1].replace(
-                    "//cdn.e-sim.org//img/productIcons/", "").replace(".png", "")
-            products[f"{quality.title()} {name}"] = item.xpath("div[1]/text()")[0].strip()
+        products = utils.get_storage(storage_tree)
 
         money_tree = await self.bot.get_content(base_url + "storage.html?storageType=MONEY", return_tree=True)
         money = [x.strip() for x in money_tree.xpath("//*[@class='currencyDiv']//text()") if x.strip()]
@@ -77,6 +66,7 @@ class Info(Cog):
 
         elixirs = {"jinxed": [""]*6, "finesse": [""]*6, "bloody": [""]*6, "lucky": [""]*6}
         tiers = ["Mili", "Mini", "Standard", "Major", "Huge", "Exceptional"]
+        special = {}
         special_tree = await self.bot.get_content(f"{base_url}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
         for item in special_tree.xpath('//div[@class="specialItemInventory"]'):
             if item.xpath('span/text()'):
@@ -250,18 +240,8 @@ class Info(Cog):
 
         base_url = f"https://{server}.e-sim.org/"
         tree = await self.bot.get_content(base_url + "storage.html?storageType=PRODUCT", return_tree=True)
-
+        storage = utils.get_storage(tree)
         gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
-        storage = {}
-        for num in range(1, 22):
-            try:
-                item = str(tree.xpath(f'//*[@id="resourceInput"]/option[{num}]')[0].text).strip().replace(
-                    "(available", "").replace(")", "").split(":")
-                while "  " in item[0]:
-                    item[0] = item[0].replace("  ", "")
-                storage[item[0]] = int(item[1])
-            except Exception:
-                break
 
         special = {}
         elixirs = {"jinxed": [""]*6, "finesse": [""]*6, "bloody": [""]*6, "lucky": [""]*6}

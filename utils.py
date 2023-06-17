@@ -130,6 +130,20 @@ async def get_battle_id(bot, nick: str, server: str, battle_ids, prioritize_my_c
     return battle_ids[0].replace("battle.html?id=", "") or None
 
 
+def get_products(tree) -> dict:
+    products = {}
+    for item in tree.xpath("//div[@class='storage']"):
+        name = item.xpath("div[2]/img/@src")[0].replace("//cdn.e-sim.org//img/productIcons/", "").replace(
+            "Rewards/", "").replace(".png", "")
+        if name.lower() in ["iron", "grain", "diamonds", "oil", "stone", "wood"]:
+            quality = ""
+        else:
+            quality = item.xpath("div[2]/img/@src")[1].replace(
+                "//cdn.e-sim.org//img/productIcons/", "").replace(".png", "")
+        products[f"{quality.title()} {name}"] = item.xpath("div[1]/text()")[0].strip()
+    return products
+
+
 async def random_sleep(restores_left: int = 1) -> None:
     """random sleep"""
     if restores_left:

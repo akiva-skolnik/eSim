@@ -676,9 +676,10 @@ Examples:
 
     @command(hidden=True)
     async def running_commands(self, ctx, *, nick: IsMyNick):
-        await ctx.send(f"**{nick}** cancel any with `.cancel command {nick}`\n" + "\n".join(cmd + (" (awaiting cancellation)" if status else "")
-                                                   for cmd, status in ctx.bot.should_break_dict.get(
-            ctx.channel.name, {}).items() if cmd not in ("cancel", "running_commands")))
+        await ctx.send(f"**{nick}** cancel any with `.cancel command {nick}`\n" +
+                       "\n".join(cmd + (" (awaiting cancellation)" if status else "")
+                                 for cmd, status in ctx.bot.should_break_dict.get(
+                           ctx.channel.name, {}).items() if cmd not in ("cancel", "running_commands")))
 
 
 def setup(bot):

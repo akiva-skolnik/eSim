@@ -733,30 +733,16 @@ class War(Cog):
         base_url = f"https://{server}.e-sim.org/"
 
         def get_storage(tree):
-            food = gift = weps = 0
-            for num in range(1, 52):
-                try:
-                    item = str(tree.xpath(f'//*[@id="resourceInput"]/option[{num}]')[0].text).strip()
-                    item = item.replace("(available", "").replace(")", "").split(":")
-                    while "  " in item[0]:
-                        item[0] = item[0].replace("  ", "")
-                    if item[0] == "Q1 Weapon":
-                        weps = int(item[1])
-                    elif item[0] == "Q3 Gift":
-                        gift = int(item[1])
-                    elif item[0] == "Q3 Food":
-                        food = int(item[1])
-                except Exception:
-                    break
+            products = utils.get_storage(tree)
 
             storage = {}
-            if weps >= 15:
+            if products.get("Q1 Weapon", 0) >= 15:
                 storage["Q1 wep"] = 1
 
-            if food >= 10:
+            if products.get("Q3 Food", 0) >= 10:
                 storage["Q3 food"] = 2
 
-            if gift >= 5:
+            if products.get("Q3 Gift", 0) >= 5:
                 storage["Q3 gift"] = 3
             return storage
 
@@ -832,11 +818,11 @@ class War(Cog):
                 return
 
         if action == "attack":
-            payload = {'action': "ATTACK_REGION", 'regionId': country_or_region_id, 'attackButton': "Attack"}
+            payload = {'action': "ATTACK_REGION", 'regionId': country_or_region_id, 'submit': "Attack"}
         elif action == "mpp":
             payload = {'action': "PROPOSE_ALLIANCE", 'countryId': country_or_region_id, 'submit': "Propose alliance"}
         elif action == "dow":
-            payload = {'action': "DECLARE_WAR", 'countryId': country_or_region_id, 'submit': "Declare war"}
+            payload = {'action': "DECLARE_WAR", 'dowCountryId': country_or_region_id, 'submit': "Declare war"}
         else:
             return
 
