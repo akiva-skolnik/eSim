@@ -140,7 +140,7 @@ def get_products(tree) -> dict:
         else:
             quality = item.xpath("div[2]/img/@src")[1].replace(
                 "//cdn.e-sim.org//img/productIcons/", "").replace(".png", "")
-        products[f"{quality.title()} {name}"] = item.xpath("div[1]/text()")[0].strip()
+        products[f"{quality.title()} {name}"] = int(item.xpath("div[1]/text()")[0].strip())
     return products
 
 
