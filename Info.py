@@ -58,7 +58,7 @@ class Info(Cog):
         base_url = f"https://{server}.e-sim.org/"
 
         storage_tree = await self.bot.get_content(f"{base_url}storage.html?storageType=PRODUCT", return_tree=True)
-        products = utils.get_storage(storage_tree)
+        products = utils.get_products(storage_tree)
 
         money_tree = await self.bot.get_content(base_url + "storage.html?storageType=MONEY", return_tree=True)
         money = [x.strip() for x in money_tree.xpath("//*[@class='currencyDiv']//text()") if x.strip()]
@@ -240,7 +240,7 @@ class Info(Cog):
 
         base_url = f"https://{server}.e-sim.org/"
         tree = await self.bot.get_content(base_url + "storage.html?storageType=PRODUCT", return_tree=True)
-        storage = utils.get_storage(tree)
+        storage = utils.get_products(tree)
         gold = tree.xpath('//*[@id="userMenu"]//div//div[4]//div[1]/b/text()')[0]
 
         special = {}

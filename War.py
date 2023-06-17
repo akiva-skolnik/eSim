@@ -733,7 +733,7 @@ class War(Cog):
         base_url = f"https://{server}.e-sim.org/"
 
         def get_storage(tree):
-            products = utils.get_storage(tree)
+            products = utils.get_products(tree)
 
             storage = {}
             if products.get("Q1 Weapon", 0) >= 15:
