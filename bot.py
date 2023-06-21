@@ -56,6 +56,7 @@ async def start():
     bot.enemies = await utils.find_one("enemies", "list", os.environ["nick"])
     for extension in categories:
         bot.load_extension(extension)
+    bot.sessions["incognito"] = await create_session()
     print('Logged in as')
     print(bot.user.name)
     print(f"Invite: https://discordapp.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot")
@@ -131,16 +132,15 @@ async def start():
                 d["let_overkill"], d["weapon_quality"], d["ticket_quality"], d["consume_first"], d.get("medkits", 0)))
 
 
-async def inner_get_content(link: str, server: str, data=None, return_tree=False, return_type=""):
+async def inner_get_content(link: str, server: str, data=None, return_tree=False):
     """inner get content"""
     method = "get" if data is None else "post"
-    if not return_type:
-        return_type = "json" if "api" in link else "html"
-
+    return_type = "json" if "api" in link or "battleScore" in link else "html"
+    session = await get_session(server)
     for _ in range(5):
         try:
-            async with (await get_session(server)).get(link, ssl=True) if method == "get" else \
-                    (await get_session(server)).post(link, data=data, ssl=True) as respond:
+            async with session.get(link, ssl=True) if method == "get" else \
+                    session.post(link, data=data, ssl=True) as respond:
                 if "google.com" in str(respond.url) or respond.status == 403:
                     await sleep(5)
                     continue
@@ -177,21 +177,21 @@ async def inner_get_content(link: str, server: str, data=None, return_tree=False
     raise ConnectionError(link)
 
 
-async def get_content(link, data=None, return_tree=False, return_type=""):
+async def get_content(link, data=None, return_tree=False, incognito=False):
     """get content"""
     link = link.split("#")[0].replace("http://", "https://")
-    server = link.split("https://", 1)[1].split(".e-sim.org", 1)[0]
+    server = "incognito" if incognito else link.split("https://", 1)[1].split(".e-sim.org", 1)[0]
     nick = utils.my_nick(server)
     url = f"https://{server}.e-sim.org/"
     not_logged_in = False
     tree = None
     try:
-        tree = await inner_get_content(link, server, data, return_tree, return_type)
+        tree = await inner_get_content(link, server, data, return_tree)
     except ConnectionError as exc:
         if "notLoggedIn" != str(exc):
             raise exc
         not_logged_in = True
-    if not_logged_in:
+    if not_logged_in and not incognito:
         await close_session(server)
 
         payload = {'login': nick, 'password': os.environ.get(server + "_password", os.environ.get('password')), "submit": "Login"}
@@ -200,9 +200,9 @@ async def get_content(link, data=None, return_tree=False, return_type=""):
                 print(r.url)
                 if "index.html?act=login" not in str(r.url):
                     raise ConnectionError(f"{nick} - Failed to login {r.url}")
-        tree = await inner_get_content(link, server, data, return_tree, return_type)
+        tree = await inner_get_content(link, server, data, return_tree)
     if tree is None:
-        tree = await inner_get_content(link, server, data, return_tree, return_type)
+        tree = await inner_get_content(link, server, data, return_tree)
     return tree
 
 

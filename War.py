@@ -446,24 +446,9 @@ class War(Cog):
         should_break = False
         while not should_break:
             battles_time = {}
-            for battle_filter in ("NORMAL", "RESISTANCE"):
-                link = f'{base_url}battles.html?filter={battle_filter}'
-                tree = await self.bot.get_content(link, return_tree=True)
-                last_page = int((utils.get_ids_from_path(tree, "//ul[@id='pagination-digg']//li[last()-1]/") or ['1'])[0])
-                for page in range(1, last_page+1):
-                    if page > 1:
-                        tree = await self.bot.get_content(link + f'&page={page}', return_tree=True)
-                    battle_links = tree.xpath('//*[@class="battleHeader"]//a/@href')
-                    sides = tree.xpath('//*[@class="battleHeader"]//em/text()')
-                    counters = [i.split(");\n")[0] for i in
-                                tree.xpath('//*[@id="battlesTable"]//div//div//script/text()') for i in
-                                i.split("() + ")[1:]]
-                    types = tree.xpath('//*[@class="battleHeader"]//i/@data-hover')
-                    for round_ends, battle_link, sides, battle_type in zip(
-                            await utils.chunker(counters, 3), battle_links, sides, types):
-                        if battle_type not in ('Normal battle', 'Resistance war'):
-                            continue
-                        battles_time[battle_link.split("=")[-1]] = int(round_ends[0])*3600 + int(round_ends[1])*60 + int(round_ends[2])
+            for battle in await utils.get_battles(self.bot, base_url):
+                round_ends = battle["time_reminding"].split(":")
+                battles_time[battle["battle_id"]] = int(round_ends[0]) * 3600 + int(round_ends[1]) * 60 + int(round_ends[2])
 
             for battle_id, round_ends in sorted(battles_time.items(), key=lambda x: x[1]):
                 api_battles = await self.bot.get_content(f'{base_url}apiBattles.html?battleId={battle_id}')
@@ -861,11 +846,12 @@ class War(Cog):
         tree = await self.bot.get_content(link, return_tree=True)
         eq = tree.xpath('//*[@id="esim-layout"]//div/div[3]/div/h4/text()')
         parameter_id = tree.xpath('//*[@id="esim-layout"]//div/div[3]/div/h3/text()')
-        if parameter in eq[0].replace("by  ", "by ") or parameter == "first":
+        parameter = parameter.lower()
+        if parameter in eq[0].replace("by  ", "by ").lower() or parameter == "first":
             parameter_id = parameter_id[0].split("#")[1]
-        elif parameter in eq[1].replace("by  ", "by ") or parameter == "second":
+        elif parameter in eq[1].replace("by  ", "by ").lower() or parameter == "second":
             parameter_id = parameter_id[1].split("#")[1]
-        elif parameter in eq[-1].replace("by  ", "by ") or parameter == "last":
+        elif parameter in eq[-1].replace("by  ", "by ").lower() or parameter in ("last", "third"):
             parameter_id = parameter_id[-1].split("#")[1]
         else:
             return await ctx.send(
@@ -874,13 +860,12 @@ class War(Cog):
         url = await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
         if not url.endswith("SPLIT_ITEM_OK"):
             return await ctx.send(f"**{nick}** <{url}>")
-        link = f"https://{server}.e-sim.org/apiEquipmentById.html?id={eq_id_or_link}"
-        api = await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
+        api_link = f"https://{server}.e-sim.org/apiEquipmentById.html?id={eq_id_or_link}"
+        api = await self.bot.get_content(api_link, data=payload)
         embed = Embed(url=link, title=f"{nick} Q{api['EqInfo'][0]['quality']} {api['EqInfo'][0]['slot'].title()}")
         embed.add_field(name="Parameters:", value="\n".join(
             f"**{x['Name']}:** {round(x['Value'], 3)}" for x in api['Parameters']))
         await ctx.send(embed=embed)
-
 
     @command()
     async def rw(self, ctx, region_id_or_link: Id, ticket_quality: Optional[int] = 5, delay: Optional[int] = 0, *, nick: IsMyNick):
@@ -984,8 +969,7 @@ class War(Cog):
 
             while not error:
                 battle_score = await self.bot.get_content(
-                    f'{base_url}battleScore.html?id={hidden_id}&at={api_citizen["id"]}&ci={api_citizen["citizenshipId"]}&premium=1',
-                    return_type="json")
+                    f'{base_url}battleScore.html?id={hidden_id}&at={api_citizen["id"]}&ci={api_citizen["citizenshipId"]}&premium=1')
                 if battle_score["remainingTimeInSeconds"] <= 0:
                     break
                 my_side = int(battle_score[f"{side}Score"].replace(",", ""))
@@ -1023,6 +1007,30 @@ class War(Cog):
                 await sleep(uniform(2, 5))
             results.append(f"ID {eq_id} - <{url}>")
         await ctx.send(f"**{nick}**\n" + "\n".join(results))
+
+    @command()
+    async def hunt_events(self, ctx, nick: IsMyNick, dmg_or_hits_per_bh: Dmg = 1,
+                          weapon_quality: Quality = 0, food: Quality = 5, gift: Quality = 5, start_time: int = 0):
+        """Checks every ~10 minutes if there's a new event battle, and start hunt_battle on it."""
+        base_url = f"https://{ctx.channel.name}.e-sim.org/"
+        api_citizen = await self.bot.get_content(f'{base_url}apiCitizenByName.html?name={nick.lower()}')
+        my_citizenship_id = api_citizen["citizenshipId"]
+        my_citizenship = api_citizen["citizenship"]
+        await ctx.send(f"**{nick}** Ok. You can cancel with `.cancel hunt_events {nick}`")
+
+        while not utils.should_break(ctx):
+            battles = await utils.get_battles(self.bot, base_url, country_id=my_citizenship_id, normal_battles=False)
+            for battle in battles:
+                if my_citizenship.lower() == battle["defender"]["name"].lower():
+                    side = "defender"
+                elif my_citizenship.lower() == battle["attacker"]["name"].lower():
+                    side = "attacker"
+                else:
+                    continue
+                self.bot.loop.create_task(ctx.invoke(
+                    self.bot.get_command("hunt_battle"), nick, battle["battle_id"], side, dmg_or_hits_per_bh,
+                    weapon_quality, food, gift, start_time))
+            await sleep(uniform(500, 700))
 
 
 def setup(bot):

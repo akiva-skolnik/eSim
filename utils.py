@@ -339,3 +339,48 @@ def should_break(ctx) -> bool:
     server = ctx.channel.name
     cmd = str(ctx.command)
     return ctx.bot.should_break_dict.get(server, {}).get(cmd)
+
+
+async def get_battles(bot, base_url: str, country_id: int = 0, normal_battles: bool = True) -> list[dict]:
+    """Get battles data"""
+    battles = []
+    link = f'{base_url}battles.html?countryId={country_id}'
+    tree = await bot.get_content(link, return_tree=True, incognito=True)
+    last_page = int((get_ids_from_path(tree, "//ul[@id='pagination-digg']//li[last()-1]/") or ['1'])[0])
+    for page in range(1, last_page+1):
+        if page != 1:
+            tree = await bot.get_content(link + f'&page={page}', return_tree=True, incognito=True)
+        total_dmg = tree.xpath('//*[@class="battleTotalDamage"]/text()')
+        progress_attackers = [float(x.replace("%", "")) for x in tree.xpath('//*[@id="attackerScoreInPercent"]/text()')]
+        attackers_dmg = tree.xpath('//*[@id="attackerDamage"]/text()')
+        defenders_dmg = tree.xpath('//*[@id="defenderDamage"]/text()')
+        counters = [i.split(");\n")[0] for i in tree.xpath('//*[@id="battlesTable"]//div//div//script/text()') for i in
+                    i.split("() + ")[1:]]
+        counters = [f'{int(x[0]):02d}:{int(x[1]):02d}:{int(x[2]):02d}' for x in await chunker(counters, 3)]
+        sides = tree.xpath('//*[@class="battleHeader"]//em/text()')
+        battle_ids = tree.xpath('//*[@class="battleHeader"]//a/@href')
+        battle_regions = tree.xpath('//*[@class="battleHeader"]//a/text()')
+        scores = tree.xpath('//*[@class="battleFooterScore hoverText"]/text()')
+
+        types = tree.xpath('//*[@class="battleHeader"]//i/@data-hover')
+        for i, (dmg, progress_attacker, counter, sides, battle_id, battle_region, score, battle_type) in enumerate(zip(
+                total_dmg, progress_attackers, counters, sides, battle_ids, battle_regions, scores, types)):
+            if battle_type == "Practice Battle" or \
+                    (normal_battles and battle_type not in ('Normal battle', 'Resistance war')) or (
+                    not normal_battles and battle_type in ('Normal battle', 'Resistance war')):
+                continue
+            defender, attacker = sides.split(" vs ")
+            battles.append(
+                {"total_dmg": dmg, "time_reminding": counter,
+                 "battle_id": int(battle_id.split("=")[-1]), "region": battle_region,
+                 "defender": {"name": defender, "score": int(score.strip().split(":")[0]),
+                              "bar": round(100 - progress_attacker, 2)},
+                 "attacker": {"name": attacker, "score": int(score.strip().split(":")[1]),
+                              "bar": progress_attacker}})
+            if attackers_dmg:  # some servers do not show current dmg
+                try:
+                    battles[-1]["defender"]["dmg"] = int(defenders_dmg[i].replace(",", ""))
+                    battles[-1]["attacker"]["dmg"] = int(attackers_dmg[i].replace(",", ""))
+                except Exception:
+                    pass
+    return battles
