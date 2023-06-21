@@ -163,7 +163,7 @@ async def inner_get_content(link: str, server: str, data=None, return_tree=False
                     except Exception:
                         tree = fromstring(await respond.text(encoding='utf-8'))[1:]
                     logged = tree.xpath('//*[@id="command"]')
-                    if any("login.html" in x.action for x in logged):
+                    if server != "incognito" and any("login.html" in x.action for x in logged):
                         raise ConnectionError("notLoggedIn")
                     if isinstance(return_tree, str):
                         return tree, str(respond.url)
