@@ -341,7 +341,7 @@ def should_break(ctx) -> bool:
     return ctx.bot.should_break_dict.get(server, {}).get(cmd)
 
 
-async def get_battles(bot, base_url: str, country_id: int = 0, normal_battles: bool = True) -> list[dict]:
+async def get_battles(bot, base_url: str, country_id: int = 0, normal_battles: bool = True) -> list:
     """Get battles data"""
     battles = []
     link = f'{base_url}battles.html?countryId={country_id}'
