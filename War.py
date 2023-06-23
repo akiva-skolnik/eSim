@@ -860,8 +860,8 @@ class War(Cog):
         url = await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
         if not url.endswith("SPLIT_ITEM_OK"):
             return await ctx.send(f"**{nick}** <{url}>")
-        api_link = f"https://{server}.e-sim.org/apiEquipmentById.html?id={eq_id_or_link}"
-        api = await self.bot.get_content(api_link, data=payload)
+        api_link = f"{base_url}apiEquipmentById.html?id={eq_id_or_link}"
+        api = await self.bot.get_content(api_link)
         embed = Embed(url=link, title=f"{nick} Q{api['EqInfo'][0]['quality']} {api['EqInfo'][0]['slot'].title()}")
         embed.add_field(name="Parameters:", value="\n".join(
             f"**{x['Name']}:** {round(x['Value'], 3)}" for x in api['Parameters']))
