@@ -874,7 +874,7 @@ class War(Cog):
         Note: region can be link or id."""
         if delay > 0:
             await ctx.send(f"**{nick}** Ok. If you changed your mind, type `.cancel rw {nick}`")
-        await sleep(delay)
+            await sleep(delay)
         if not utils.should_break(ctx):
             base_url = f"https://{ctx.channel.name}.e-sim.org/"
             region_link = f"{base_url}region.html?id={region_id_or_link}"

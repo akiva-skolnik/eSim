@@ -45,11 +45,16 @@ class Mix(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
-    async def candidate(self, ctx, *, nick: IsMyNick):
+    async def candidate(self, ctx, delay: Optional[float] = 0, *, nick: IsMyNick):
         """Candidate for congress / president elections.
         It will also auto join to the first party (by members) if necessary."""
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
+        if delay:
+            await ctx.send(f"**{nick}** Ok. If you changed your mind, type `.cancel candidate {nick}`")
+            await sleep(delay)
+        if utils.should_break(ctx):
+            return
         today = int(datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%d"))  # game time
         if 1 < today < 5:
             payload = {"action": "CANDIDATE", "presentation": "http://", "submit": "Candidate for president"}
