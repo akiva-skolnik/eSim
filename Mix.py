@@ -669,7 +669,7 @@ Examples:
             return await ctx.send(f"**{nick}** This command does not currently running. See `.running_commands {nick}`")
         self.bot.should_break_dict[server][cmd] = True
         await ctx.send(f"**{nick}** I have forwarded your instruction. (it might take a while until it actually cancel {cmd}). See also: `.running_commands {nick}`")
-        if any(x in cmd for x in ("hunt-", "hunt_battle", "watch", "duel")):
+        if any(x in cmd for x in ("hunt-", "hunt_battle", "watch")):
             cmd = "auto_" + cmd
         if "auto_" in cmd:
             collection = cmd.split("_", 1)[-1].split("-")[0]

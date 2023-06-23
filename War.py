@@ -534,13 +534,8 @@ class War(Cog):
         base_url = f"https://{server}.e-sim.org/"
         if "duelTournament" not in link:
             return await ctx.send("Not a duel link")
-        data = {"link": link, "max_hits_per_round": max_hits_per_round, "weapon_quality": weapon_quality,
-                "food": food, "gift": gift, "start_time": start_time, "chance_for_sleep": chance_for_sleep,
-                "sleep_duration": sleep_duration, "chance_for_nap": chance_for_nap}
-        ctx.command = f"duel-{ctx.message.id}"
-        await utils.save_command(ctx, "auto", "duel", data)
         await ctx.send(
-            f"**{nick}** If you want to cancel it, type `.cancel duel-{ctx.message.id} {nick}`")
+            f"**{nick}** If you want to cancel it, type `.cancel duel {nick}`")
         while not utils.should_break(ctx):
             ctx.command = f"duel-{ctx.message.id}"
             if uniform(0, 100) < chance_for_sleep:
@@ -576,7 +571,6 @@ class War(Cog):
                 side = "attacker" if attacker.endswith(f"={my_id}") else "defender"
                 await ctx.invoke(self.bot.get_command("hunt_battle"), nick, base_url+battle, side, max_hits_per_round,
                                  weapon_quality, food, gift, start_time)
-        await utils.remove_command(ctx, "auto", "duel")
 
     @command()
     async def hunt_battle(self, ctx, nick: IsMyNick, battle: Id, side: Side, dmg_or_hits_per_bh: Dmg = 1,
