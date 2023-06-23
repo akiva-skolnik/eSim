@@ -1017,7 +1017,7 @@ class War(Cog):
         my_citizenship_id = api_citizen["citizenshipId"]
         my_citizenship = api_citizen["citizenship"]
         await ctx.send(f"**{nick}** Ok. You can cancel with `.cancel hunt_events {nick}`")
-
+        added_battles = []
         while not utils.should_break(ctx):
             battles = await utils.get_battles(self.bot, base_url, country_id=my_citizenship_id, normal_battles=False)
             for battle in battles:
@@ -1027,9 +1027,12 @@ class War(Cog):
                     side = "attacker"
                 else:
                     continue
-                self.bot.loop.create_task(ctx.invoke(
-                    self.bot.get_command("hunt_battle"), nick, battle["battle_id"], side, dmg_or_hits_per_bh,
-                    weapon_quality, food, gift, start_time))
+                battle_id = battle["battle_id"]
+                if battle_id not in added_battles:
+                    added_battles.append(battle_id)
+                    self.bot.loop.create_task(ctx.invoke(
+                        self.bot.get_command("hunt_battle"), nick, battle_id, side, dmg_or_hits_per_bh,
+                        weapon_quality, food, gift, start_time))
             await sleep(uniform(500, 700))
 
 
