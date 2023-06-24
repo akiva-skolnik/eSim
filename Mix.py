@@ -496,11 +496,10 @@ class Mix(Cog):
                         candidate_id = tree.xpath(f'//*[@id="esim-layout"]//tr[{tr}]//td[5]//*[@id="command"]/input[2]')[0].value
                 except Exception:
                     return await ctx.send(f"**{nick}** ERROR: I couldn't find the vote button.")
-                payload = {'action': "VOTE", 'candidate': candidate_id, "submit": "Vote"}
+                payload = {'action': "VOTE", 'candidate' if president else 'candidateId': candidate_id, "submit": "Vote"}
                 break
 
         if payload:
-            print(payload)
             tree = await self.bot.get_content(base_url + link, data=payload, return_tree=True)
             msg = tree.xpath('//*[@id="esim-layout"]//div[1]/text()')
             await ctx.send(f"**{nick}** {' '.join(msg).strip() or 'voted'}")
