@@ -972,8 +972,7 @@ class War(Cog):
                 wall = keep_wall * (battle_score[f"{enemy}sOnline"] + 1) if battle_score["spectatorsOnline"] != 1 else 1
                 if enemy_side - my_side < let_overkill and my_side - enemy_side < wall:
                     error, medkits = await ctx.invoke(self.bot.get_command("fight"), nick, battle, side, weapon_quality,
-                                                      max(enemy_side - my_side + wall, 10001),
-                                                      ticket_quality if ctx.invoked_with == "watch" else 0, consume_first, medkits)
+                                                      max(enemy_side - my_side + wall, 10001), ticket_quality, consume_first, medkits)
                     ctx.invoked_with = "fight_fast"
                 await sleep(uniform(6, 13))
 
