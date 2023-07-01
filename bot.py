@@ -23,7 +23,7 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
-bot.VERSION = "23/06/2023"
+bot.VERSION = "02/07/2023"
 bot.config_file = config_file
 bot.sessions = {}
 bot.should_break_dict = {}  # format: {server: {command: True if it should be canceled, else False if it's running}}
@@ -252,7 +252,10 @@ async def on_command_error(ctx, error):
         if await utils.is_helper():
             await ctx.reply(f"```{''.join(format_exception(type(error), error, error.__traceback__))}```"[:1950])
         return
-    last_msg = str(list(await ctx.channel.history(limit=1).flatten())[0].content)
+    try:
+        last_msg = str(list(await ctx.channel.history(limit=1).flatten())[0].content)
+    except IndexError:
+        print(f"I can't read the channel history. Please give me Admin role and check here all intents https://discord.com/developers/applications/{bot.user.id}/bot")
     nick = utils.my_nick(ctx.channel.name)
     error_msg = f"**{nick}** ```{''.join(format_exception(type(error), error, error.__traceback__))}```"[:1950]
     if error_msg != last_msg:

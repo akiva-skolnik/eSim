@@ -131,7 +131,7 @@ class War(Cog):
         url = await self.bot.get_content(base_url + links[key], data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
-    @command(aliases=["buff-"])
+    @command()
     async def buff(self, ctx, buffs_names: str, *, nick: IsMyNick):
         """Buy and use buffs.
 
@@ -156,6 +156,10 @@ class War(Cog):
             if buff.endswith("_ELIXIRS"):
                 buffs_names.remove(buff)
                 buffs_names.extend([f'{buff.split("_")[0]}_{elixir}_ELIXIR' for elixir in elixirs])
+
+        special_tree = await self.bot.get_content(f"{base_url}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
+        special = [item.xpath('b/text()')[0].replace(" ", "_").upper() for item in
+                   special_tree.xpath('//div[@class="specialItemInventory"]') if item.xpath('span/text()')]
         results = []
         buffed = False
         for i, buff_name in enumerate(buffs_names):
@@ -174,7 +178,7 @@ class War(Cog):
                 buff_name = utils.fix_elixir(buff_name)
             buffs_names[i] = buff_name
             buff_for_sell = buff_name in ("STEROIDS", "EXTRA_VACATIONS", "EXTRA_SPA", "TANK", "BUNKER", "SEWER_GUIDE")
-            actions = ("BUY", "USE") if ctx.invoked_with.lower() == "buff" and buff_for_sell else ("USE", )
+            actions = ("BUY", "USE") if buff_for_sell and buff_name in special else ("USE", )
             for action in actions:
                 if utils.should_break(ctx):
                     return
@@ -783,10 +787,10 @@ class War(Cog):
         await utils.update_info(server, nick, {"limits": f"{food_limit}/{gift_limit}"})
 
     @command(aliases=["dow", "mpp"])
-    async def attack(self, ctx, country_or_region_id: Id, delay: Optional[int], *, nick: IsMyNick):
+    async def attack(self, ctx, country_or_region_id: Id, delay: Optional[int] = 0, *, nick: IsMyNick):
         """
-        Propose MPP / Declaration of war / Attack region.
-        Possible after certain delay.
+        Attack region / Declare war / Propose MPP
+        Possible after a given delay.
         """
         action = ctx.invoked_with.lower()
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
