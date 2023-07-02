@@ -178,7 +178,7 @@ class War(Cog):
                 buff_name = utils.fix_elixir(buff_name)
             buffs_names[i] = buff_name
             buff_for_sell = buff_name in ("STEROIDS", "EXTRA_VACATIONS", "EXTRA_SPA", "TANK", "BUNKER", "SEWER_GUIDE")
-            actions = ("BUY", "USE") if buff_for_sell and buff_name in special else ("USE", )
+            actions = ("BUY", "USE") if buff_for_sell and buff_name not in special else ("USE", )
             for action in actions:
                 if utils.should_break(ctx):
                     return
