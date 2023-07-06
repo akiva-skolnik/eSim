@@ -538,8 +538,7 @@ class War(Cog):
         base_url = f"https://{server}.e-sim.org/"
         if "duelTournament" not in link:
             return await ctx.send("Not a duel link")
-        await ctx.send(
-            f"**{nick}** If you want to cancel it, type `.cancel duel {nick}`")
+        await ctx.send(f"**{nick}** If you want to cancel it, type `.cancel duel {nick}`")
         while not utils.should_break(ctx):
             ctx.command = f"duel-{ctx.message.id}"
             if uniform(0, 100) < chance_for_sleep:

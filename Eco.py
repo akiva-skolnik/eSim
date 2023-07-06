@@ -552,9 +552,10 @@ class Eco(Cog):
         There's 2% chance to get a drop when you use Q5 ticket, and 3% if you use Q1."""
 
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
+        await ctx.send(f"**{nick}** If you want to cancel it, type `.cancel auto_fly {nick}`")
         regions = [row['id'] for row in await self.bot.get_content(base_url + "apiRegions.html") if row['homeCountry'] == country]
         max_flights_per_day = 300
-        flights_per_restore = (10 // (5 - ticket_quality)) if ticket_quality != 5 else 10
+        flights_per_restore = (10 // (5 - ticket_quality)) if ticket_quality != 5 else max_flights_per_day
         for day in range(total_days):
             found = 0
             last_region = 0

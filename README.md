@@ -50,8 +50,17 @@ Here's what you get when you type `.help `:
 3. Run `bot.py` (double-click on it and press F5, or type in your CMD `python3 PATH/TO/CURRENT/FOLDER/bot.py`)
 
   
+## If you have a VPS, follow those steps:
+1. Install pip: `python3 get-pip.py --user`
+2. Install git: `sudo yum install git -y`
+3. Get the source code: `git clone https://github.com/akiva0003/eSim`
+4. Install packages: `pip install -r  eSim/requirements.txt`
+5. Edit config.py: `vim eSim/config.json` type `i` to edit, and after you done press `Esc` and type `:x`
+6. Run bot.py: `nohup python3 eSim/bot.py &`
 
-Optional: Create an account at https://www.mongodb.com/ and get a base_url with your credentials:  
+  
+### Optional Database Configuration:
+Create an account at https://www.mongodb.com/ and get a database_url with your credentials:  
    - Click "connect" (or "connect to your cluster").
    - Connect your application.
    - Driver = Python, and now just copy the base_url and replace the <password> with your mongoDB password.  
