@@ -43,7 +43,7 @@ class Info(Cog):
         length = 20
         if not ids:
             return await ctx.send(f"**{nick}** no eqs in storage.")
-        embed = Embed(title=nick, description="(`*` means soulbound)" if any(soul_bounds) else "")
+        embed = Embed(title=nick, description="(`*` means soulbound. See `.help merge`)" if any(soul_bounds) else "")
         embed.add_field(name="ID", value="\n".join(ids[:length]))
         embed.add_field(name="Item", value="\n".join(items[:length]))
         embed.add_field(name="Parameters", value="\n".join(", ".join(par_val[1] for par_val in eq) for eq in parameters[:length]))

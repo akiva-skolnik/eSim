@@ -680,7 +680,7 @@ class War(Cog):
         """Motivates at random times throughout every day"""
         await utils.save_command(ctx, "auto", "motivate", {"chance_to_skip_a_day": chance_to_skip_a_day})
 
-        await ctx.send(f"**{nick}** Starting to motivate every day with {chance_to_skip_a_day} chance to skip a day.\n"
+        await ctx.send(f"**{nick}** Starting to motivate every day with {chance_to_skip_a_day}% chance to skip a day.\n"
                        f"Cancel with `.cancel auto_motivate {nick}`")
 
         while not utils.should_break(ctx):  # for every day:
