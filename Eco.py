@@ -149,7 +149,7 @@ class Eco(Cog):
                 if "-" in price:
                     min_price, max_price = price.split("-")
                     price = round(uniform(float(min_price), float(max_price)), 2)
-                if float(min_bid) > float(price) or buyer in ([nick.lower()] + self.bot.friends):
+                if float(min_bid) > float(price) or buyer in ([nick.lower()] + self.bot.friends.get(server, [])):
                     continue
                 if utils.should_break(ctx):
                     break
