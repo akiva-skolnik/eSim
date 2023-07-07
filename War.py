@@ -407,7 +407,7 @@ class War(Cog):
         - TODO: You should not fight hard on `watch` when your friend is fighting.
         If the friend is already in the list, it will be removed."""
         server = ctx.channel.name
-
+        your_friend = your_friend.lower()
         d = self.bot.friends
         if server not in d:
             d[server] = []
