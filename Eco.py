@@ -113,7 +113,8 @@ class Eco(Cog):
     @command()
     async def bid_all_auctions(self, ctx, *, nick: IsMyNick):
         """Bidding on all auctions.
-        Type `.help set_auctions_prices` to see how to set the prices."""
+        Type `.help set_auctions_prices` to see how to set the prices.
+        You can set up friends that you won't overbid. See `.help friend`"""
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
         file_name = f"auctions_prices_{server}.json"
@@ -141,14 +142,14 @@ class Eco(Cog):
                     item = item.split("_")[1].split("-")[0]
                 auction_id = button.attrib['data-id']
                 min_bid = button.attrib['data-minimal-outbid']
-                buyer = button.attrib['data-top-bidder']
+                buyer = button.attrib['data-top-bidder'].lower()
 
                 price = str(prices.get(item, "0")) or "0"
                 price = choice(price.split(","))
                 if "-" in price:
                     min_price, max_price = price.split("-")
                     price = round(uniform(float(min_price), float(max_price)), 2)
-                if float(min_bid) > float(price) or buyer.lower() == nick.lower():
+                if float(min_bid) > float(price) or buyer in ([nick.lower()] + self.bot.friends):
                     continue
                 if utils.should_break(ctx):
                     break

@@ -399,6 +399,29 @@ class War(Cog):
         self.bot.loop.create_task(utils.idle(self.bot, [link, base_url, base_url + "battles.html"]))
         return utils.should_break(ctx) or "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
 
+    @command()
+    async def friend(self, ctx, your_friend: str, *, nick: IsMyNick):
+        """Adding a friend to your list.
+        - You won't overbid your friends when using `.bid_all_auctions`
+        - TODO: You should not steal BHs from your friends
+        - TODO: You should not fight hard on `watch` when your friend is fighting.
+        If the friend is already in the list, it will be removed."""
+        server = ctx.channel.name
+
+        d = self.bot.friends
+        if server not in d:
+            d[server] = []
+
+        if your_friend not in d[server]:
+            d[server].append(your_friend)
+            await ctx.send(f"**{nick}** added the nick {your_friend} to your friends list.\n"
+                           f"Current list: {', '.join(d[server])}")
+        else:
+            d[server].remove(your_friend)
+            await ctx.send(f"**{nick}** removed the nick {your_friend} from your friends list.\n"
+                           f"Current list: {', '.join(d[server])}")
+        await utils.replace_one("friends", "list", utils.my_nick(), d)
+
     @command(aliases=["ally"])
     async def enemy(self, ctx, country: Country, *, nick: IsMyNick):
         """Adding an ally/enemy to your list.

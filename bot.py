@@ -54,6 +54,7 @@ async def start():
     await bot.wait_until_ready()
     bot.allies = await utils.find_one("allies", "list", os.environ["nick"])
     bot.enemies = await utils.find_one("enemies", "list", os.environ["nick"])
+    bot.friends = await utils.find_one("friends", "list", os.environ["nick"])
     for extension in categories:
         bot.load_extension(extension)
     bot.sessions["incognito"] = await create_session()
