@@ -1038,7 +1038,10 @@ class War(Cog):
         await ctx.send(f"**{nick}** Ok. You can cancel with `.cancel hunt_events {nick}`")
         added_battles = []
         while not utils.should_break(ctx):
-            battles = await utils.get_battles(self.bot, base_url, country_id=my_citizenship_id, normal_battles=False)
+            try:
+                battles = await utils.get_battles(self.bot, base_url, country_id=my_citizenship_id, normal_battles=False)
+            except:
+                battles = []
             for battle in battles:
                 if my_citizenship.lower() == battle["defender"]["name"].lower():
                     side = "defender"
