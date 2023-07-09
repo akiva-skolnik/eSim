@@ -431,9 +431,11 @@ class Eco(Cog):
                 rate = float(tree.xpath("//*[@class='buy']/button")[0].attrib['data-sell-currency'])
             except Exception:
                 rate = 0.1
-            payload = {"offeredCurrencyId": currency_id, "buyerCurrencyId": 0, "amount": amount,
+            # round down amount to prevent e-sim rounding error
+            payload = {"offeredCurrencyId": currency_id, "buyerCurrencyId": 0, "amount": int(float(amount)),
                        "rate": round(rate - 0.0001, 4)}
-            await self.bot.get_content(base_url + "monetaryMarketOfferPost.html", data=payload)
+            extra_headers = {"Referer": f"{base_url}storage.html?storageType=MONEY"}
+            await self.bot.get_content(base_url + "monetaryMarketOfferPost.html", data=payload, extra_headers=extra_headers)
             await ctx.send(f"**{nick}** posted {amount} {currency} for {payload['rate']}")
 
         money_tree = await self.bot.get_content(base_url + "storage.html?storageType=MONEY", return_tree=True)
