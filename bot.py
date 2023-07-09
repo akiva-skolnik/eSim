@@ -3,12 +3,13 @@ import importlib
 import json
 import os
 from asyncio import sleep
+from typing import Union
 from traceback import format_exception
 
 from aiohttp import ClientSession
-from discord import Intents
+from discord import Intents, Message
 from discord.ext import commands
-from discord.ext.commands import Bot, errors
+from discord.ext.commands import Bot, Context, errors
 from lxml.html import fromstring
 
 import utils
@@ -52,7 +53,7 @@ async def close_session(server: str) -> None:
         del bot.sessions[server]
 
 
-async def start():
+async def start() -> None:
     """start function"""
     await bot.wait_until_ready()
     bot.allies = await utils.find_one("allies", "list", os.environ["nick"])
@@ -126,7 +127,8 @@ async def start():
                 d["let_overkill"], d["weapon_quality"], d["ticket_quality"], d["consume_first"], d.get("medkits", 0)))
 
 
-async def inner_get_content(link: str, server: str, data=None, return_tree=False, extra_headers: dict = None):
+async def inner_get_content(link: str, server: str, data=None, return_tree=False, extra_headers: dict = None) \
+        -> Union[str, fromstring, tuple]:
     """inner get content"""
     method = "get" if data is None else "post"
     headers = {"User-Agent": os.environ["headers"]}
@@ -175,7 +177,7 @@ async def inner_get_content(link: str, server: str, data=None, return_tree=False
     raise ConnectionError(link)
 
 
-async def get_content(link, data=None, return_tree=False, incognito=False, extra_headers: dict = None):
+async def get_content(link, data=None, return_tree=False, incognito=False, extra_headers: dict = None) -> Union[str, fromstring, tuple]:
     """get content"""
     link = link.split("#")[0].replace("http://", "https://")
     server = "incognito" if incognito else link.split("https://", 1)[1].split(".e-sim.org", 1)[0]
@@ -198,14 +200,14 @@ async def get_content(link, data=None, return_tree=False, incognito=False, extra
                 print(r.url)
                 if "index.html?act=login" not in str(r.url):
                     raise ConnectionError(f"{nick} - Failed to login {r.url}")
-        tree = await inner_get_content(link, server, data, return_tree)
+        tree = await inner_get_content(link, server, data, return_tree, extra_headers)
     if tree is None:
-        tree = await inner_get_content(link, server, data, return_tree)
+        tree = await inner_get_content(link, server, data, return_tree, extra_headers)
     return tree
 
 
 @bot.event
-async def on_message(message):
+async def on_message(message: Message) -> None:
     """Allow other bots to invoke commands"""
     ctx = await bot.get_context(message)
     if ctx.valid:
@@ -213,17 +215,17 @@ async def on_message(message):
 
 
 @bot.before_invoke
-async def add_command(ctx):
+async def add_command(ctx: Context) -> None:
     utils.add_command(ctx)
 
 
 @bot.after_invoke
-async def remove_finished_command(ctx):
+async def remove_finished_command(ctx: Context) -> None:
     utils.remove_finished_command(ctx)
 
 
 @bot.command()
-async def update(ctx, *, nick: Converters.IsMyNick):
+async def update(ctx: Context, *, nick: Converters.IsMyNick) -> None:
     """Updates the code from the source.
     You can also use `.update ALL`"""
     server = ctx.channel.name
@@ -249,11 +251,12 @@ async def update(ctx, *, nick: Converters.IsMyNick):
 
 
 @bot.event
-async def on_command_error(ctx, error):
+async def on_command_error(ctx: Context, error: Exception) -> None:
     """on command error"""
     error = getattr(error, 'original', error)
     if isinstance(error, commands.NoPrivateMessage):
-        return await ctx.send("ERROR: you can't use this command in a private message!")
+        await ctx.send("ERROR: you can't use this command in a private message!")
+        return
     if isinstance(error, (commands.CommandNotFound, errors.CheckFailure)):
         return
     if isinstance(error, (errors.MissingRequiredArgument, errors.BadArgument)):
@@ -264,6 +267,7 @@ async def on_command_error(ctx, error):
         last_msg = str(list(await ctx.channel.history(limit=1).flatten())[0].content)
     except IndexError:
         print(f"I can't read the channel history. Please give me Admin role and check here all intents https://discord.com/developers/applications/{bot.user.id}/bot")
+        return
     nick = utils.my_nick(ctx.channel.name)
     error_msg = f"**{nick}** ```{''.join(format_exception(type(error), error, error.__traceback__))}```"[:1950]
     if error_msg != last_msg:
