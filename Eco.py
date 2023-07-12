@@ -434,8 +434,7 @@ class Eco(Cog):
             # round down amount to prevent e-sim rounding error
             payload = {"offeredCurrencyId": currency_id, "buyerCurrencyId": 0, "amount": int(float(amount)),
                        "rate": round(rate - 0.0001, 4)}
-            extra_headers = {"Referer": f"{base_url}storage.html?storageType=MONEY"}
-            await self.bot.get_content(base_url + "monetaryMarketOfferPost.html", data=payload, extra_headers=extra_headers)
+            await self.bot.get_content(base_url + "monetaryMarketOfferPost.html", data=payload)
             await ctx.send(f"**{nick}** posted {amount} {currency} for {payload['rate']}")
 
         money_tree = await self.bot.get_content(base_url + "storage.html?storageType=MONEY", return_tree=True)
@@ -464,7 +463,7 @@ class Eco(Cog):
 
     @command()
     async def auction(self, ctx, ids, price: float, hours: int, *, nick: IsMyNick):
-        """Sell specific EQ ID(s) & reshuffle & upgrade at auctions.
+        """Sell specific EQ ID(s) / reshuffle / upgrade / PD_10h / camouflage_II at auctions.
         `ids` MUST be separated by a comma, and without spaces (or with spaces, but within quotes)
         set `ids=ALL` if you want to sell all your eqs."""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
@@ -478,11 +477,23 @@ class Eco(Cog):
         for eq_id in ids:
             if utils.should_break(ctx):
                 return
-            eq_id = eq_id.replace(base_url + "showEquipment.html?id=", "").replace("#", "").strip()
-            if eq_id == "reshuffle":
-                item = "SPECIAL_ITEM 20"
+            eq_id = eq_id.replace(base_url + "showEquipment.html?id=", "").replace("#", "").strip().lower()
+            if eq_id == "pd_1h":
+                item = "SPECIAL_ITEM 7"
+            elif eq_id == "pd_10h":
+                item = "SPECIAL_ITEM 8"
+            elif eq_id == "pd_25h":
+                item = "SPECIAL_ITEM 9"
+            elif eq_id == "camouflage_i":
+                item = "SPECIAL_ITEM 16"
+            elif eq_id == "camouflage_ii":
+                item = "SPECIAL_ITEM 17"
+            elif eq_id == "camouflage_iii":
+                item = "SPECIAL_ITEM 18"
             elif eq_id == "upgrade":
                 item = "SPECIAL_ITEM 19"
+            elif eq_id == "reshuffle":
+                item = "SPECIAL_ITEM 20"
             else:
                 item = f"EQUIPMENT {eq_id}"
             payload = {'action': "CREATE_AUCTION", 'price': price, "id": item, "length": hours,
