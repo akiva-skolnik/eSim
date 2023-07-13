@@ -360,10 +360,14 @@ class War(Cog):
                 if use:
                     await self.bot.get_content(f"{base_url}{use}.html", data={'quality': 5})
                     health += 50
+                else:
+                    output += "\nERROR: couldn't restore health"
+                    break
 
             tree = await self.bot.get_content(fight_url, data=data, return_tree=True)
             if not tree.xpath("//*[@id='healthUpdate']/text()"):
                 if "Slow down a bit!" in tree.text_content():
+                    output += "\nSlow down!"
                     await sleep(1)
                     continue
                 if "No health left" in tree.text_content():
@@ -393,7 +397,7 @@ class War(Cog):
             else:
                 damage_done += int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
             update += 1
-            await sleep(uniform(0.2, 0.45))
+            await sleep(uniform(0.9, 1.25))
 
             if update % 4 == 0:
                 # dmg update every 4 berserks.
