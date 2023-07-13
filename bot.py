@@ -24,7 +24,7 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
-bot.VERSION = "06/07/2023"
+bot.VERSION = "13/07/2023"
 bot.config_file = config_file
 bot.sessions = {}
 bot.should_break_dict = {}  # format: {server: {command: True if it should be canceled, else False if it's running}}
@@ -208,9 +208,17 @@ async def get_content(link, data=None, return_tree=False, incognito=False, extra
 
 @bot.event
 async def on_message(message: Message) -> None:
-    """Allow other bots to invoke commands"""
+    """Override original on_message, to allow other bots to invoke commands"""
     ctx = await bot.get_context(message)
     if ctx.valid:
+        if "allowed_servers" in os.environ and str(ctx.guild.id) not in os.environ["allowed_servers"]:
+            if "logs_channel_id" in os.environ:
+                logs = bot.get_channel(int(os.environ["logs_channel_id"]))
+                await logs.send(
+                    f"**WARNING**: {ctx.author.mention} tried to invoke `{ctx.command}` in a forbidden guild named `{ctx.guild.name}` (ID `{ctx.guild.id}`) "
+                    f"on channel named `{ctx.channel.name}`.\n"
+                    f"Full message: `{message.content}`\nMore details:\n\n```{message}```")
+            return
         await bot.invoke(ctx)
 
 

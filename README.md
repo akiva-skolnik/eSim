@@ -46,7 +46,10 @@ Here's what you get when you type `.help `:
    - Google "my user agent", and replace the `headers` with the result.  
    > **IMPORTANT**:  By default, anyone in your channel can use the command `execute` (including revealing your password).  
    > If you want to change it, add to your config file thr pair: `"trusted_users_ids": "00000, 11111"` ("Copy User ID" within Discord).  
-   > Only users in that list will be able to use `execute` (you can leave it empty)
+   > Only users in that list will be able to use `execute` (you can even leave it empty)  
+   
+   > Add the pair `"allowed_servers": "0000,1111",` to restrict access to your account for specific guilds.  
+   > Add the pair `"logs_channel_id": "0000",` to get notified in that channel whenever anyone invoked `execute` or tried to use a forbidden guild.
 3. Run `bot.py` (double-click on it and press F5, or type in your CMD `python3 PATH/TO/CURRENT/FOLDER/bot.py`)
 
   

@@ -839,7 +839,7 @@ class War(Cog):
         """Using a medkit"""
         server = ctx.channel.name
         url = await self.bot.get_content(f"https://{server}.e-sim.org/medkit.html", data={})
-        await ctx.send(f"**{nick}** <{url}>")
+        await ctx.send(f"**{nick}** MEDKIT: <{url}>")
         if url.endswith("MESSAGE_OK"):  # update db
             data = await utils.find_one(server, "info", nick)
             medkits = int(data.get("medkits", 0))

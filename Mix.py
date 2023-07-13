@@ -403,7 +403,7 @@ class Mix(Cog):
             .config alpha_password 1234  my_nick
             .config help ""  my_nick
         """
-        if key == "trusted_users_ids":
+        if key in ("trusted_users_ids", "allowed_servers", "logs_channel_id"):
             return await ctx.send(f"**{nick}** this is a sensitive key, so you will have to change config.json manually")
         with open(self.bot.config_file, "r", encoding="utf-8") as file:
             big_dict = json.load(file)
@@ -592,18 +592,26 @@ Examples:
 
         > **IMPORTANT**:  By default, anyone in your channel can use the command `execute` (including revealing your password!).
         > If you want to change it, add to your config file thr pair: `"trusted_users_ids": "00000, 11111",` ("Copy User ID" within Discord).
-        > Only users in that list will be able to use `execute` (you can leave it empty)"""
+        > Only users in that list will be able to use `execute` (you can even leave it empty)
+        > Add the pair `"logs_channel_id": "0000",` to get notified in that channel whenever anyone invoked it."""
         # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/admin.py#L215
-        if str(ctx.author.id) not in environ.get("trusted_users_ids", [ctx.author.id]):
+        trusted = str(ctx.author.id) in environ.get("trusted_users_ids", [ctx.author.id])
+        if "logs_channel_id" in environ:
+            logs = self.bot.get_channel(int(environ["logs_channel_id"]))
+            await logs.send(f"{ctx.author.mention} invoked `execute` on {ctx.channel.mention} for **{nick}** (he's {'' if trusted else '**NOT**'} allowed to do so):\n"
+                            f"```py\n{code}```")
+        if not trusted:
             return
-        server = ctx.channel.name
+
         env = {
             'bot': self.bot,
             'ctx': ctx,
             'channel': ctx.channel,
             'author': ctx.author,
             'guild': ctx.guild,
-            'message': ctx.message
+            'message': ctx.message,
+            'server': ctx.channel.name,
+            'nick': nick
         }
 
         env.update(globals())
