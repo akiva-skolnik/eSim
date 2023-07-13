@@ -1,7 +1,6 @@
 """War.py"""
 import os
 import re
-import time
 from asyncio import sleep
 from datetime import datetime
 from datetime import time as dt_time
@@ -318,9 +317,7 @@ class War(Cog):
         if ctx.invoked_with.lower() != "fight_fast":
             await sleep(uniform(3, 7))
         hits_or_dmg = "hits" if dmg <= 1000 else "dmg"
-        round_ends = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"]
-        start = time.time()
-        while damage_done < dmg and (time.time() - start < round_ends) and not utils.should_break(ctx):
+        while damage_done < dmg and not utils.should_break(ctx):
             if len(output) > 1900:
                 output = "(Message is too long)"
             if weapon_quality > 0 and ((dmg >= 5 > wep) or (dmg < 5 and wep == 0)):
