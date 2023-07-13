@@ -595,7 +595,7 @@ Examples:
         > Only users in that list will be able to use `execute` (you can even leave it empty)
         > Add the pair `"logs_channel_id": "0000",` to get notified in that channel whenever anyone invoked it."""
         # https://github.com/Rapptz/RoboDanny/blob/rewrite/cogs/admin.py#L215
-        trusted = str(ctx.author.id) in environ.get("trusted_users_ids", [ctx.author.id])
+        trusted = str(ctx.author.id) in environ.get("trusted_users_ids", str(ctx.author.id))
         if "logs_channel_id" in environ:
             logs = self.bot.get_channel(int(environ["logs_channel_id"]))
             await logs.send(f"{ctx.author.mention} invoked `execute` on {ctx.channel.mention} for **{nick}** (he's {'' if trusted else '**NOT**'} allowed to do so):\n"
