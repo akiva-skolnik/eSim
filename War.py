@@ -260,7 +260,8 @@ class War(Cog):
 
     @command(aliases=["fight_fast"])
     async def fight(self, ctx, nick: IsMyNick, battle: Id, side: Side, weapon_quality: Quality = 5,
-                    dmg_or_hits: Dmg = 200, ticket_quality: Quality = 5, consume_first="gift", medkits: int = 0) -> (bool, int):
+                    dmg_or_hits: Dmg = 200, ticket_quality: Quality = 5, consume_first="gift", medkits: int = 0,
+                    continue_next_round: bool = False) -> (bool, int):
         """
         Dumping limits at a specific battle.
         (everything inside [] is optional with default values)
@@ -373,7 +374,10 @@ class War(Cog):
                     continue
                 if "Round is closed" in tree.text_content():
                     output += "\nRound is over."
-                    break
+                    if continue_next_round:
+                        await sleep(uniform(5, 15))
+                    else:
+                        break
                 res = tree.xpath('//div//div/text()')
                 await ctx.send(f"**{nick}** ERROR: {' '.join(res).strip()}")
                 break
