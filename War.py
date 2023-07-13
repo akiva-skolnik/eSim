@@ -376,6 +376,11 @@ class War(Cog):
                     output += "\nRound is over."
                     if continue_next_round:
                         await sleep(uniform(15, 25))
+                        tree = await self.bot.get_content(link, return_tree=True)
+                        fight_url, data = await self.get_fight_data(base_url, tree, weapon_quality, side,
+                                                                    value=("Berserk" if dmg >= 5 else ""))
+                        continue
+
                     else:
                         break
                 res = tree.xpath('//div//div/text()')
