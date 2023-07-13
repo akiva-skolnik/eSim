@@ -236,18 +236,16 @@ async def remove_finished_command(ctx: Context) -> None:
 async def update(ctx: Context, *, nick: Converters.IsMyNick) -> None:
     """Updates the code from the source.
     You can also use `.update ALL`"""
-    server = ctx.channel.name
-    async with (await get_session(server)).get(
-            "https://api.github.com/repos/akiva0003/eSim/git/trees/main") as main:
+    session = await get_session("incognito")
+    async with session.get("https://api.github.com/repos/akiva0003/eSim/git/trees/main") as main:
         for file in (await main.json())["tree"]:
             file_name = file["path"]
             if not file_name.endswith(".py"):
                 continue
-            async with (await get_session(server)).get(
-                    f"https://raw.githubusercontent.com/akiva0003/eSim/main/{file_name}") as r:
+            async with session.get(f"https://raw.githubusercontent.com/akiva0003/eSim/main/{file_name}") as r:
                 with open(file_name, "w", encoding="utf-8", newline='') as f:
                     f.write(await r.text())
-    async with (await get_session(server)).get("https://api.github.com/repos/akiva0003/eSim/branches/main") as r:
+    async with session.get("https://api.github.com/repos/akiva0003/eSim/branches/main") as r:
         bot.VERSION = (await r.json())["commit"]["commit"]["author"]["date"]
     importlib.reload(utils)
     importlib.reload(Converters)
