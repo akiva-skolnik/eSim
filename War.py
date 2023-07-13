@@ -393,7 +393,7 @@ class War(Cog):
             else:
                 damage_done += int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
             update += 1
-            await sleep(uniform(0.3, 0.55))
+            await sleep(uniform(0.2, 0.45))
 
             if update % 4 == 0:
                 # dmg update every 4 berserks.
