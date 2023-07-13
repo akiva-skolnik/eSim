@@ -375,7 +375,7 @@ class War(Cog):
                 if "Round is closed" in tree.text_content():
                     output += "\nRound is over."
                     if continue_next_round:
-                        await sleep(uniform(5, 15))
+                        await sleep(uniform(15, 25))
                     else:
                         break
                 res = tree.xpath('//div//div/text()')
