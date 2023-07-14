@@ -462,6 +462,40 @@ class Eco(Cog):
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
+    async def update_job_offer(self, ctx, company_id: int, max_salary: float, country: Country, skill: int,
+                               region_id: Optional[int] = 0, *, nick: IsMyNick):
+        """Check every ~10 minutes if there's an offer above yours.
+        If so, updates your offer accordingly (up to `max_salary`)"""
+        ctx.command = f"update_job_offer-{ctx.message.id}"
+        await ctx.send(f"**{nick}** If you want to stop it, type `.cancel update_job_offer-{ctx.message.id} {nick}")
+        base_url = f"https://{ctx.channel.name}.e-sim.org/"
+        company_link = f"{base_url}company.html?id={company_id}"
+        tree = await self.bot.get_content(company_link, return_tree=True)
+        company_name = tree.xpath('//*[@id="companyPreview"]/a/text()')[0]
+        job_ids = [job_id.value for job_id in tree.xpath('//tr//td[4]//form[1]/input[1]')]
+        skills = [int(x) for x in tree.xpath('//td[1]/text()') if x.isdigit()]
+        job_id = None
+        for _job_id, offer_skill in zip(job_ids, skills):
+            if offer_skill == skill:
+                job_id = _job_id
+                break
+        while not utils.should_break(ctx):
+            tree = await self.bot.get_content(f"{base_url}getJobOffers.html?countryId={country}&minimalSkill={skill}&regionId={region_id}", return_tree=True, incognito=True)
+            salary = float(tree.xpath('//*[@class="currency"]/b/text()')[0])
+            company = tree.xpath('//*[@class="job-offer-content"]/div/a/text()')[0].strip().lower()
+            # companies, employers = company[::2], company[1::2]
+            if company != company_name.lower():
+                if salary > max_salary:
+                    await ctx.send(f"**{nick}** Salary is too high for {company_link}, skill {skill} ({salary} > {max_salary})")
+                    await sleep(uniform(500, 700))  # continue after some additional pause.
+                else:
+                    await self.bot.get_content(company_link)
+                    payload = {'offerId': job_id, "action": "EDIT_JOB_OFFER", "salary": salary + 0.01}
+                    url = await self.bot.get_content(company_link, data=payload)
+                    await ctx.send(f"**{nick}** salary {payload['salary']}, skill {skill} : {url}")
+            await sleep(uniform(500, 700))
+
+    @command()
     async def auction(self, ctx, ids, price: float, hours: int, *, nick: IsMyNick):
         """Sell specific EQ ID(s) / reshuffle / upgrade / PD_10h / camouflage_II at auctions.
         `ids` MUST be separated by a comma, and without spaces (or with spaces, but within quotes)
