@@ -149,7 +149,8 @@ class War(Cog):
         base_url = f"https://{server}.e-sim.org/"
         elixirs = ["BLOODY_MESS", "FINESE", "JINXED", "LUCKY"]
         shuffle(elixirs)
-
+        if "BANDAGE_SIZE_" in buffs_names.upper():
+            await ctx.send_help("dump_bands")
         buffs_names = buffs_names.upper().split(",")
         for buff in buffs_names[:]:
             if buff.endswith("_ELIXIRS"):
@@ -273,6 +274,7 @@ class War(Cog):
         * set `consume_first` to `none` if you want to consume `1/1` (fast servers)
         * Use `fight_fast` instead of `fight` if you don't want it to spec the battle for a few seconds.
         * If `nick` contains more than 1 word - it must be within quotes.
+        - See also: .help dump_bands
         """
 
         consume_first = consume_first.lower()
@@ -289,6 +291,7 @@ class War(Cog):
             if bonus_region:
                 if not await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick):
                     return
+        t2 = api["hoursRemaining"] * 3600 + api["minutesRemaining"] * 60 + api["secondsRemaining"] < uniform(60, 120)
 
         tree = await self.bot.get_content(link, return_tree=True)
         health = float(tree.xpath('//*[@id="actualHealth"]')[0].text)
@@ -368,7 +371,7 @@ class War(Cog):
             if not tree.xpath("//*[@id='healthUpdate']/text()"):
                 if "Slow down a bit!" in tree.text_content():
                     output += "\nSlow down!"
-                    await sleep(1)
+                    await sleep(uniform(0.3, 1))
                     continue
                 if "No health left" in tree.text_content():
                     health = 0
@@ -397,7 +400,10 @@ class War(Cog):
             else:
                 damage_done += int(str(tree.xpath('//*[@id="DamageDone"]')[0].text).replace(",", ""))
             update += 1
-            await sleep(uniform(0.9, 1.25))
+            if t2 or uniform(1, 100) < 20:
+                await sleep(uniform(0.2, 0.55))
+            else:
+                await sleep(uniform(0.9, 1.2))
 
             if update % 4 == 0:
                 # dmg update every 4 berserks.
@@ -408,6 +414,45 @@ class War(Cog):
         await utils.update_info(server, nick, {"limits": f"{food_limit}/{gift_limit}"})
         self.bot.loop.create_task(utils.idle(self.bot, [link, base_url, base_url + "battles.html"]))
         return utils.should_break(ctx) or "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
+
+    @command(hidden=True)
+    async def dump_bands(self, ctx, nick: IsMyNick, battle: Id, side: Side, weapon_quality: Quality = 5,
+                         ticket_quality: Quality = 5) -> None:
+        """Dump all your bandages (good for end of server)"""
+        await ctx.send(f"**{nick}** If you want to stop it, type `.cancel dump_bands {nick}`")
+        base_url = f"https://{ctx.channel.name}.e-sim.org/"
+        link = f"{base_url}battle.html?id={battle}"
+        api = await self.bot.get_content(link.replace("battle", "apiBattles").replace("id", "battleId"))
+        if 1 <= ticket_quality <= 5:
+            bonus_region = await utils.get_bonus_region(self.bot, base_url, side, api)
+            if bonus_region:
+                if not await ctx.invoke(self.bot.get_command("fly"), bonus_region, ticket_quality, nick=nick):
+                    return
+        special_tree = await self.bot.get_content(f"{base_url}storage.html?storageType=SPECIAL_ITEM", return_tree=True)
+        special = {item.xpath('b/text()')[0].replace(" ", "_").upper(): item.xpath('span/text()')[0] for item in
+                   special_tree.xpath('//div[@class="specialItemInventory"]') if item.xpath('span/text()')}
+
+        tree = await self.bot.get_content(link, return_tree=True)
+        fight_url, data = await War.get_fight_data(base_url, tree, weapon_quality, side)
+        for bandage_size, total_bandages in special.items():
+            if not bandage_size.startswith("BANDAGE_SIZE_") or utils.should_break(ctx):
+                continue
+            total_bandages = int(total_bandages.replace("x", ""))
+            for i in range(total_bandages):
+                payload = {'item': "BANDAGE_SIZE_" + bandage_size, 'storageType': "SPECIAL_ITEM", 'action': "USE",
+                           'submit': 'Use'}
+                health = int(float(tree.xpath('//*[@id="actualHP"]')[0].text))
+                if health == 0:  # use band
+                    await self.bot.get_content(base_url + "storage.html", data=payload)
+                    tree = await self.bot.get_content(link, return_tree=True)
+                health = int(float(tree.xpath('//*[@id="actualHP"]')[0].text))
+                while health > 0:
+                    data["value"] = "Regular" if health < 50 else "Berserk"
+                    await self.bot.get_content(fight_url, data=data)
+                    await sleep(1)
+                    tree = await self.bot.get_content(link, return_tree=True)
+                    health = int(float(tree.xpath('//*[@id="actualHP"]')[0].text))
+        await ctx.send(f"**{nick}** done dumping bandages")
 
     @command()
     async def friend(self, ctx, your_friend: str, *, nick: IsMyNick):
