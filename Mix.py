@@ -650,9 +650,15 @@ Examples:
                 await ctx.send(file=File(fp=io_output, filename="output.txt"))
 
     @command(hidden=True)
-    async def shutdown(self, ctx, restart: bool, *, nick: IsMyNick):
+    async def shutdown(self, ctx, restart: bool, chance_to_ignore: Optional[int] = 0, *, nick: IsMyNick):
         """Shutting down specific nick.
-        Warning: It's shutting down from all servers."""
+        Warning: It's shutting down from all servers.
+
+        About `chance_to_ignore`: sometimes (rarely) there are 2 instances online, and you wish to shut only one of them.
+        They can't communicate with one another, so you could use `.shutdown False 50 nick` for example, maybe several times.
+        So in this example, there's 50% that it will shut 1 of them, 25% that it will shut both, and 25% for neither."""
+        if uniform(0, 100) < chance_to_ignore:
+            return
         import platform
         for session in self.bot.sessions.values():
             await session.close()
