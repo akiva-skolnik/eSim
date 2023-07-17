@@ -492,7 +492,7 @@ class Eco(Cog):
                     await sleep(uniform(500, 700))  # continue after some additional pause.
                 else:
                     await self.bot.get_content(company_link)
-                    payload = {'offerId': job_id, "action": "EDIT_JOB_OFFER", "salary": salary + 0.01}
+                    payload = {'offerId': job_id, "action": "EDIT_JOB_OFFER", "salary": round(salary + 0.01, 2)}
                     url = await self.bot.get_content(company_link, data=payload)
                     await ctx.send(f"**{nick}** salary {payload['salary']}, skill {skill} : {url}")
             await sleep(uniform(500, 700))
