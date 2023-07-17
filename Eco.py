@@ -64,13 +64,15 @@ class Eco(Cog):
 
     @command(hidden=True)
     async def set_auctions_prices(self, ctx, nick: IsMyNick, *, prices: str = "{}"):
-        """For each item, you can specify prices in the following formats:
+        """
+        - Write .set_auctions_prices <nick> to see current prices (first use shows a draft)
+        - You MUST paste the entire text and just change the prices you want
+
+        For each item, you can specify prices in the following formats:
         1. A single price, for example: `"helmet3": 1.1`. In this case, the bot will bid 1.1 gold on all Q3 helmets.
         2. Multimple prices, for example `"helmet3": "1, 1.1, 1.2"`. In this case, the bot will bid any price from that list randomly.
         3. Range of prices, for example `"helmet3": "1-1.2"`. In this case, the bot will bid any price from that range (min 1, max 1.2).
         4. Any combination of the above, for example `"helmet3": "2, 1-1.2, 1.5-1.8"`. In this case, the bot will bid 2g on third of the auctions, another third will be from the range 1-1.2, and the rest from the range 1.5-1.8
-
-        - Leave `prices` untouched if you want to see the current prices.
         - You can also bid companies by qualities: `{"q1": "0", "q2": "0", "q3": "0", "q4": "0", "q5": "0"}
         """
         server = ctx.channel.name
@@ -464,10 +466,10 @@ class Eco(Cog):
     @command()
     async def update_job_offer(self, ctx, company_id: int, max_salary: float, country: Country, skill: int,
                                region_id: Optional[int] = 0, *, nick: IsMyNick):
-        """Check every ~10 minutes if there's an offer above yours.
+        """Checks every ~10 minutes if there's an offer above yours.
         If so, updates your offer accordingly (up to `max_salary`)"""
         ctx.command = f"update_job_offer-{ctx.message.id}"
-        await ctx.send(f"**{nick}** If you want to stop it, type `.cancel update_job_offer-{ctx.message.id} {nick}")
+        await ctx.send(f"**{nick}** If you want to stop it, type `.cancel update_job_offer-{ctx.message.id} {nick}`")
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         company_link = f"{base_url}company.html?id={company_id}"
         tree = await self.bot.get_content(company_link, return_tree=True)
@@ -480,7 +482,7 @@ class Eco(Cog):
                 job_id = _job_id
                 break
         while not utils.should_break(ctx):
-            tree = await self.bot.get_content(f"{base_url}getJobOffers.html?countryId={country}&minimalSkill={skill}&regionId={region_id}", return_tree=True, incognito=True)
+            tree = await self.bot.get_content(f"{base_url}getJobOffers?countryId={country}&minimalSkill={skill}&regionId={region_id}", return_tree=True)
             salary = float(tree.xpath('//*[@class="currency"]/b/text()')[0])
             company = tree.xpath('//*[@class="job-offer-content"]/div/a/text()')[0].strip().lower()
             # companies, employers = company[::2], company[1::2]
