@@ -37,6 +37,7 @@ class Social(Cog):
                 payload = {"action": "DELETE", "id": shout_or_article_id, "submit": "Delete"}
             else:
                 return await ctx.send(f"action must be `reply`, `edit` or `delete`, not `{action}`")
+            await self.bot.get_content(f"{base_url}article.html?id={shout_or_article_id}")
             url = await self.bot.get_content(base_url + "comment.html", data=payload)
         elif "Shout" in shout_or_article_link:
             if action == "reply":
@@ -50,6 +51,7 @@ class Social(Cog):
                 link = "shoutActions.html"
             else:
                 return await ctx.send(f"action must be `reply`, `edit` or `delete`, not `{action}`")
+            await self.bot.get_content(f"{base_url}showShout.html?id={shout_or_article_id}")
             url = await self.bot.get_content(f"{base_url}{link}", data=payload)
         else:
             return await ctx.send(f"**{nick}** ERROR: invalid article/shout link.")
@@ -132,7 +134,7 @@ class Social(Cog):
         else:
             payload = {'action': "SEND_APPLICATION", 'id': country_or_mu, "message": message, "submit": "Send application"}
             link = "militaryUnitsActions.html"
-            await self.bot.get_content(base_url + link, data={"action": "LEAVE_MILITARY_UNIT", "submit": "Leave military unit"})
+            await self.bot.get_content(base_url + "myMilitaryUnit.html")
             await self.bot.get_content(base_url + link, data={"action": "CANCEL_APPLICATION", "submit": "Cancel application"})
             await self.bot.get_content(base_url + link, data={"action": "LEAVE_MILITARY_UNIT", "submit": "Leave military unit"})
 
@@ -145,6 +147,7 @@ class Social(Cog):
         If receiver_name, title or body contains more than 1 word - it must be within quotes"""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         payload = {'receiverName': receiver_name, "title": title, "body": body, "action": "REPLY", "submit": "Send"}
+        await self.bot.get_content(base_url + "composeMessage.html")
         url = await self.bot.get_content(base_url + "composeMessage.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
@@ -156,6 +159,7 @@ class Social(Cog):
 
         payload = {'action': "POST_SHOUT", 'body': shout_body, 'sendToCountry': "on",
                    "sendToMilitaryUnit": "on", "sendToParty": "on", "sendToFriends": "on"}
+        await self.bot.get_content(f"{base_url}index.html")
         url = await self.bot.get_content(f"{base_url}shoutActions.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
@@ -166,10 +170,13 @@ class Social(Cog):
 
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
         if ctx.invoked_with.lower() == "sub":
+            await self.bot.get_content(f"{base_url}newspaper.html?id={id}")
             url = await self.bot.get_content(f"{base_url}sub.html", data={"id": id})
         elif ctx.invoked_with.lower() == "vote":
+            await self.bot.get_content(f"{base_url}article.html?id={id}")
             url = await self.bot.get_content(f"{base_url}vote.html", data={"id": id})
         else:
+            await self.bot.get_content(f"{base_url}showShout.html?id={id}")
             url = await self.bot.get_content(f"{base_url}shoutVote.html", data={"id": id, "vote": 1})
         await ctx.send(f"**{nick}** <{url}>")
 
@@ -191,6 +198,7 @@ class Social(Cog):
                 row = loads(row)
                 if row['login'] not in blacklist:
                     try:
+                        await self.bot.get_content(f"{base_url}profile.html?id={row['id']}")
                         url = f"{base_url}friends.html?action=PROPOSE&id={row['id']}"
                         send = await self.bot.get_content(url)
                         if send == url:
@@ -209,13 +217,14 @@ class Social(Cog):
                         base_url + 'citizenStatistics.html?statisticType=DAMAGE&countryId=0&page=' + str(page), return_tree=True)
                 friends = tree.xpath("//td/a/text()")
                 links = utils.get_ids_from_path(tree, "//td/a")
-                for friend, link in zip(friends, links):
+                for friend, friend_id in zip(friends, links):
                     if utils.should_break(ctx):
                         return
                     friend = friend.strip()
                     if friend not in blacklist:
                         try:
-                            url = f"{base_url}friends.html?action=PROPOSE&id={link}"
+                            await self.bot.get_content(f"{base_url}profile.html?id={friend_id}")
+                            url = f"{base_url}friends.html?action=PROPOSE&id={friend_id}"
                             send = await self.bot.get_content(url)
                             if send == url:
                                 return await ctx.send(f"**{nick}** ERROR: you are not logged in, see `.help login`")

@@ -183,10 +183,11 @@ class War(Cog):
                 if utils.should_break(ctx):
                     return
                 if action == "USE":
-                    payload = {'item': buff_name, 'storageType': "SPECIAL_ITEM", 'action': action, 'submit': 'Use'}
+                    payload = {'item': buff_name, 'action': action, 'submit': 'Use'}
                 else:
-                    payload = {'itemType': buff_name, 'storageType': "SPECIAL_ITEM", 'action': action, "quantity": 1}
-                url = await self.bot.get_content(base_url + "storage.html", data=payload)
+                    payload = {'itemType': buff_name, 'action': action, "quantity": 1}
+                await self.bot.get_content(base_url + "storage.html?storageType=SPECIAL_ITEM")
+                url = await self.bot.get_content(base_url + "storage.html?storageType=SPECIAL_ITEM", data=payload)
                 results.append(f"{buff_name}: <{url}>")
                 if "error" in url.lower():
                     results.append(f"ERROR: No such buff ({buff_name})")
@@ -234,6 +235,7 @@ class War(Cog):
                     return False
 
             payload = {'countryId': country_id[0], 'regionId': region_id, 'ticketQuality': ticket_quality}
+            await self.bot.get_content(f"{base_url}travel.html")
             url = await self.bot.get_content(f"{base_url}travel.html", data=payload)
             await sleep(uniform(0, 1))
             await ctx.send(f"**{nick}** <{url}>")
@@ -630,6 +632,7 @@ class War(Cog):
             else:
                 if utils.should_break(ctx):
                     break
+                await self.bot.get_content(link)
                 url = await self.bot.get_content(link, data={"action": "ENLIST"})
                 if not url.endswith("BATTLE_IN_PROGRESS"):
                     await ctx.send(f'**{nick}** <{url}>\nYou can cancel with: `.cancel duel-{ctx.message.id} {nick}` or ' +
@@ -831,6 +834,7 @@ class War(Cog):
                 if sent_count == 5:
                     await ctx.send(f"**{nick}**\n" + "\n".join(checking) + "\n- Successfully motivated 5 players.")
                     break
+                # TODO: remove profile request
                 tree = await self.bot.get_content(f'{base_url}profile.html?id={citizen_id}', return_tree=True)
                 today = int(tree.xpath('//*[@class="sidebar-clock"]//b/text()')[-1].split()[-1])
                 birthday = int(
@@ -842,6 +846,7 @@ class War(Cog):
                 if tree.xpath('//*[@id="motivateCitizenButton"]'):
                     for num in storage.values():
                         payload = {'type': num, "submit": "Motivate", "id": citizen_id}
+                        await self.bot.get_content(f"{base_url}motivateCitizen.html?id={citizen_id}")
                         tree, url = await self.bot.get_content(f"{base_url}motivateCitizen.html?id={citizen_id}", data=payload, return_tree="both")
                         if "&actionStatus=SUCCESFULLY_MOTIVATED" in url:
                             checking.append(f"<{url}>")
@@ -885,7 +890,7 @@ class War(Cog):
             payload = {'action': "DECLARE_WAR", 'dowCountryId': country_or_region_id, 'submit': "Declare war"}
         else:
             return
-
+        await self.bot.get_content(base_url + "countryLaws.html")
         url = await self.bot.get_content(base_url + "countryLaws.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
@@ -893,6 +898,7 @@ class War(Cog):
     async def medkit(self, ctx, *, nick: IsMyNick):
         """Using a medkit"""
         server = ctx.channel.name
+        await self.bot.get_content(f"https://{server}.e-sim.org/index.html")
         url = await self.bot.get_content(f"https://{server}.e-sim.org/medkit.html", data={})
         await ctx.send(f"**{nick}** MEDKIT: <{url}>")
         if url.endswith("MESSAGE_OK"):  # update db
@@ -992,6 +998,7 @@ class War(Cog):
     async def food(self, ctx, quality: Optional[int] = 5, *, nick: IsMyNick):
         """Using food or gift"""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
+        await self.bot.get_content(f"{base_url}index.html")
         url = await self.bot.get_content(f"{base_url}{ctx.invoked_with.lower().replace('food', 'eat')}.html", data={'quality': quality})
         await ctx.send(f"**{nick}** <{url}>")
 
@@ -1070,6 +1077,7 @@ class War(Cog):
 
         results = []
         ids = [int(x.replace("#", "").replace(f"{base_url}showEquipment.html?id=", "").strip()) for x in ids.split(",") if x.strip()]
+        await self.bot.get_content(f"{base_url}storage.html?storageType=EQUIPMENT")
         for eq_id in ids:
             if utils.should_break(ctx):
                 break

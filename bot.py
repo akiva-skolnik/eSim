@@ -24,7 +24,7 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
-bot.VERSION = "17/07/2023"
+bot.VERSION = "19/07/2023"
 bot.config_file = config_file
 bot.sessions = {}
 bot.should_break_dict = {}  # format: {server: {command: True if it should be canceled, else False if it's running}}
@@ -182,7 +182,7 @@ async def get_content(link, data=None, return_tree=False, incognito=False, extra
     link = link.split("#")[0].replace("http://", "https://")
     server = "incognito" if incognito else link.split("https://", 1)[1].split(".e-sim.org", 1)[0]
     nick = utils.my_nick(server)
-    url = f"https://{server}.e-sim.org/"
+    base_url = f"https://{server}.e-sim.org/"
     not_logged_in = False
     tree = None
     try:
@@ -195,8 +195,8 @@ async def get_content(link, data=None, return_tree=False, incognito=False, extra
         await close_session(server)
 
         payload = {'login': nick, 'password': os.environ.get(server + "_password", os.environ.get('password')), "submit": "Login"}
-        async with (await get_session(server)).get(url, ssl=True) as _:
-            async with (await get_session(server)).post(url + "login.html", data=payload, ssl=True) as r:
+        async with (await get_session(server)).get(base_url, ssl=True) as _:
+            async with (await get_session(server)).post(base_url + "login.html", data=payload, ssl=True) as r:
                 print(r.url)
                 if "index.html?act=login" not in str(r.url):
                     raise ConnectionError(f"{nick} - Failed to login {r.url}")

@@ -29,14 +29,16 @@ class Mix(Cog):
         self.bot = bot
 
     @command()
-    async def party(self, ctx, party: Optional[Id] = 0, *, nick: IsMyNick):
+    async def party(self, ctx, party: Optional[Id] = 0, *, nick: IsMyNick) -> None:
         """Joins a party.
         Do not provide party if you want it to auto-apply to the first party.
         For leaving party, send a negative party id."""
         server = ctx.channel.name
         base_url = f"https://{server}.e-sim.org/"
+        await self.bot.get_content(base_url + "myParty.html")
         if party < 0:
-            return await self.bot.get_content(base_url + "partyStatistics.html", data={"action": "LEAVE", "submit": "Leave party"})
+            await self.bot.get_content(base_url + "myParty.html", data={"action": "LEAVE", "submit": "Leave party"})
+            return
         if party == 0:
             tree = await self.bot.get_content(base_url + "partyStatistics.html?statisticType=MEMBERS", return_tree=True)
             party = utils.get_ids_from_path(tree, '//*[@id="esim-layout"]//table//tr[2]//td[3]/')[0]
@@ -69,6 +71,7 @@ class Mix(Cog):
             await ctx.invoke(self.bot.get_command("party"), nick=nick)
         except Exception:
             pass
+        await self.bot.get_content(base_url + link)
         url = await self.bot.get_content(base_url + link, data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
@@ -93,6 +96,7 @@ class Mix(Cog):
         payload = {"action": "CONTINUE", "v": f"data:image/png;base64,{avatar_base64}",
                    "h": "none", "e": "none", "b": "none", "a": "none", "c": "none", "z": 1, "r": 0,
                    "hh": 1, "eh": 1, "bh": 1, "ah": 1, "hv": 1, "ev": 1, "bv": 1, "av": 1, "act": ""}
+        await self.bot.get_content(base_url + "editAvatar.html")
         url = await self.bot.get_content(base_url + "editAvatar.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
@@ -393,6 +397,7 @@ class Mix(Cog):
         product_type = "DEFENSE_SYSTEM" if ctx.invoked_with.lower() == "building" else "HOSPITAL"
         payload = {'action': "PLACE_BUILDING", 'regionId': region_id, "productType": product_type,
                    "quality": quality, "round": at_round, 'submit': "Propose building"}
+        await self.bot.get_content(base_url + "countryLaws.html")
         url = await self.bot.get_content(base_url + "countryLaws.html", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
@@ -449,7 +454,7 @@ class Mix(Cog):
                             await ctx.send(f"**{nick}** <{registration.url}>\nHINT: type `.help avatar` and `.help missions`")
 
     @command()
-    async def report(self, ctx, target_citizen: Id, category, report_reason, *, nick: IsMyNick):
+    async def report(self, ctx, target_citizen_id: Id, category, report_reason, *, nick: IsMyNick):
         """Reporting a citizen.
         * The report_reason should be within quotes"""
         server = ctx.channel.name
@@ -458,8 +463,9 @@ class Mix(Cog):
         categories = ["STEALING_ORG", "POSSIBLE_MULTIPLE_ACCOUNTS", "AUTOMATED_SOFTWARE_OR_SCRIPTS", "UNPAID_DEBTS",
                       "SLAVERY", "EXPLOITING_GAME_MECHANICS", "ACCOUNT_SITTING", "PROFILE_CONTENT", "OTHER"]
         if category in categories:
-            payload = {"id": target_citizen, 'action': "REPORT_MULTI", "ticketReportCategory": category,
+            payload = {"id": target_citizen_id, 'action': "REPORT_MULTI", "ticketReportCategory": category,
                        "text": report_reason, "submit": "Report"}
+            await self.bot.get_content(f"{base_url}profile.html?id={target_citizen_id}")
             url = await self.bot.get_content(f"{base_url}ticket.html", data=payload)
             await ctx.send(f"**{nick}** <{url}>")
         else:
@@ -577,6 +583,11 @@ Examples:
 .click nick https://secura.e-sim.org/teamTournamentTeam.html?id=0 {"teamId": 0, "action": "APPLY"}
 .click nick https://secura.e-sim.org/citizenshipApplicationAction.html {"action": "ACCEPT", "applicationId": 0}
 """
+        if data:
+            try:
+                await self.bot.get_content(link)
+            except:
+                pass
         url = await self.bot.get_content(link, data=json.loads(data.replace("'", '"')) or None)
         await ctx.send(f"**{nick}** <{url}>")
 

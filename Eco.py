@@ -36,17 +36,18 @@ class Eco(Cog):
             else:
                 await ctx.send(f"**{nick}** no pending contracts")
         else:
-            payload = {'action': "ACCEPT", "id": contract_id, "submit": "Accept"}
-            url = await self.bot.get_content(f"https://{ctx.channel.name}.e-sim.org/contract.html", data=payload)
+            payload = {'action': "ACCEPT", "submit": "Accept"}
+            await self.bot.get_content(f"https://{ctx.channel.name}.e-sim.org/contract.html?id={contract_id}")
+            url = await self.bot.get_content(f"https://{ctx.channel.name}.e-sim.org/contract.html?id={contract_id}", data=payload)
             await ctx.send(f"**{nick}** <{url}>")
 
     @command()
     async def bid(self, ctx, auction: Id, price: float, delay: Optional[bool] = False, *, nick: IsMyNick):
         """Bidding an auction few seconds before its end"""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
-        tree = await self.bot.get_content(f"{base_url}auction.html?id={auction}", return_tree=True)
 
         if delay:
+            tree = await self.bot.get_content(f"{base_url}auction.html?id={auction}", return_tree=True)
             try:
                 auction_time = str(tree.xpath(f'//*[@id="auctionClock{auction}"]')[0].text)
             except Exception:
@@ -59,6 +60,7 @@ class Eco(Cog):
             await sleep(delay_in_seconds)
         if not delay or not utils.should_break(ctx):
             payload = {'action': "BID", 'id': auction, 'price': f"{float(price):.2f}"}
+            await self.bot.get_content(f"{base_url}auction.html?id={auction}")
             url = await self.bot.get_content(base_url + "auctionAction.html", data=payload)
             await ctx.send(f"**{nick}** <{url}>")
 
@@ -281,9 +283,10 @@ class Eco(Cog):
         if "eq" in donation_type.lower():
             results = []
             ids = [int(x.strip()) for x in data.split(",") if x.strip()]
+            await self.bot.get_content(f"{base_url}donateEquipment.html?id={receiver_id}")
             for index, eq_id in enumerate(ids):
-                payload = {"equipmentId": eq_id, "id": receiver_id, "reason": "", "submit": "Donate"}
-                url = await self.bot.get_content(base_url + "donateEquipment.html", data=payload)
+                payload = {"equipmentId": eq_id, "reason": "", "submit": "Donate"}
+                url = await self.bot.get_content(f"{base_url}donateEquipment.html?id={receiver_id}", data=payload)
                 results.append(f"ID {eq_id} - <{url}>")
             await ctx.send(f"**{nick}**\n" + "\n".join(results))
         elif donation_type.lower() == "gold":
@@ -291,6 +294,7 @@ class Eco(Cog):
                 await ctx.send(f"**{nick}** ERROR: you must provide the sum to donate")
             else:
                 payload = {"currencyId": 0, "sum": data, "reason": "", "submit": "Donate"}
+                await self.bot.get_content(f"{base_url}donateMoney.html?id={receiver_id}")
                 url = await self.bot.get_content(f"{base_url}donateMoney.html?id={receiver_id}", data=payload)
                 await ctx.send(f"**{nick}** <{url}>")
         else:
@@ -349,11 +353,13 @@ class Eco(Cog):
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
 
         if ctx.invoked_with.lower() == "split":
+            await self.bot.get_content(f'{base_url}storage.html?storageType=EQUIPMENT')
             payload = {'action': "SPLIT", "itemId": int(ids_or_quality.strip())}
             url = await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
             await ctx.send(f"**{nick}** <{url}>")
             await ctx.invoke(self.bot.get_command("eqs"), nick=nick)
         elif "," in ids_or_quality:
+            await self.bot.get_content(f'{base_url}storage.html?storageType=EQUIPMENT')
             eq1, eq2, eq3 = [eq.strip() for eq in ids_or_quality.split(",")]
             payload = {'action': "MERGE", f'itemId[{eq1}]': eq1, f'itemId[{eq2}]': eq2, f'itemId[{eq3}]': eq3}
             url = await self.bot.get_content(base_url + "equipmentAction.html", data=payload)
@@ -411,6 +417,7 @@ class Eco(Cog):
                 payload = {"luckyElixirType": elixir_type, "action": "MERGE_THREE_ELIXIRS_INTO_LUCKY_ONE", "submit": "Merge"}
             else:
                 payload = {"elixirType": elixir_type, "action": "MERGE_ELIXIRS_INTO_BIGGER", "submit": "Merge"}
+            await self.bot.get_content(f'{base_url}storage.html?storageType=ELIXIRS')
             url = await self.bot.get_content(base_url + "elixirAction.html", data=payload)
             await ctx.send(f"**{nick}** <{url}>")
 
@@ -458,9 +465,10 @@ class Eco(Cog):
     async def sell(self, ctx, quantity: int, quality: Optional[Quality], product: Product, price: float, country: Country, *, nick: IsMyNick):
         """Sell products at market."""
         base_url = f"https://{ctx.channel.name}.e-sim.org/"
-        payload = {'storageType': 'PRODUCT', 'action': 'POST_OFFER', 'product': f'{quality or 5}-{product}',
+        payload = {'action': 'POST_OFFER', 'product': f'{quality or 5}-{product}',
                    'countryId': country, 'quantity': quantity, 'price': price}
-        url = await self.bot.get_content(base_url + "storage.html", data=payload)
+        await self.bot.get_content(f"{base_url}storage.html?storageType=PRODUCT")
+        url = await self.bot.get_content(f"{base_url}storage.html?storageType=PRODUCT", data=payload)
         await ctx.send(f"**{nick}** <{url}>")
 
     @command()
@@ -534,6 +542,7 @@ class Eco(Cog):
                 item = f"EQUIPMENT {eq_id}"
             payload = {'action': "CREATE_AUCTION", 'price': price, "id": item, "length": hours,
                        "submit": "Create auction"}
+            await self.bot.get_content(f"{base_url}myAuctions.html")
             url = await self.bot.get_content(base_url + "auctionAction.html", data=payload)
             if "CREATE_AUCTION_ITEM_EQUIPED" in url:
                 ctx.invoked_with = "unwear"
@@ -689,10 +698,11 @@ class Eco(Cog):
             if utils.should_break(ctx):
                 break
             if friend not in blacklist:
-                payload = {'id': contract_id, 'action': "PROPOSE", 'citizenProposedTo': friend, 'submit': 'Propose'}
+                payload = {'action': "PROPOSE", 'citizenProposedTo': friend, 'submit': 'Propose'}
                 for _ in range(10):
                     try:
-                        url = await self.bot.get_content(base_url + "contract.html", data=payload)
+                        await self.bot.get_content(f"{base_url}contract.html?id={contract_id}")
+                        url = await self.bot.get_content(f"{base_url}contract.html?id={contract_id}", data=payload)
                         await ctx.send(f"**{friend}:** <{url}>")
                         break  # sent
                     except Exception as error:
