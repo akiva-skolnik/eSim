@@ -371,7 +371,7 @@ async def get_battles(bot, base_url: str, country_id: int = 0, normal_battles: b
                 continue
             defender, attacker = sides.split(" vs ")
             battles.append(
-                {"total_dmg": dmg, "time_reminding": counter,
+                {"total_dmg": dmg, "time_remaining": counter,
                  "battle_id": int(battle_id.split("=")[-1]), "region": battle_region,
                  "defender": {"name": defender, "score": int(score.strip().split(":")[0]),
                               "bar": round(100 - progress_attacker, 2)},

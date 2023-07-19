@@ -412,7 +412,7 @@ class War(Cog):
                 output += f"\n{hits_or_dmg.title()} done so far: {damage_done:,}"
                 await msg.edit(content=output)
         await msg.edit(content=output)
-        await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, reminding limits: {food_limit}/{gift_limit}")
+        await ctx.send(f"**{nick}** Done {damage_done:,} {hits_or_dmg}, remaining limits: {food_limit}/{gift_limit}")
         await utils.update_info(server, nick, {"limits": f"{food_limit}/{gift_limit}"})
         self.bot.loop.create_task(utils.idle(self.bot, [link, base_url, base_url + "battles.html"]))
         return utils.should_break(ctx) or "ERROR" in output or damage_done == 0 or not any((food_limit, gift_limit)), medkits
@@ -531,7 +531,7 @@ class War(Cog):
         while not should_break:
             battles_time = {}
             for battle in await utils.get_battles(self.bot, base_url):
-                round_ends = battle["time_reminding"].split(":")
+                round_ends = battle["time_remaining"].split(":")
                 battles_time[battle["battle_id"]] = int(round_ends[0]) * 3600 + int(round_ends[1]) * 60 + int(round_ends[2])
 
             for battle_id, round_ends in sorted(battles_time.items(), key=lambda x: x[1]):

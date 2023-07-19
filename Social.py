@@ -65,11 +65,11 @@ class Social(Cog):
         msgs = int(str(tree.xpath("//*[@id='inboxMessagesMission']/b")[0].text))
         alerts = int(str(tree.xpath('//*[@id="numero1"]/a/b')[0].text))
         if alerts:
-            reminding_alerts = alerts
-            for page in range(1, reminding_alerts // 20 + 2):
+            remaining_alerts = alerts
+            for page in range(1, remaining_alerts // 20 + 2):
                 tree = await self.bot.get_content(f"{base_url}notifications.html?page={page}", return_tree=True)
                 embed = Embed(title=f"**{nick}** {base_url}notifications.html?page={page}\n")
-                for div in range(1, min(20, reminding_alerts) + 1):
+                for div in range(1, min(20, remaining_alerts) + 1):
                     try:
                         alert_date = tree.xpath(f'//*[@id="command"]/div/div[2]/div[{div}]/div/div[1]/div/b')[
                             0].text.strip()
@@ -97,7 +97,7 @@ class Social(Cog):
                             alert = f'[{alert}]({base_url}{links[0]})'
                     elif links:
                         alert = f'[{alert}]({base_url}{links[0]})'
-                    reminding_alerts -= 1
+                    remaining_alerts -= 1
                     embed.add_field(name=alert_date, value=alert, inline=False)
                 await ctx.send(embed=embed)
 

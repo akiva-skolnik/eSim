@@ -186,8 +186,8 @@ class Info(Cog):
         buttons = tree.xpath("//*[@class='auctionButtons']/button[last()]")
         items = tree.xpath("//*[@class='auctionItem']//img[last()]//@src")
         current_prices = tree.xpath("//*[@class='auctionBidder']//b/text()")
-        time_reminding = tree.xpath("//*[@class='auctionTime']//span/text()")
-        for item, price, button, time in zip(items, current_prices, buttons, time_reminding):
+        time_remaining = tree.xpath("//*[@class='auctionTime']//span/text()")
+        for item, price, button, time in zip(items, current_prices, buttons, time_remaining):
             item = item.split("/")[-1].split(".png")[0].replace("-", "_").replace("bandage_", "bandage")
             if item.count("_") == 1:
                 item = item.split("_")[0]
