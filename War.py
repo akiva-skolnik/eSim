@@ -251,14 +251,15 @@ class War(Cog):
     @classmethod
     async def get_fight_data(cls, base_url, tree, wep, side, value="Berserk"):
         """get fight data"""
-        fight_page_id = re.sub("[\"\']*", "", re.findall('url: (\".*fight.*.html\")', tree.text_content())[0])
         hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
         data = {"weaponQuality": wep, "battleRoundId": hidden_id, "side": side if side == "attacker" else "default", "value": value or "Regular"}
         for script in tree.xpath("//script/text()"):
             if "&ip=" in script:
                 break
-        data.update(cls.convert_to_dict("ip=" + "".join(script).split("&ip=")[1].split("'")[0]))
-        return f"{base_url}{fight_page_id}", data
+        script = "".join(script)
+        data.update(cls.convert_to_dict("ip=" + script.split("&ip=")[1].split("'")[0]))
+        fight_url = script.split("url: ")[1].split(",")[0].replace('"', "")
+        return f"{base_url}{fight_url}", data
 
     @command(aliases=["fight_fast"])
     async def fight(self, ctx, nick: IsMyNick, battle: Id, side: Side, weapon_quality: Quality = 5,
