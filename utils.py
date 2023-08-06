@@ -133,13 +133,12 @@ async def get_battle_id(bot, nick: str, server: str, battle_ids, prioritize_my_c
 def get_products(tree) -> dict:
     products = {}
     for item in tree.xpath("//div[@class='storage']"):
-        name = item.xpath("div[2]/img/@src")[0].replace("//cdn.e-sim.org//img/productIcons/", "").replace(
+        name = item.xpath("div[2]/img/@src")[0].split("productIcons/")[1].replace(
             "Rewards/", "").replace(".png", "")
         if name.lower() in ["iron", "grain", "diamonds", "oil", "stone", "wood"]:
             quality = ""
         else:
-            quality = item.xpath("div[2]/img/@src")[1].replace(
-                "//cdn.e-sim.org//img/productIcons/", "").replace(".png", "")
+            quality = item.xpath("div[2]/img/@src")[1].split("productIcons/")[1].replace(".png", "")
         products[f"{quality.title()} {name}"] = int(item.xpath("div[1]/text()")[0].strip())
     return products
 

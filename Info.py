@@ -103,13 +103,12 @@ class Info(Cog):
         tree = await self.bot.get_content(f"{base_url}militaryUnitStorage.html", return_tree=True)
         products = {}
         for item in tree.xpath("//div[@class='storage']"):
-            name = item.xpath("div[2]/img/@src")[0].replace("//cdn.e-sim.org//img/productIcons/", "").replace(
+            name = item.xpath("div[2]/img/@src")[0].split("productIcons/")[1].replace(
                 "Rewards/", "").replace(".png", "")
             if name.lower() in ("iron", "grain", "diamonds", "oil", "stone", "wood"):
                 quality = ""
             else:
-                quality = item.xpath("div[2]/img/@src")[1].replace("//cdn.e-sim.org//img/productIcons/",
-                                                                   "").replace(".png", "")
+                quality = item.xpath("div[2]/img/@src")[1].split("productIcons/")[1].replace(".png", "")
             products[f"{quality.title()} {name}"] = int(item.xpath("div[1]/text()")[0].strip())
 
         coins_len = max(5, len(products))
@@ -291,7 +290,7 @@ class Info(Cog):
 
         buffs_debuffs = [x.split("/specialItems/")[-1].split(".png")[0] for x in
                          tree.xpath('//*[@class="profile-row" and (strong="Debuffs" or strong="Buffs")]//img/@src') if
-                         "//cdn.e-sim.org//img/specialItems/" in x]
+                         "img/specialItems/" in x]
         buffs = ', '.join([x.split("_")[0].lower().replace("vacations", "vac").replace("resistance", "sewer").replace(
             "paindealer", "PD ").replace("bonusdamage", "") + ("% Bonus" if "bonusdamage" in x.lower() else "") for x in
                            buffs_debuffs if "positive" in x.split("_")[1:]]).title()
