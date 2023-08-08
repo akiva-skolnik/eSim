@@ -254,11 +254,15 @@ class War(Cog):
         hidden_id = tree.xpath("//*[@id='battleRoundId']")[0].value
         data = {"weaponQuality": wep, "battleRoundId": hidden_id, "side": side if side == "attacker" else "default", "value": value or "Regular"}
         for script in tree.xpath("//script/text()"):
-            if "&ip=" in script:
+            if "function sendFightRequest(" in script:
                 break
         script = "".join(script)
-        data.update(cls.convert_to_dict("ip=" + script.split("&ip=")[1].split("'")[0]))
-        fight_url = script.split("url: ")[1].split(",")[0].replace('"', "")
+        for function in script.split("function"):
+            if "sendFightRequest(" in function:
+                break
+
+        data.update(cls.convert_to_dict("ip=" + function.split("&ip=")[1].split("'")[0]))
+        fight_url = function.split("url: ")[1].split(",")[0].replace('"', "")
         return f"{base_url}{fight_url}", data
 
     @command(aliases=["fight_fast"])
