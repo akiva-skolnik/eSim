@@ -22,7 +22,7 @@ if config_file in os.listdir():
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
 bot_utils = bot_utils.BotUtils(bot)
-bot.VERSION = "09/08/2023"
+bot.VERSION = "20/08/2023"
 bot.config_file = config_file
 bot.sessions = {}
 bot.should_break_dict = {}  # format: {server: {command: True if it should be canceled, else False if it's running}}

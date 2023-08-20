@@ -65,7 +65,7 @@ class BotUtils:
                 logged = tree.xpath('//*[@id="command"]')
                 if server != "incognito" and any("login.html" in x.action for x in logged):
                     raise ConnectionError("notLoggedIn")
-                await self.compare_and_save_page(link, respond_text)
+                await self.compare_and_save_page(link.split("?")[0], respond_text)
                 if isinstance(return_tree, str):
                     return tree, str(respond.url)
                 return tree if return_tree else str(respond.url)
@@ -236,7 +236,7 @@ class BotUtils:
         if not os.path.exists(saved_pages_dir):
             os.makedirs(saved_pages_dir)
 
-        saved_pages_file = os.path.join(saved_pages_dir, f"{link}.txt")
+        saved_pages_file = os.path.join(saved_pages_dir, link)
         if os.path.exists(saved_pages_file):
             with open(saved_pages_file, "r", encoding="utf-8") as f:
                 saved_content = f.read()
