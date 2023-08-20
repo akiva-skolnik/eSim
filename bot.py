@@ -2,18 +2,15 @@
 import importlib
 import json
 import os
-from asyncio import sleep
-from typing import Union
 from traceback import format_exception
 
-from aiohttp import ClientSession
 from discord import Intents, Message
 from discord.ext import commands
 from discord.ext.commands import Bot, Context, errors
-from lxml.html import fromstring
 
-import utils
 import Converters
+import utils
+import bot_utils
 
 config_file = "config.json"
 if config_file in os.listdir():
@@ -24,33 +21,12 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
+bot_utils = bot_utils.BotUtils(bot)
 bot.VERSION = "09/08/2023"
 bot.config_file = config_file
 bot.sessions = {}
 bot.should_break_dict = {}  # format: {server: {command: True if it should be canceled, else False if it's running}}
 categories = ("Eco", "Mix", "Social", "War", "Info")
-
-
-async def create_session(server: str = None) -> ClientSession:
-    """create session"""
-    headers = {"User-Agent": os.environ["headers"]}
-    if server:
-        headers["Host"] = server + ".e-sim.org"
-    return ClientSession(headers=headers)
-
-
-async def get_session(server: str) -> ClientSession:
-    """get session"""
-    if server not in bot.sessions:
-        bot.sessions[server] = await create_session(server)
-    return bot.sessions[server]
-
-
-async def close_session(server: str) -> None:
-    """close session"""
-    if server in bot.sessions:
-        await bot.sessions[server].close()
-        del bot.sessions[server]
 
 
 async def start() -> None:
@@ -61,7 +37,7 @@ async def start() -> None:
     bot.friends = await utils.find_one("friends", "list", os.environ["nick"])
     for extension in categories:
         bot.load_extension(extension)
-    bot.sessions["incognito"] = await create_session()
+    bot.sessions["incognito"] = await bot_utils.create_session()
     print('Logged in as')
     print(bot.user.name)
     print(f"Invite: https://discordapp.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot")
@@ -127,85 +103,6 @@ async def start() -> None:
                 d["let_overkill"], d["weapon_quality"], d["ticket_quality"], d["consume_first"], d.get("medkits", 0)))
 
 
-async def inner_get_content(link: str, server: str, data=None, return_tree=False, extra_headers: dict = None) \
-        -> Union[str, fromstring, tuple]:
-    """inner get content"""
-    method = "get" if data is None else "post"
-    headers = {"User-Agent": os.environ["headers"]}
-    if extra_headers:
-        for k, v in extra_headers.items():
-            headers[k] = v
-    return_type = "json" if "api" in link or "battleScore" in link else "html"
-    session = await get_session(server)
-    for _ in range(5):
-        try:
-            async with session.get(link, ssl=True, headers=headers) if method == "get" else \
-                    session.post(link, data=data, ssl=True, headers=headers) as respond:
-                if "google.com" in str(respond.url) or respond.status == 403:
-                    await sleep(5)
-                    continue
-
-                if any(t in str(respond.url) for t in ("notLoggedIn", "error")):
-                    raise ConnectionError("notLoggedIn")
-
-                if respond.status == 200:
-                    if return_type == "json":
-                        try:
-                            api = await respond.json(content_type=None)
-                        except Exception:
-                            await sleep(5)
-                            continue
-                        if "error" in api:
-                            raise ConnectionError(api["error"])
-                        return api if "apiBattles" not in link else api[0]
-                    try:
-                        tree = fromstring(await respond.text(encoding='utf-8'))
-                    except Exception:
-                        tree = fromstring(await respond.text(encoding='utf-8'))[1:]
-                    logged = tree.xpath('//*[@id="command"]')
-                    if server != "incognito" and any("login.html" in x.action for x in logged):
-                        raise ConnectionError("notLoggedIn")
-                    if isinstance(return_tree, str):
-                        return tree, str(respond.url)
-                    return tree if return_tree else str(respond.url)
-                await sleep(5)
-        except Exception as exc:
-            if isinstance(exc, ConnectionError):
-                raise exc
-            await sleep(5)
-
-    raise ConnectionError(link)
-
-
-async def get_content(link, data=None, return_tree=False, incognito=False, extra_headers: dict = None) -> Union[str, fromstring, tuple]:
-    """get content"""
-    link = link.split("#")[0].replace("http://", "https://")
-    server = "incognito" if incognito else link.split("https://", 1)[1].split(".e-sim.org", 1)[0]
-    nick = utils.my_nick(server)
-    base_url = f"https://{server}.e-sim.org/"
-    not_logged_in = False
-    tree = None
-    try:
-        tree = await inner_get_content(link, server, data, return_tree, extra_headers)
-    except ConnectionError as exc:
-        if "notLoggedIn" != str(exc):
-            raise exc
-        not_logged_in = True
-    if not_logged_in and not incognito:
-        await close_session(server)
-
-        payload = {'login': nick, 'password': os.environ.get(server + "_password", os.environ.get('password')), "submit": "Login"}
-        async with (await get_session(server)).get(base_url, ssl=True) as _:
-            async with (await get_session(server)).post(base_url + "login.html", data=payload, ssl=True) as r:
-                print(r.url)
-                if "index.html?act=login" not in str(r.url):
-                    raise ConnectionError(f"{nick} - Failed to login {r.url}")
-        tree = await inner_get_content(link, server, data, return_tree, extra_headers)
-    if tree is None:
-        tree = await inner_get_content(link, server, data, return_tree, extra_headers)
-    return tree
-
-
 @bot.event
 async def on_message(message: Message) -> None:
     """Override original on_message, to allow other bots to invoke commands"""
@@ -236,7 +133,7 @@ async def remove_finished_command(ctx: Context) -> None:
 async def update(ctx: Context, *, nick: Converters.IsMyNick) -> None:
     """Updates the code from the source.
     You can also use `.update ALL`"""
-    session = await get_session("incognito")
+    session = await bot_utils.get_session("incognito")
     async with session.get("https://api.github.com/repos/akiva0003/eSim/git/trees/main") as main:
         for file in (await main.json())["tree"]:
             file_name = file["path"]
@@ -248,6 +145,8 @@ async def update(ctx: Context, *, nick: Converters.IsMyNick) -> None:
     async with session.get("https://api.github.com/repos/akiva0003/eSim/branches/main") as r:
         bot.VERSION = (await r.json())["commit"]["commit"]["author"]["date"]
     importlib.reload(utils)
+    importlib.reload(bot_utils)
+    bot.get_content = bot_utils.BotUtils(bot).get_content
     importlib.reload(Converters)
     utils.initiate_db()  # global variable reloaded
     for extension in categories:
@@ -269,6 +168,9 @@ async def on_command_error(ctx: Context, error: Exception) -> None:
         if await utils.is_helper():
             await ctx.reply(f"```{''.join(format_exception(type(error), error, error.__traceback__))}```"[:1950])
         return
+    if str(error.args[0]) == "message" and isinstance(error.args[1], dict):
+        await ctx.reply(**error.args[1])
+        return
     try:
         last_msg = str(list(await ctx.channel.history(limit=1).flatten())[0].content)
     except IndexError:
@@ -283,7 +185,7 @@ async def on_command_error(ctx: Context, error: Exception) -> None:
         except Exception:
             await ctx.reply(error)
 
-bot.get_content = get_content
+bot.get_content = bot_utils.get_content
 if os.environ["TOKEN"] != "PASTE YOUR TOKEN HERE":
     bot.loop.create_task(start())  # startup function
     bot.run(os.environ["TOKEN"])

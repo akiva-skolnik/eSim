@@ -655,10 +655,7 @@ Examples:
                 else:
                     await ctx.send(f'```py\n{value}{ret}\n```')
             except Exception:
-                io_output = StringIO(newline='')
-                io_output.write(value + (ret or ""))
-                io_output.seek(0)
-                await ctx.send(file=File(fp=io_output, filename="output.txt"))
+                await ctx.send(file=File(fp=StringIO(value + (ret or "")), filename="output.txt"))
 
     @command(hidden=True)
     async def shutdown(self, ctx, restart: bool, chance_to_ignore: Optional[int] = 0, *, nick: IsMyNick):
