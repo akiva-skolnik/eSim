@@ -105,7 +105,7 @@ class War(Cog):
                 break
             await self.dump_health(server, battle_id, side, wep)
             if food:
-                await self.bot.get_content(f"{base_url}eat.html", data={'quality': food})
+                await self.bot.get_content(f"{base_url}Eat.html", data={'quality': food})
             if gift:
                 await self.bot.get_content(f"{base_url}gift.html", data={'quality': gift})
             if food or gift:
@@ -227,7 +227,7 @@ class War(Cog):
                 food_storage, gift_storage = utils.get_storage(tree)
                 food_limit, gift_limit = utils.get_limits(tree)
                 if food_limit and food_storage:
-                    await self.bot.get_content(f"{base_url}eat.html", data={'quality': 5})
+                    await self.bot.get_content(f"{base_url}Eat.html", data={'quality': 5})
                 elif gift_limit and gift_storage:
                     await self.bot.get_content(f"{base_url}gift.html", data={'quality': 5})
                 else:
@@ -236,7 +236,7 @@ class War(Cog):
 
             payload = {'countryId': country_id[0], 'regionId': region_id, 'ticketQuality': ticket_quality}
             await self.bot.get_content(f"{base_url}travel.html")
-            url = await self.bot.get_content(f"{base_url}travel.html", data=payload)
+            url = await self.bot.get_content(f"{base_url}travelDarkFrom", data=payload)
             await sleep(uniform(0, 1))
             await ctx.send(f"**{nick}** <{url}>")
             return True
@@ -726,7 +726,7 @@ class War(Cog):
                     if food and food_storage > 0 and food_limit > 0:
                         food_storage -= 1
                         food_limit -= 1
-                        await self.bot.get_content(f"{base_url}eat.html", data={'quality': 5})
+                        await self.bot.get_content(f"{base_url}Eat.html", data={'quality': 5})
                     elif gift and gift_storage > 0 and gift_limit > 0:
                         gift_storage -= 1
                         gift_limit -= 1

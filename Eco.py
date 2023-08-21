@@ -564,7 +564,7 @@ class Eco(Cog):
             await sleep(uniform(1, 2))
             await self.bot.get_content(base_url + "taskQueue.html", data=payload2)
 
-        tree = await self.bot.get_content(base_url + "work.html", return_tree=True)
+        tree = await self.bot.get_content(base_url + "work2.html", return_tree=True)
         await sleep(uniform(3, 20))
 
         train_first = randint(1, 2) == 1
@@ -587,7 +587,7 @@ class Eco(Cog):
                         return await ctx.send(f"**{nick}** ERROR: I couldn't find in which region your work is. If you don't have a job, see `.help job`")
                 if await ctx.invoke(self.bot.get_command("fly"), region, 5, nick=nick):
                     await self.bot.get_content(base_url + "work/ajax", data={"action": "work"})
-            tree = await self.bot.get_content(base_url + "work.html", return_tree=True)
+            tree = await self.bot.get_content(base_url + "work2.html", return_tree=True)
             if not tree.xpath('//*[@id="taskButtonWork"]//@href'):
                 data = await utils.find_one(server, "info", nick)
                 data["Worked at"] = datetime.now().astimezone(timezone('Europe/Berlin')).strftime("%d/%m  %H:%M")
@@ -627,7 +627,7 @@ class Eco(Cog):
                         region = choice(regions)
                     last_region = region
                     payload = {'countryId': country, 'regionId': region, 'ticketQuality': ticket_quality}
-                    tree = await self.bot.get_content(f"https://{ctx.channel.name}.e-sim.org/travel.html", data=payload, return_tree=True)
+                    tree = await self.bot.get_content(f"https://{ctx.channel.name}.e-sim.org/travelDarkFrom", data=payload, return_tree=True)
                     flights += 1
                     if tree.xpath("//*[@class='travelEquipmentDrop']"):
                         output += f"found drop after {(i+1)*(j+1)} flights\n"

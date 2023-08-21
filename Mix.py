@@ -206,7 +206,7 @@ class Mix(Cog):
                                                                "Regular" if num != 37 else "Berserk")
                     await self.bot.get_content(fight_url, data=data)
             elif num == 5:
-                await self.bot.get_content(f"{base_url}eat.html", data={'quality': 1})
+                await self.bot.get_content(f"{base_url}Eat.html", data={'quality': 1})
             elif num == 6:
                 citizen = await self.bot.get_content(f'{base_url}apiCitizenById.html?id={my_id}')
                 capital = [row['id'] for row in await self.bot.get_content(base_url + "apiRegions.html") if row[
@@ -312,7 +312,7 @@ class Mix(Cog):
                 for _ in range(5):
                     await self.bot.get_content(fight_url, data=data)
                 for _ in range(10):
-                    await self.bot.get_content(f"{base_url}eat.html", data={'quality': 1})
+                    await self.bot.get_content(f"{base_url}Eat.html", data={'quality': 1})
                 for _ in range(5):
                     await self.bot.get_content(fight_url, data=data)
                 for _ in range(10):
