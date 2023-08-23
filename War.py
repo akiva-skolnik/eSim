@@ -234,9 +234,10 @@ class War(Cog):
                     await ctx.reply(f"**{nick}** ERROR: no health / limits.")
                     return False
 
-            payload = {'countryId': country_id[0], 'regionId': region_id, 'ticketQuality': ticket_quality}
-            await self.bot.get_content(f"{base_url}travel.html")
-            url = await self.bot.get_content(f"{base_url}travelDarkFrom", data=payload)
+            payload = {'countryId': country_id[0], 'regionId': region_id, 'ticketQuality': ticket_quality,
+                       'redirectUrl': f"region.html?id={region_id}"}
+            await self.bot.get_content(f"{base_url}region.html?id={region_id}")
+            url = await self.bot.get_content(f"{base_url}travel.html", data=payload)
             await sleep(uniform(0, 1))
             await ctx.send(f"**{nick}** <{url}>")
             return True
