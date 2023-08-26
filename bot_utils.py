@@ -1,3 +1,4 @@
+import json
 import os
 import re
 from asyncio import sleep
@@ -246,14 +247,18 @@ class BotUtils:
         # Calculate similarity and handle based on the threshold
         if saved_content:
             diff_changes, average_similarity = BotUtils.measure_page_similarity(saved_content, new_content)
-
-            if average_similarity < 0.98:  # TODO: custom (per page?)
+            default_threshold = 0.97
+            page = link.split("_")[-1].split(".")[0]
+            pages_similarity_thresholds = json.loads(os.environ.get("pages_similarity_threshold", "{}").replace("'", '"'))
+            threshold = pages_similarity_thresholds.get(page, pages_similarity_thresholds.get("default", default_threshold))
+            if average_similarity < threshold:
                 html_content = BotUtils.generate_diff_html(diff_changes)
 
                 # Send the generated HTML content to a file
                 raise Exception("message",
                                 {"content": f"Page {link.replace('___', '://').replace('_', '/')} has significant changes since the last time you accessed it!\n"
-                                            f"(Similarity of functions between the pages: {average_similarity:.2%})\n"
+                                            f"(Similarity of functions between the pages: {average_similarity:.2%}.\n"
+                                            """You can adjust the sensitivity using this example: `.config pages_similarity_threshold "{'motivateCitizen': 0.4, 'default': 0.9}"  nick`)\n"""
                                             f"If you still want to proceed, try again (at least download and open the first file below)",
                                  "files": [File(fp=StringIO(html_content), filename="function_diff.html"),
                                            File(fp=StringIO(saved_content), filename=f"old_{link}.html"),
