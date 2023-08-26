@@ -22,7 +22,7 @@ if config_file in os.listdir():
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
 bot_utils_inst = bot_utils.BotUtils(bot)
-bot.VERSION = "20/08/2023"
+bot.VERSION = "26/08/2023"
 bot.config_file = config_file
 bot.sessions = {}
 bot.should_break_dict = {}  # format: {server: {command: True if it should be canceled, else False if it's running}}
@@ -168,7 +168,7 @@ async def on_command_error(ctx: Context, error: Exception) -> None:
         if await utils.is_helper():
             await ctx.reply(f"```{''.join(format_exception(type(error), error, error.__traceback__))}```"[:1950])
         return
-    if str(error.args[0]) == "message" and isinstance(error.args[1], dict):
+    if error.args and str(error.args[0]) == "message" and isinstance(error.args[1], dict):
         await ctx.reply(**error.args[1])
         return
     try:
