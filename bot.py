@@ -21,7 +21,7 @@ if config_file in os.listdir():
 
 utils.initiate_db()
 bot = Bot(command_prefix=".", case_insensitive=True, intents=Intents.default())
-bot_utils = bot_utils.BotUtils(bot)
+bot_utils_inst = bot_utils.BotUtils(bot)
 bot.VERSION = "20/08/2023"
 bot.config_file = config_file
 bot.sessions = {}
@@ -37,7 +37,7 @@ async def start() -> None:
     bot.friends = await utils.find_one("friends", "list", os.environ["nick"])
     for extension in categories:
         bot.load_extension(extension)
-    bot.sessions["incognito"] = await bot_utils.create_session()
+    bot.sessions["incognito"] = await bot_utils_inst.create_session()
     print('Logged in as')
     print(bot.user.name)
     print(f"Invite: https://discordapp.com/api/oauth2/authorize?client_id={bot.user.id}&permissions=8&scope=bot")
@@ -133,7 +133,7 @@ async def remove_finished_command(ctx: Context) -> None:
 async def update(ctx: Context, *, nick: Converters.IsMyNick) -> None:
     """Updates the code from the source.
     You can also use `.update ALL`"""
-    session = await bot_utils.get_session("incognito")
+    session = await bot_utils_inst.get_session("incognito")
     async with session.get("https://api.github.com/repos/akiva0003/eSim/git/trees/main") as main:
         for file in (await main.json())["tree"]:
             file_name = file["path"]
@@ -185,7 +185,7 @@ async def on_command_error(ctx: Context, error: Exception) -> None:
         except Exception:
             await ctx.reply(error)
 
-bot.get_content = bot_utils.get_content
+bot.get_content = bot_utils_inst.get_content
 if os.environ["TOKEN"] != "PASTE YOUR TOKEN HERE":
     bot.loop.create_task(start())  # startup function
     bot.run(os.environ["TOKEN"])
