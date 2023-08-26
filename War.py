@@ -834,39 +834,33 @@ class War(Cog):
         citizen_id = int(utils.get_ids_from_path(new_citizens_tree, "//tr[2]//td[1]/a")[0])
         checking = []
         sent_count = 0
-        errors = 0
         while not utils.should_break(ctx):
-            try:
-                if sent_count == 5:
-                    await ctx.send(f"**{nick}**\n" + "\n".join(checking) + "\n- Successfully motivated 5 players.")
-                    break
-                # TODO: remove profile request
-                tree = await self.bot.get_content(f'{base_url}profile.html?id={citizen_id}', return_tree=True)
-                today = int(tree.xpath('//*[@class="sidebar-clock"]//b/text()')[-1].split()[-1])
-                birthday = int(
-                    tree.xpath('//*[@class="profile-row" and span = "Birthday"]/span/text()')[0].split()[-1])
-                if today - birthday > 3:
-                    await ctx.send(f"**{nick}** Checked all new players")
-                    break
-                checking.append(f"Checking <{base_url}profile.html?id={citizen_id}>")
-                if tree.xpath('//*[@id="motivateCitizenButton"]'):
-                    for num in storage.values():
-                        payload = {'type': num, "submit": "Motivate", "id": citizen_id}
-                        await self.bot.get_content(f"{base_url}motivateCitizen.html?id={citizen_id}")
-                        tree, url = await self.bot.get_content(f"{base_url}motivateCitizen.html?id={citizen_id}", data=payload, return_tree="both")
-                        if "&actionStatus=SUCCESFULLY_MOTIVATED" in url:
-                            checking.append(f"<{url}>")
-                            sent_count += 1
-                            break
-                        msg = ' '.join(tree.xpath("//div[2]/text()")).strip()
-                        if "too many" in msg:
-                            return await ctx.send(f"**{nick}** You have sent too many motivations today!")
-                citizen_id -= 1
-            except Exception as exc:
-                await ctx.send(f"**{nick}** ERROR: {exc}")
-                errors += 1
-                if errors == 5:
-                    break
+            if sent_count == 5:
+                await ctx.send(f"**{nick}**\n" + "\n".join(checking) + "\n- Successfully motivated 5 players.")
+                break
+            # TODO: remove profile request
+            tree = await self.bot.get_content(f'{base_url}profile.html?id={citizen_id}', return_tree=True)
+            today = int(tree.xpath('//*[@class="sidebar-clock"]//b/text()')[-1].split()[-1])
+            birthday = int(
+                tree.xpath('//*[@class="profile-row" and span = "Birthday"]/span/text()')[0].split()[-1])
+            if today - birthday > 3:
+                await ctx.send(f"**{nick}** Checked all new players")
+                break
+            checking.append(f"Checking <{base_url}profile.html?id={citizen_id}>")
+            if tree.xpath('//*[@id="motivateCitizenButton"]'):
+                for num in storage.values():
+                    payload = {'type': num, "submit": "Motivate", "id": citizen_id}
+                    await self.bot.get_content(f"{base_url}motivateCitizen.html?id={citizen_id}")
+                    tree, url = await self.bot.get_content(f"{base_url}motivateCitizen.html?id={citizen_id}", data=payload, return_tree="both")
+                    if "&actionStatus=SUCCESFULLY_MOTIVATED" in url:
+                        checking.append(f"<{url}>")
+                        sent_count += 1
+                        break
+                    msg = ' '.join(tree.xpath("//div[2]/text()")).strip()
+                    if "too many" in msg:
+                        return await ctx.send(f"**{nick}** You have sent too many motivations today!")
+            citizen_id -= 1
+
             if citizen_id % 10 == 0 and checking:
                 await ctx.send(f"**{nick}**\n" + "\n".join(checking))
                 checking.clear()
