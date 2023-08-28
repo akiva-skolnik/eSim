@@ -148,10 +148,10 @@ class BotUtils:
                 elif line.startswith('-'):
                     changes.append({'oldContent': line, 'newContent': ''})
             diff_changes.extend(changes)
-
-        average_similarity = sum(diff_ratios) / len(diff_ratios)
-
-        return diff_changes, average_similarity
+        if diff_ratios:
+            average_similarity = sum(diff_ratios) / len(diff_ratios)
+            return diff_changes, average_similarity
+        return diff_changes, 1.0
 
     @staticmethod
     def generate_diff_html(diff_changes):
